@@ -1,0 +1,29 @@
+[package]
+name = "edgedb-query-derive"
+version = "0.0.0"
+authors = ["hsedjame <sedhjodev@gmail.com>"]
+description = "A `cargo generate` template for quick-starting a procedural macro crate"
+keywords = ["template", "proc_macro", "procmacro"]
+edition = "2018"
+
+[lib]
+proc-macro = true
+
+
+[[test]]
+name = "test"
+path = "test/progress.rs"
+
+[dependencies]
+quote = "1"
+proc-macro2 = "1.0"
+syn = { version = "1.0", features = ["proc-macro", "extra-traits", "quote"] }
+serde = { version ="1.0", features = ["derive", "serde_derive"] }
+serde_json = "1.0"
+edgedb = "0.1"
+edgedb-protocol = "0.3"
+edgedb-query = { path = "../edgedb-query"}
+
+[dev-dependencies]
+trybuild = { version = "1.0", features = ["diff"] }
+
