@@ -53,12 +53,6 @@ pub fn start(ast_struct: &DeriveInput) -> (String, Query, bool, Option<Field>, V
         .filter(|f| !EdgeDbMeta::from_field(f).is_valid() && Options::from_field(f).is_none())
         .collect::<Vec<Field>>();
 
-    let f_names = fields
-        .clone()
-        .iter()
-        .map(|f| get_field_ident(f).to_string())
-        .collect::<Vec<String>>();
-    query_attr.validate(f_names);
 
     (
         table_name,

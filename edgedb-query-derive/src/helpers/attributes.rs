@@ -293,16 +293,6 @@ impl Query {
         ql
     }
 
-    pub fn validate(&self, fields: Vec<String>) {
-        if let Some(OrderOption { order_by, .. }) = self.order.clone() {
-            if !fields.iter().any(|f| *f == order_by) {
-                panic!(
-                    "Order by field '{}' is not one of selected fields",
-                    order_by
-                );
-            }
-        }
-    }
 }
 
 impl EdgeDbType {

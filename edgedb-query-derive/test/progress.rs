@@ -1,3 +1,7 @@
+mod insert_query;
+mod select_query;
+
+/*
 use edgedb_query::models::edge_query::*;
 
 use edgedb_query::queries::select::{
@@ -89,10 +93,7 @@ fn query() {
             }),
         },
     };
-    println!("{:#?}", f.to_edge_query().query);
 
-    //let t = trybuild::TestCases::new();
-    //t.pass("test/01-insert-basics.rs");
-    //t.pass("test/02-insert-with-enum.rs");
-    //t.pass("test/03-insert-with-result.rs");
 }
+
+*/

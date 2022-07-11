@@ -1,10 +1,9 @@
-<div style="text-align: left">
-    <img src="assets/logo.png" width="15%" style="margin-top: 25px" alt="https://www.edgedb.com/">
-</div>
+<img src="assets/logo.png" width="15%" style="margin-top: 25px" alt="https://www.edgedb.com/">  
+<i style="font-weight: bold; font-size: 18px; margin-left: 5px">EdgeDB</i> is a new graph-relational database built on top of <i style="font-size: 16px
+">🐘 Postgresql </i>
 
 _____
 
-**EdgeDB** is a new graph-relational database built on top of **🐘** _Postgresql_
 
 🦾 This project aims to provide a bunch procedural macros in order to facilitate writing of edgedb queries while
 using [edgedb-tokio](https://crates.io/crates/edgedb-tokio) crate.
