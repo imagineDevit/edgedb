@@ -5,21 +5,52 @@ const OFFSET: &'static str = "offset";
 const ASC: &'static str = " asc";
 const DESC: &'static str = " desc";
 
-/// # ToSelectOtions
+/// # Select query Options
 ///
 /// Trait representing a select query options
 ///
 pub trait Options {
+
+    /// returns the edgedb module targeted by the query
     fn module(&self) -> Option<&str>;
+
+    /// returns the edgedb table targeted by the query
     fn table_name(&self) -> &str;
+
+    /// returns the query's order options
     fn order_options(&self) -> Option<OrderOptions>;
+
+    /// returns the query's page options
     fn page_options(&self) -> Option<PageOptions>;
 }
 
 /// Parse the select query options
 ///
-/// returns the select options statement
-pub fn parse_options<T: Options>(options: T) -> String {
+/// __returns__ : the select options statement
+///
+/// ## Examples
+///
+/// ```
+/// use edgedb_query::queries::select::{OrderOptions, parse_options, SelectOptions, OrderDir, PageOptions};
+///
+/// let options = SelectOptions {
+///          table_name: "User",
+///          module: Some("users"),
+///          order_options: Some(OrderOptions {
+///              order_by: String::from("name"),
+///              order_direction: Some(OrderDir::Desc),
+///          }),
+///          page_options: Some(PageOptions {
+///              limit: 10,
+///              offset: None
+///          })
+///      };
+///  let stmt = parse_options(&options);
+///
+///  assert_eq!(" order by users::User.name desc limit 10".to_owned(), stmt)
+///
+/// ```
+pub fn parse_options<T: Options>(options: &T) -> String {
     let table_name = options
         .module()
         .or_else(|| Some(DEFAULT))
@@ -53,7 +84,7 @@ pub fn parse_options<T: Options>(options: T) -> String {
     stmt
 }
 
-/// ## Order direction
+/// ## Select query Order direction
 #[derive(Clone)]
 pub enum OrderDir {
     Asc,
@@ -61,22 +92,20 @@ pub enum OrderDir {
 }
 
 /// ## Select query Order options
-///
-///
 #[derive(Clone)]
 pub struct OrderOptions {
     pub order_by: String,
     pub order_direction: Option<OrderDir>,
 }
 
-/// Select query Page Options
+/// ## Select query Page Options
 #[derive(Clone)]
 pub struct PageOptions {
     pub limit: u32,
     pub offset: Option<u32>,
 }
 
-/// Select Options structure
+/// ## Select Options structure
 pub struct SelectOptions<'a> {
     pub table_name: &'a str,
     pub module: Option<&'a str>,

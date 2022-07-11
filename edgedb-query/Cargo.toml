@@ -6,6 +6,11 @@ authors  = ["Henri Joel Sedjame <sedhjodev@gmail.com>"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[[test]]
+name="select_test"
+path="test/queries/select.rs"
+
+
 [dependencies]
 serde_json = "1.0"
 edgedb = "0.1"
