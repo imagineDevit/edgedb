@@ -1,7 +1,7 @@
 
 #[cfg(test)]
 mod insert {
-    use edgedb_protocol::codec::EnumValue;
+    use edgedb_protocol::codec::{EnumValue, ObjectShape};
     use edgedb_protocol::value::Value;
     use edgedb_query_derive::{InsertQuery, EdgedbEnum, EdgedbResult};
     use edgedb_query::{*, models::{ edge_query::*, query_result::BasicResult}};
@@ -79,16 +79,8 @@ mod insert {
         assert_eq!(query.query.replace(" ", ""), expected.replace(" ", ""));
 
         if let Some(Value::Object { shape, mut fields}) = query.args {
-            let elements = &shape.elements;
-            let nb_elements = elements.len();
 
-            assert_eq!(nb_elements, 7);
-
-            let vars = elements.iter()
-                .map(|elmt| elmt.name.clone())
-                .collect::<Vec<String>>();
-
-            assert_eq!(vars, vec!["name", "surname", "age", "major", "vs", "gender", "wallet"]);
+            crate::test_utils::check_shape(&shape, vec!["name", "surname", "age", "major", "vs", "gender", "wallet"]);
 
             let wallet_field = fields.pop();
 
@@ -112,5 +104,6 @@ mod insert {
             assert!(false)
         }
     }
+
 
 }

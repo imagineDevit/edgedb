@@ -1,13 +1,11 @@
-use crate::constants::{
-    DD_SIGN, EDGEDB, ENUM, FILTER, INF_SIGN, LIMIT, MODULE, NAME, OFFSET, OPTIONS, ORDER_BY,
-    ORDER_DIR, QUERY, RESULT, SELECT, SUP_SIGN, TABLE, TYPE, VALUE,
-};
+use crate::constants::{CONJUNCTIVE, DD_SIGN, EDGEDB, ENUM, FILTER, INF_SIGN, LIMIT, MODULE, NAME, OFFSET, OPERATOR, OPTIONS, ORDER_BY, ORDER_DIR, QUERY, RESULT, SELECT, SUP_SIGN, TABLE, TYPE, VALUE};
 use crate::utils::field_utils::get_field_ident;
 use crate::utils::path_utils::path_ident_equals;
 use crate::utils::type_utils::is_type_name;
 use proc_macro2::{Ident, Span};
 use std::collections::HashMap;
-use syn::{Field, Meta, MetaNameValue, NestedMeta, Variant};
+
+use syn::{Field, Meta, MetaNameValue, NestedMeta, Type, Variant};
 
 pub struct EdgeDbMeta {
     pub module: Option<String>,
@@ -38,17 +36,29 @@ pub struct Query {
     pub limit: Option<u32>,
 }
 
-pub enum Filter {
+pub enum Operator {
     Exists,
+    NotExists,
     Is,
     IsNot,
     Like,
     ILike,
     In,
+    NotIn,
     GreaterThan,
     LesserThan,
     GreaterThanOrEqual,
     LesserThanOrEqual,
+}
+
+pub enum Conjunctive {
+    And,
+    Or,
+}
+
+pub struct Filter {
+    pub operator: Operator,
+    pub conjunctive: Option<Conjunctive>,
 }
 
 pub struct Options {}
@@ -65,29 +75,39 @@ macro_rules! explore_field_attrs (
         let mut exist = false;
 
         for att in &field.attrs {
-            if let Ok(syn::Meta::List(syn::MetaList {
-                ref path,
-                ref mut nested,
-                ..
-            })) = att.parse_meta()
-            {
-                if let Some((true, _)) = path_ident_equals(path, d_name) {
-                    exist = true;
-                    for nm in nested.clone() {
-                        if let NestedMeta::Meta(syn::Meta::NameValue(MetaNameValue {
-                            ref path,
-                            lit: syn::Lit::Str(value),
-                            ..
-                        })) = nm
-                        {
-                            for (k, _) in map.iter().clone() {
-                                if let Some((true, _)) = path_ident_equals(path, k) {
-                                    map_cloned.insert(k, Some(value.value()));
+            match att.parse_meta() {
+                Ok(ref mut meta) => {
+                    match meta {
+                        Meta::Path(path) => {
+                            if let Some((true, _)) = path_ident_equals(path, d_name) {
+                                exist = true;
+                            }
+                        }
+                        Meta::List(syn::MetaList { ref path, ref mut nested, .. }) => {
+                            if let Some((true, _)) = path_ident_equals(path, d_name) {
+                                exist = true;
+                                for nm in nested.clone() {
+                                    if let NestedMeta::Meta(syn::Meta::NameValue(MetaNameValue {
+                                                                                     ref path,
+                                                                                     lit: syn::Lit::Str(value),
+                                                                                     ..
+                                                                                 })) = nm
+                                    {
+                                        for (k, _) in map.iter().clone() {
+                                            if let Some((true, _)) = path_ident_equals(path, k) {
+                                                map_cloned.insert(k, Some(value.value()));
+                                            }
+                                        }
+                                    }
                                 }
                             }
+
+                        }
+                        Meta::NameValue(_) => {
                         }
                     }
                 }
+                Err(_) => {}
             }
 
             if map.clone().values().into_iter().all(|o| o.is_some()) {
@@ -155,6 +175,15 @@ macro_rules! explore_field_attrs (
 
 );
 
+impl ToString for Conjunctive {
+    fn to_string(&self) -> String {
+        match self {
+            Conjunctive::And => "and".to_owned(),
+            Conjunctive::Or => "or".to_owned()
+        }
+    }
+}
+
 impl EdgeDbMeta {
     pub fn is_valid(&self) -> bool {
         self.table.is_some()
@@ -182,10 +211,10 @@ impl EdgeDbMeta {
         map.insert(TABLE, None);
 
         let (attrs_values, _) = explore_field_attrs!(
-            field <- field,
-            derive_name <- EDGEDB,
-            map <- map
-        );
+             field <- field,
+             derive_name <- EDGEDB,
+             map <- map
+         );
 
         let module = attrs_values.get(MODULE).unwrap().clone();
         let table = attrs_values.get(TABLE).unwrap().clone();
@@ -292,17 +321,16 @@ impl Query {
 
         ql
     }
-
 }
 
 impl EdgeDbType {
     pub fn is_valid(&self) -> bool {
         self.ty.is_some()
             && (if self.is_enum() {
-                self.name.is_some()
-            } else {
-                !self.ty.clone().unwrap().is_empty() && self.name.is_none() && self.module.is_none()
-            })
+            self.name.is_some()
+        } else {
+            !self.ty.clone().unwrap().is_empty() && self.name.is_none() && self.module.is_none()
+        })
     }
 
     pub fn is_enum(&self) -> bool {
@@ -420,10 +448,10 @@ impl EdgeEnumValue {
                         }
                     }
                     Meta::List(syn::MetaList {
-                        ref path,
-                        ref mut nested,
-                        ..
-                    }) => {
+                                   ref path,
+                                   ref mut nested,
+                                   ..
+                               }) => {
                         if let Some((true, _)) = path_ident_equals(path, VALUE) {
                             exist = true;
                             for ne in nested.iter() {
@@ -465,112 +493,103 @@ impl EdgeEnumValue {
     }
 }
 
-impl Filter {
-    pub fn from_field(field: &Field) -> Self {
-        let mut s: String = String::default();
-        let mut exist = false;
+impl Operator {
 
-        for attr in &field.attrs {
-            if let Ok(Meta::List(syn::MetaList {
-                ref path,
-                ref mut nested,
-                ..
-            })) = attr.parse_meta()
-            {
-                if let Some((true, _)) = path_ident_equals(path, FILTER) {
-                    exist = true;
-                    if let Some(NestedMeta::Meta(Meta::Path(p))) = nested.iter().next() {
-                        s = p.segments[0].ident.to_string();
-                        break;
-                    }
-                }
-            }
-        }
-
-        if !exist {
-            panic!(
-                "Please please add #[filter] attribute to field {}",
-                get_field_ident(field)
-            )
-        }
-
-        if s.is_empty() {
-            panic!("Please specify filter type : Is, IsNot, Like or In ")
-        }
-
-        let check_type = |field: &Field| {
-            if is_type_name(&field.ty, "()") {
+    fn from_str(ty: &Type, s: String) -> Operator {
+        let check_type = |field: &Type| {
+            if is_type_name(&ty, "()") {
                 panic!("Type () is not accepted for Filter type {}", s);
             }
         };
 
         match s.as_str() {
             "Exists" => {
-                if !is_type_name(&field.ty, "()") {
+                if !is_type_name(&ty, "()") {
                     panic!(
                         r#"
                         Filter type Exists is only accepted for field of type ()
                     "#
                     )
                 }
-                Filter::Exists
+                Operator::Exists
+            }
+            "NotExists" => {
+                if !is_type_name(&ty, "()") {
+                    panic!(
+                        r#"
+                        Filter type NotExists is only accepted for field of type ()
+                    "#
+                    )
+                }
+                Operator::NotExists
             }
             "Is" => {
-                check_type(field);
-                Filter::Is
+                check_type(ty);
+                Operator::Is
             }
             "IsNot" => {
-                check_type(field);
-                Filter::IsNot
+                check_type(ty);
+                Operator::IsNot
             }
             "Like" => {
-                check_type(field);
-                if !is_type_name(&field.ty, "String") {
+                check_type(ty);
+                if !is_type_name(&ty, "String") {
                     panic!(
                         r#"
                         Filter type Like is only accepted for field of type String
                     "#
                     )
                 }
-                Filter::Like
+                Operator::Like
             }
             "ILike" => {
-                check_type(field);
-                if !is_type_name(&field.ty, "String") {
+                check_type(ty);
+                if !is_type_name(&ty, "String") {
                     panic!(
                         r#"
                         Filter type ILike is only accepted for field of type String
                     "#
                     )
                 }
-                Filter::ILike
+                Operator::ILike
             }
             "In" => {
-                check_type(field);
-                if !is_type_name(&field.ty, "Vec") {
+                check_type(ty);
+                if !is_type_name(&ty, "Vec") {
                     panic!(
                         r#"
                         Filter type In is only accepted for field of type Vec<>
                     "#
                     )
                 }
-                Filter::In
+                Operator::In
+            }
+            "NotIn" => {
+                check_type(ty);
+                if !is_type_name(&ty, "Vec") {
+                    panic!(
+                        r#"
+                        Filter type NotIn is only accepted for field of type Vec<>
+                    "#
+                    )
+                }
+                Operator::NotIn
             }
             "GreaterThan" => {
-                check_type(field);
-                Filter::GreaterThan
+                check_type(ty);
+                Operator::GreaterThan
             }
             "GreaterThanOrEqual" => {
-                check_type(field);
-                Filter::GreaterThanOrEqual
+                check_type(ty);
+                Operator::GreaterThanOrEqual
             }
             "LesserThan" => {
-                check_type(field);
-                Filter::LesserThan
+                check_type(ty);
+                Operator::LesserThan
             }
             "LesserThanOrEqual" => {
-                check_type(field);
-                Filter::LesserThanOrEqual
+                check_type(ty);
+                Operator::LesserThanOrEqual
             }
             _ => {
                 panic!(
@@ -595,24 +614,29 @@ impl Filter {
         }
     }
 
-    pub fn build_filter_assignment(table_name: String, field: &Field) -> String {
+    pub fn build(&self, table_name: String, field: &Field) -> String {
         let ty = EdgeDbType::get_type(field);
 
         let mut is_exists = false;
 
-        let symbol = match Filter::from_field(field) {
-            Filter::Is => "=",
-            Filter::IsNot => "!=",
-            Filter::Like => "like",
-            Filter::ILike => "ilike",
-            Filter::In => "in",
-            Filter::GreaterThan => ">",
-            Filter::LesserThan => "<",
-            Filter::GreaterThanOrEqual => ">=",
-            Filter::LesserThanOrEqual => "<=",
-            Filter::Exists => {
+        let symbol = match self {
+            Operator::Is => "=",
+            Operator::IsNot => "!=",
+            Operator::Like => "like",
+            Operator::ILike => "ilike",
+            Operator::In => "in",
+            Operator::NotIn => "not in",
+            Operator::GreaterThan => ">",
+            Operator::LesserThan => "<",
+            Operator::GreaterThanOrEqual => ">=",
+            Operator::LesserThanOrEqual => "<=",
+            Operator::Exists => {
                 is_exists = true;
                 "exists"
+            },
+            Operator::NotExists => {
+                is_exists = true;
+                "not exists"
             }
         };
 
@@ -632,6 +656,89 @@ impl Filter {
                 edge_type = ty,
                 field_name = get_field_ident(field)
             )
+        }
+    }
+}
+
+impl Filter {
+    pub fn from_field(field: &Field, index: usize) -> Self {
+        let mut map: HashMap<&str, Option<String>> = HashMap::new();
+        map.insert(OPERATOR, None);
+        map.insert(CONJUNCTIVE, None);
+
+        let (map_cloned, exist) = explore_field_attrs!(
+            field <- field,
+            derive_name <- FILTER,
+            map <- map
+        );
+
+        if !exist {
+            panic!(
+                "Please please add #[filter(operator=\"...\",)] attribute to field {}",
+                get_field_ident(field)
+            )
+        }
+
+        let operator = map_cloned.get(OPERATOR).unwrap().clone();
+
+        let operator = if let Some(op) = operator {
+            Operator::from_str(&field.ty, op)
+        } else {
+            panic!(
+                r#"
+                    Please please add operator attribute to field {}
+                    #[filter(operator=\"...\")
+                "#,
+                get_field_ident(field)
+            )
+        };
+
+        let conjunctive = map_cloned.get(CONJUNCTIVE).unwrap().clone();
+
+        let conjunctive = if let Some(c) = conjunctive {
+            match c.as_str() {
+                "Or" => Some(Conjunctive::Or),
+                "And" => Some(Conjunctive::And),
+                _ => panic!(
+                    r#"
+                    {} is not a valid filter type.
+                    Only filter types :
+                      - Exists
+                      - Is
+                      - IsNot
+                      - Like
+                      - ILike
+                      - In
+                      - GreaterThan
+                      - GreaterThanOrEqual
+                      - LesserThan
+                      - LesserThanOrEqual
+                    are accepted
+                "#,
+                    c
+                )
+            }
+        } else {
+            if index > 0 {
+                panic!(r#"
+                    Please specify conjunctive attribute to field {}
+                    #[filter(operator=\"...\"), conjunctive=\"...\"]
+                "#, get_field_ident(field))
+            }
+            None
+        };
+
+        Filter { operator, conjunctive }
+    }
+
+    pub fn build_filter_assignment(table_name: String, field: &Field, index: usize) -> String {
+        let filter = Filter::from_field(field, index);
+        let q = filter.operator.build(table_name, field);
+        if index == 0 {
+            q
+        } else {
+            let c = filter.conjunctive.unwrap();
+            format!(" {}{}", c.to_string(), q)
         }
     }
 }

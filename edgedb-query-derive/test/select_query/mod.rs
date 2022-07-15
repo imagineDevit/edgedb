@@ -1,12 +1,14 @@
 #[cfg(test)]
 mod select {
-
-    use edgedb_query_derive::{SelectQuery, EdgedbEnum, EdgedbResult};
+    use edgedb_protocol::value::Value;
+    use edgedb_query_derive::{SelectQuery, EdgedbResult};
     use edgedb_query::{
         *,
-        queries::select::SelectOptions
+        models::edge_query::ToEdgeQuery
 
     };
+    use edgedb_query::models::edge_query::EdgeQuery;
+    use edgedb_query::queries::select::{OrderDir, OrderOptions, SelectOptions};
 
     #[derive(Default, EdgedbResult)]
     pub struct UserResult {
@@ -15,14 +17,55 @@ mod select {
         pub age: u8,
     }
 
+
     #[derive(SelectQuery)]
-    pub struct FindUsersByNameLike {
+    pub struct FindUsersByNameExists {
         #[edgedb(module = "users", table = "User")]
-        #[query(result = "UserResult", order_by = "age", order_dir = "asc", limit = 3)]
+        #[query(result = "UserResult")]
         __meta__: (),
 
-        #[filter(Like)]
-        pub name: String,
+        #[filter(operator = "Exists")]
+        pub name: (),
+    }
+
+    #[test]
+    pub fn filter_exists_test() {
+
+        let q = FindUsersByNameExists {
+            __meta__ : (),
+            name: (),
+        };
+
+        let edge_query : EdgeQuery = q.to_edge_query();
+
+        let expected_query = "select users::User { id, name, age } filter exists users::User.name";
+
+        assert_eq!(edge_query.query, expected_query);
+    }
+
+    #[derive(SelectQuery)]
+    pub struct FindUsersByNameNotExists {
+        #[edgedb(module = "users", table = "User")]
+        #[query(result = "UserResult")]
+        __meta__: (),
+
+        #[filter(operator = "NotExists")]
+        pub name: (),
+    }
+
+    #[test]
+    pub fn filter_not_exists_test() {
+
+        let q = FindUsersByNameNotExists {
+            __meta__ : (),
+            name: (),
+        };
+
+        let edge_query : EdgeQuery = q.to_edge_query();
+
+        let expected_query = "select users::User { id, name, age } filter not exists users::User.name";
+
+        assert_eq!(edge_query.query, expected_query);
     }
 
     #[derive(SelectQuery)]
@@ -31,32 +74,256 @@ mod select {
         #[query(result = "UserResult")]
         __meta__: (),
 
-        #[filter(Is)]
+        #[filter(operator = "Is")]
         pub name: String,
     }
 
-    #[derive(SelectQuery)]
-    pub struct FindUsersByAgeGreaterThan {
-        #[edgedb(module = "users", table = "User")]
-        #[query(result = "UserResult", order_by="name")]
-        __meta__: (),
+    #[test]
+    pub fn filter_is_test() {
 
-        #[filter(GreaterThan)]
-        pub age: u32,
+        let q = FindUsersByNameIs {
+            __meta__ : (),
+            name: String::from("Joe"),
+        };
+
+        let edge_query : EdgeQuery = q.to_edge_query();
+
+        do_test_filter("=",  edge_query, vec!["name"], vec![
+            Some(Value::Str(q.name))
+        ], "<str>");
     }
 
     #[derive(SelectQuery)]
-    pub struct FindUsersByAgeLesserThan {
+    pub struct FindUsersByNameIsNot {
         #[edgedb(module = "users", table = "User")]
-        #[query(result = "UserResult", order_by="name")]
+        #[query(result = "UserResult")]
         __meta__: (),
 
-        #[filter(LesserThan)]
-        pub age: u32,
+        #[filter(operator = "IsNot")]
+        pub name: String,
     }
 
+    #[test]
+    pub fn filter_is_not_test() {
+
+        let q = FindUsersByNameIsNot {
+            __meta__ : (),
+            name: String::from("Joe"),
+        };
+
+        let edge_query : EdgeQuery = q.to_edge_query();
+
+        do_test_filter("!=",  edge_query, vec!["name"], vec![
+            Some(Value::Str(q.name))
+        ], "<str>");
+    }
+
+    #[derive(SelectQuery)]
+    pub struct FindUsersByNameLike {
+        #[edgedb(module = "users", table = "User")]
+        #[query(result = "UserResult")]
+        __meta__: (),
+
+        #[filter(operator = "Like")]
+        pub name: String,
+    }
+
+    #[test]
+    pub fn filter_like_test() {
+
+        let q = FindUsersByNameLike {
+            __meta__ : (),
+            name: String::from("Joe"),
+        };
+
+        let edge_query : EdgeQuery = q.to_edge_query();
+
+        do_test_filter("like",  edge_query, vec!["name"], vec![
+            Some(Value::Str(q.name))
+        ], "<str>");
+    }
+
+    #[derive(SelectQuery)]
+    pub struct FindUsersByNameILike {
+        #[edgedb(module = "users", table = "User")]
+        #[query(result = "UserResult")]
+        __meta__: (),
+
+        #[filter(operator = "ILike")]
+        pub name: String,
+    }
+
+    #[test]
+    pub fn filter_ilike_test() {
+
+        let q = FindUsersByNameILike {
+            __meta__ : (),
+            name: String::from("Joe"),
+        };
+
+        let edge_query : EdgeQuery = q.to_edge_query();
+
+        do_test_filter("ilike",  edge_query, vec!["name"], vec![
+            Some(Value::Str(q.name))
+        ], "<str>");
+    }
+
+    #[derive(SelectQuery)]
+    pub struct FindUsersByNameIn {
+        #[edgedb(module = "users", table = "User")]
+        #[query(result = "UserResult")]
+        __meta__: (),
+
+        #[filter(operator = "In")]
+        pub name: Vec<String>,
+    }
+
+    #[test]
+    pub fn filter_in_test() {
+
+        let q = FindUsersByNameIn {
+            __meta__ : (),
+            name: vec![String::from("Joe")],
+        };
+
+        let edge_query : EdgeQuery = q.to_edge_query();
 
 
+        do_test_filter("in",  edge_query, vec!["name"], vec![
+            Some(Value::Array(vec![Value::Str(q.name[0].clone())]))
+        ],"<array<str>>");
+    }
 
+    fn do_test_filter(symbol: &str, edge_query: EdgeQuery, query_args: Vec<&str>, args_values: Vec<Option<Value>>, scalar: &str) {
 
+        let expected = format!("select users::User {{ id, name, age }} filter users::User.name {symbol} (select {scalar}$name)");
+
+        assert_eq!(edge_query.query, expected);
+
+        if let Some(Value::Object { shape, fields }) = edge_query.args {
+            crate::test_utils::check_shape(&shape, query_args);
+            assert_eq!(fields, args_values)
+        } else {
+            assert!(false)
+        }
+    }
+
+    #[derive(SelectQuery)]
+    pub struct FindUsersByNameAndAgeGreaterThan {
+        #[edgedb(module = "users", table = "User")]
+        #[query(result = "UserResult")]
+        __meta__: (),
+
+        #[filter(operator = "Is")]
+        pub name: String,
+
+        #[filter(operator = "GreaterThan", conjunctive="And")]
+        pub age: u8,
+    }
+
+    #[test]
+    pub fn filter_is_and_test() {
+
+        let q = FindUsersByNameAndAgeGreaterThan {
+            __meta__ : (),
+            name: String::from("Joe"),
+            age: 25
+        };
+
+        let edge_query : EdgeQuery = q.to_edge_query();
+
+        let expected = format!("select users::User {{ id, name, age }} filter users::User.name = (select <str>$name) and users::User.age > (select <int16>$age)");
+
+        assert_eq!(edge_query.query, expected);
+
+        if let Some(Value::Object { shape, fields }) = edge_query.args {
+            crate::test_utils::check_shape(&shape, vec!["name", "age"]);
+            assert_eq!(fields, vec![
+                Some(Value::Str(q.name)),
+                Some(Value::Int16(q.age as i16))
+            ])
+        } else {
+            assert!(false)
+        }
+    }
+
+    #[derive(SelectQuery)]
+    pub struct FindMajorUsers {
+        #[edgedb(module = "users", table = "User")]
+        #[query(result = "UserResult", order_by="name", order_dir="desc" )]
+        __meta__: (),
+
+        #[filter(operator = "GreaterThanOrEqual")]
+        pub age: u8,
+    }
+
+    #[test]
+    pub fn filter_options_attributes_test() {
+
+        let q = FindMajorUsers {
+            __meta__ : (),
+            age: 18
+        };
+
+        let edge_query : EdgeQuery = q.to_edge_query();
+
+        let expected = "select users::User { id, name, age } filter users::User.age >= (select <int16>$age) order by users::User.name desc";
+
+        assert_eq!(edge_query.query, expected);
+
+        if let Some(Value::Object { shape, fields }) = edge_query.args {
+            crate::test_utils::check_shape(&shape, vec!["age"]);
+            assert_eq!(fields, vec![
+                Some(Value::Int16(q.age as i16))
+            ])
+        } else {
+            assert!(false)
+        }
+    }
+
+    #[derive(SelectQuery)]
+    pub struct FindMajorUsersWithOptions {
+        #[edgedb(module = "users", table = "User")]
+        #[query(result = "UserResult", order_by="name", order_dir="desc" )]
+        __meta__: (),
+
+        #[options]
+        options: SelectOptions<'static>,
+
+        #[filter(operator = "GreaterThanOrEqual")]
+        pub age: u8,
+    }
+
+    #[test]
+    pub fn filter_select_options_attributes_test() {
+
+        let q = FindMajorUsersWithOptions {
+            __meta__ : (),
+            options: SelectOptions {
+                table_name: "User",
+                module: Some("users"),
+                order_options: Some(OrderOptions {
+                    order_by: "name".to_string(),
+                    order_direction: Some(OrderDir::Desc)
+                }),
+                page_options: None
+            },
+            age: 18
+        };
+
+        let edge_query : EdgeQuery = q.to_edge_query();
+
+        let expected = "select users::User { id, name, age } filter users::User.age >= (select <int16>$age) order by users::User.name desc";
+
+        assert_eq!(edge_query.query, expected);
+
+        if let Some(Value::Object { shape, fields }) = edge_query.args {
+            crate::test_utils::check_shape(&shape, vec!["age"]);
+            assert_eq!(fields, vec![
+                Some(Value::Int16(q.age as i16))
+            ])
+        } else {
+            assert!(false)
+        }
+    }
 }

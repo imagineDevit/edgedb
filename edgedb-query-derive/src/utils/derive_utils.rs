@@ -1,10 +1,5 @@
 use crate::helpers::attributes::{EdgeDbMeta, Options, Query};
-use crate::utils::field_utils::{get_field_ident, get_struct_fields};
-use proc_macro::TokenStream;
-use proc_macro2::Ident;
-use quote::quote;
-use syn::punctuated::Punctuated;
-use syn::token::Comma;
+use crate::utils::field_utils::get_struct_fields;
 use syn::{DeriveInput, Field};
 
 pub fn start(ast_struct: &DeriveInput) -> (String, Query, bool, Option<Field>, Vec<Field>) {

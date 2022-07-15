@@ -1,5 +1,5 @@
 use crate::constants::{DD_SIGN, D_SIGN, FILTER, OPTION, SELECT};
-use crate::helpers::attributes::Filter;
+use crate::helpers::attributes::{Filter, Operator};
 use crate::utils::derive_utils::start;
 use crate::utils::field_utils::get_field_ident;
 use crate::utils::type_utils::is_type_name;
@@ -20,24 +20,23 @@ pub fn do_derive(ast_struct: &DeriveInput) -> TokenStream {
 
     let nb_fields: u8 = filtered_fields.len() as u8;
 
-    let mut nb = nb_fields + 1;
 
-    let more_than_one = nb_fields > 1;
+
+
+    let mut index = 0;
 
     let query_filters = filtered_fields.clone().map(|field| {
         let field_is_option = is_type_name(&field.ty, OPTION);
 
-        let p = Filter::build_filter_assignment(table_name.clone(), field);
+        let p = Filter::build_filter_assignment(table_name.clone(), field, index);
+
+        index += 1;
 
         let f_name = get_field_ident(field);
 
         let assignment = format!("{}", p);
 
         let dd_sign = DD_SIGN.to_string();
-
-        nb -= 1;
-
-        let last = nb == 1;
 
         let format_scalar = quote! {
             if !scalar.is_empty() {
@@ -56,22 +55,19 @@ pub fn do_derive(ast_struct: &DeriveInput) -> TokenStream {
                     let mut scalar: String = v.to_edge_scalar();
                     #format_scalar;
                     let p = #assignment.to_owned().replace(#dd_sign, scalar.as_str());
-                    query.push_str(p.as_str())
-                    if !#last && #more_than_one {
-                        query.push_str("and ")
-                    }
+                    query.push_str(p.as_str());
                 }
             }
+
         } else {
+
             quote! {
-                let mut scalar: String = self.#f_name.to_edge_scalar();
+                let mut scalar: String = self.#f_name.clone().to_edge_scalar();
                 #format_scalar;
                 let p = #assignment.to_owned().replace(#dd_sign, scalar.as_str());
                 query.push_str(p.as_str());
-                if !#last && #more_than_one {
-                    query.push_str("and ")
-                }
             }
+
         }
     });
 
@@ -149,10 +145,11 @@ pub fn do_derive(ast_struct: &DeriveInput) -> TokenStream {
         }
     });
 
-    let mut filter_q = "";
+    let mut filter_q = String::default();
+
 
     if nb_fields > 0 {
-        filter_q = " filter"
+        filter_q = format!(" {}", FILTER);
     };
 
     let q = format!("{} {} ", SELECT, table_name);

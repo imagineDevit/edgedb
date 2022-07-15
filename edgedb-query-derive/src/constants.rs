@@ -26,4 +26,7 @@ pub const OPTIONS: &str = "options";
 
 
 pub const FILTER: &str = "filter";
+pub const OPERATOR: &str = "operator";
+pub const CONJUNCTIVE: &str = "conjunctive";
+
 pub const VALUE: &str = "value";
