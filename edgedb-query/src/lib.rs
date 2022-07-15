@@ -1,7 +1,25 @@
 
 pub mod queries;
 pub mod models;
+use edgedb_protocol::model::Uuid;
+use edgedb_protocol::value::Value;
 
+macro_rules! _to_edgeql_and_to_edge_scalar_impls {
+    ($($ty: ty => { scalar: $scalar: expr }),* $(,)?) => {
+        $(
+            impl ToEdgeQl for $ty {
+                fn to_edgeql(&self) -> String {
+                    self.to_string()
+                }
+            }
+            impl ToEdgeScalar for $ty {
+                fn to_edge_scalar(&self) -> String {
+                    $scalar.to_owned()
+                }
+            }
+        )*
+    }
+}
 //----- ToEdgeQL----
 
 ///  ## ToEdgeQl
@@ -10,90 +28,6 @@ pub trait ToEdgeQl {
     /// Transform a struct into a edgeDB query language statement
     fn to_edgeql(&self) -> String;
 }
-
-// Implementations
-impl ToEdgeQl for String {
-    fn to_edgeql(&self) -> String {
-        self.to_string()
-    }
-}
-impl ToEdgeQl for u8 {
-    fn to_edgeql(&self) -> String {
-        self.to_string()
-    }
-}
-impl ToEdgeQl for u16 {
-    fn to_edgeql(&self) -> String {
-        self.to_string()
-    }
-}
-impl ToEdgeQl for u32 {
-    fn to_edgeql(&self) -> String {
-        self.to_string()
-    }
-}
-impl ToEdgeQl for u64 {
-    fn to_edgeql(&self) -> String {
-        self.to_string()
-    }
-}
-impl ToEdgeQl for i8 {
-    fn to_edgeql(&self) -> String {
-        self.to_string()
-    }
-}
-impl ToEdgeQl for i16 {
-    fn to_edgeql(&self) -> String {
-        self.to_string()
-    }
-}
-impl ToEdgeQl for i32 {
-    fn to_edgeql(&self) -> String {
-        self.to_string()
-    }
-}
-impl ToEdgeQl for i64 {
-    fn to_edgeql(&self) -> String {
-        self.to_string()
-    }
-}
-impl ToEdgeQl for f32 {
-    fn to_edgeql(&self) -> String {
-        self.to_string()
-    }
-}
-impl ToEdgeQl for f64 {
-    fn to_edgeql(&self) -> String {
-        self.to_string()
-    }
-}
-impl ToEdgeQl for bool {
-    fn to_edgeql(&self) -> String {
-        self.to_string()
-    }
-}
-impl<T: ToEdgeQl> ToEdgeQl for Vec<T> {
-    fn to_edgeql(&self) -> String {
-        let s = self
-            .iter()
-            .map(|s| s.to_edgeql())
-            .collect::<Vec<String>>()
-            .join(",");
-        format!("[{}]", s)
-    }
-}
-impl ToEdgeQl for serde_json::Value {
-    fn to_edgeql(&self) -> String {
-        self.to_string()
-    }
-}
-impl ToEdgeQl for uuid::Uuid {
-    fn to_edgeql(&self) -> String {
-        self.to_string()
-    }
-}
-
-//----- ToEdgeScalar----
 
 /// ## ToEdgeScalar
 pub trait ToEdgeScalar {
@@ -113,81 +47,40 @@ pub trait ToEdgeScalar {
     fn to_edge_scalar(&self) -> String;
 }
 
+_to_edgeql_and_to_edge_scalar_impls!(
+    String => { scalar: "<str>" },
+    u8 => { scalar: "<int16>" },
+    u16 => { scalar: "<int16>" },
+    u32 => { scalar: "<int32>" },
+    u64 => { scalar: "<int64>"  },
+    i8 => { scalar: "<int16>" },
+    i16 => { scalar: "<int16>" },
+    i32 => { scalar: "<int32>" },
+    i64 => { scalar: "<int64>" },
+    f32 => { scalar: "<float32>" },
+    f64 => { scalar: "<float64>" },
+    bool => { scalar: "<bool>" },
+    serde_json::Value => { scalar: "<json>" },
+    uuid::Uuid => { scalar:"<uuid>"},
+);
+
 impl ToEdgeScalar for () {
     fn to_edge_scalar(&self) -> String {
         "".to_owned()
     }
 }
-impl ToEdgeScalar for String {
-    fn to_edge_scalar(&self) -> String {
-        "<str>".to_owned()
+
+impl<T: ToEdgeQl> ToEdgeQl for Vec<T> {
+    fn to_edgeql(&self) -> String {
+        let s = self
+            .iter()
+            .map(|s| s.to_edgeql())
+            .collect::<Vec<String>>()
+            .join(",");
+        format!("[{}]", s)
     }
 }
-impl ToEdgeScalar for u8 {
-    fn to_edge_scalar(&self) -> String {
-        "<int16>".to_owned()
-    }
-}
-impl ToEdgeScalar for u16 {
-    fn to_edge_scalar(&self) -> String {
-        "<int16>".to_owned()
-    }
-}
-impl ToEdgeScalar for u32 {
-    fn to_edge_scalar(&self) -> String {
-        "<int32>".to_owned()
-    }
-}
-impl ToEdgeScalar for u64 {
-    fn to_edge_scalar(&self) -> String {
-        "<int64>".to_owned()
-    }
-}
-impl ToEdgeScalar for i8 {
-    fn to_edge_scalar(&self) -> String {
-        "<int16>".to_owned()
-    }
-}
-impl ToEdgeScalar for i16 {
-    fn to_edge_scalar(&self) -> String {
-        "<int16>".to_owned()
-    }
-}
-impl ToEdgeScalar for i32 {
-    fn to_edge_scalar(&self) -> String {
-        "<int32>".to_owned()
-    }
-}
-impl ToEdgeScalar for i64 {
-    fn to_edge_scalar(&self) -> String {
-        "<int64>".to_owned()
-    }
-}
-impl ToEdgeScalar for f32 {
-    fn to_edge_scalar(&self) -> String {
-        "<float32>".to_owned()
-    }
-}
-impl ToEdgeScalar for f64 {
-    fn to_edge_scalar(&self) -> String {
-        "<float64>".to_owned()
-    }
-}
-impl ToEdgeScalar for bool {
-    fn to_edge_scalar(&self) -> String {
-        "<bool>".to_owned()
-    }
-}
-impl ToEdgeScalar for serde_json::Value {
-    fn to_edge_scalar(&self) -> String {
-        "<json>".to_owned()
-    }
-}
-impl ToEdgeScalar for uuid::Uuid {
-    fn to_edge_scalar(&self) -> String {
-        "<uuid>".to_owned()
-    }
-}
+
 impl<T: ToEdgeScalar + Default> ToEdgeScalar for Vec<T> {
     fn to_edge_scalar(&self) -> String {
         format!("<array{}>", T::default().to_edge_scalar())
@@ -195,15 +88,12 @@ impl<T: ToEdgeScalar + Default> ToEdgeScalar for Vec<T> {
 }
 
 //----- ToEdgeValue----
-use edgedb_protocol::model::Uuid;
-use edgedb_protocol::value::Value;
 
 pub trait ToEdgeValue {
     /// Transform a struct data into a edgedb_protocol::value::Value
     fn to_edge_value(&self) -> Value;
 }
 
-// Implementations
 impl ToEdgeValue for () {
     fn to_edge_value(&self) -> Value {
         Value::Str("".to_string())
