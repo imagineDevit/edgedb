@@ -1,4 +1,4 @@
-use crate::ToEdgeQl;
+use crate::{ToEdgeQl, ToEdgeShape};
 
 const STRUCT_ID: &'static str = "{ id }";
 
@@ -10,6 +10,12 @@ const STRUCT_ID: &'static str = "{ id }";
 #[derive(Default)]
 pub struct BasicResult {
     pub id: String,
+}
+
+impl ToEdgeShape for BasicResult {
+    fn shape() -> String {
+        STRUCT_ID.to_owned()
+    }
 }
 
 impl ToEdgeQl for BasicResult {

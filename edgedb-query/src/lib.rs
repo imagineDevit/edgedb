@@ -21,7 +21,7 @@ macro_rules! _to_edgeql_and_to_edge_scalar_impls {
             }
 
             impl ToEdgeShape for $ty {
-                fn to_edge_shape(&self) -> String {
+                fn shape() -> String {
                     String::default()
                 }
             }
@@ -56,7 +56,7 @@ pub trait ToEdgeScalar {
 }
 
 pub trait ToEdgeShape {
-    fn to_edge_shape(&self) -> String;
+    fn shape() -> String;
 }
 
 _to_edgeql_and_to_edge_scalar_impls!(
@@ -100,7 +100,7 @@ impl<T: ToEdgeScalar + Default> ToEdgeScalar for Vec<T> {
 }
 
 impl<T> ToEdgeShape for Vec<T> {
-    fn to_edge_shape(&self) -> String {
+    fn shape() -> String {
         String::default()
     }
 }
