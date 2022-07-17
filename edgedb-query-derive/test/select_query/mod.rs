@@ -4,6 +4,7 @@ mod select {
     use edgedb_query_derive::{SelectQuery, EdgedbResult};
     use edgedb_query::{
         *,
+        ToEdgeShape,
         models::edge_query::ToEdgeQuery
 
     };
@@ -38,7 +39,7 @@ mod select {
 
         let edge_query : EdgeQuery = q.to_edge_query();
 
-        let expected_query = "select users::User { id, name, age } filter exists users::User.name";
+        let expected_query = "select users::User {id,name,age} filter exists users::User.name";
 
         assert_eq!(edge_query.query, expected_query);
     }
@@ -63,7 +64,7 @@ mod select {
 
         let edge_query : EdgeQuery = q.to_edge_query();
 
-        let expected_query = "select users::User { id, name, age } filter not exists users::User.name";
+        let expected_query = "select users::User {id,name,age} filter not exists users::User.name";
 
         assert_eq!(edge_query.query, expected_query);
     }
@@ -196,7 +197,7 @@ mod select {
 
     fn do_test_filter(symbol: &str, edge_query: EdgeQuery, query_args: Vec<&str>, args_values: Vec<Option<Value>>, scalar: &str) {
 
-        let expected = format!("select users::User {{ id, name, age }} filter users::User.name {symbol} (select {scalar}$name)");
+        let expected = format!("select users::User {{id,name,age}} filter users::User.name {symbol} (select {scalar}$name)");
 
         assert_eq!(edge_query.query, expected);
 
@@ -232,7 +233,7 @@ mod select {
 
         let edge_query : EdgeQuery = q.to_edge_query();
 
-        let expected = format!("select users::User {{ id, name, age }} filter users::User.name = (select <str>$name) and users::User.age > (select <int16>$age)");
+        let expected = format!("select users::User {{id,name,age}} filter users::User.name = (select <str>$name) and users::User.age > (select <int16>$age)");
 
         assert_eq!(edge_query.query, expected);
 
@@ -267,7 +268,7 @@ mod select {
 
         let edge_query : EdgeQuery = q.to_edge_query();
 
-        let expected = "select users::User { id, name, age } filter users::User.age >= (select <int16>$age) order by users::User.name desc";
+        let expected = "select users::User {id,name,age} filter users::User.age >= (select <int16>$age) order by users::User.name desc";
 
         assert_eq!(edge_query.query, expected);
 
@@ -313,7 +314,7 @@ mod select {
 
         let edge_query : EdgeQuery = q.to_edge_query();
 
-        let expected = "select users::User { id, name, age } filter users::User.age >= (select <int16>$age) order by users::User.name desc";
+        let expected = "select users::User {id,name,age} filter users::User.age >= (select <int16>$age) order by users::User.name desc";
 
         assert_eq!(edge_query.query, expected);
 

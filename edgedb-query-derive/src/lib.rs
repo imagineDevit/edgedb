@@ -1,7 +1,6 @@
 extern crate core;
 extern crate proc_macro;
 
-use crate::select::select_query;
 use proc_macro::TokenStream;
 use syn::{parse_macro_input, DeriveInput};
 
@@ -152,7 +151,7 @@ pub fn edgedb_enum(input: TokenStream) -> TokenStream {
 ///     assert_eq!(eq.query, "select users::User { id, name } filter .name = (select <str>$name) ");
 /// }
 /// ```
-#[proc_macro_derive(EdgedbResult)]
+#[proc_macro_derive(EdgedbResult, attributes(query_shape))]
 pub fn edgedb_result(input: TokenStream) -> TokenStream {
     let ast_struct = parse_macro_input!(input as DeriveInput);
     let tokens = result::edgedb_result::do_derive(&ast_struct);

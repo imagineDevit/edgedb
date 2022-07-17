@@ -1,5 +1,5 @@
-use crate::constants::{DD_SIGN, D_SIGN, FILTER, OPTION, SELECT};
-use crate::helpers::attributes::{Filter, Operator};
+use crate::constants::{DD_SIGN, FILTER, OPTION, SELECT};
+use crate::helpers::attributes::Filter;
 use crate::utils::derive_utils::start;
 use crate::utils::field_utils::get_field_ident;
 use crate::utils::type_utils::is_type_name;
@@ -19,9 +19,6 @@ pub fn do_derive(ast_struct: &DeriveInput) -> TokenStream {
     let filtered_fields = filtered_fields.iter();
 
     let nb_fields: u8 = filtered_fields.len() as u8;
-
-
-
 
     let mut index = 0;
 
@@ -162,9 +159,7 @@ pub fn do_derive(ast_struct: &DeriveInput) -> TokenStream {
             fn to_edgeql(&self) -> String {
                 let mut query = #q.to_owned();
 
-                let result = #result_type_name::default();
-
-                query.push_str(result.to_edgeql().as_str());
+                query.push_str(#result_type_name::shape().as_str());
 
                 query.push_str(#filter_q);
 

@@ -1,4 +1,4 @@
-use crate::constants::{CONJUNCTIVE, DD_SIGN, EDGEDB, ENUM, FILTER, INF_SIGN, LIMIT, MODULE, NAME, OFFSET, OPERATOR, OPTIONS, ORDER_BY, ORDER_DIR, QUERY, RESULT, SELECT, SUP_SIGN, TABLE, TYPE, VALUE};
+use crate::constants::{TARGET_COLUMN, CONJUNCTIVE, DD_SIGN, EDGEDB, ENUM, FILTER, INF_SIGN, LIMIT, MODULE, NAME, OPERATOR, OPTIONS, ORDER_BY, ORDER_DIR, QUERY, RESULT, SELECT, SUP_SIGN, TABLE, QUERY_SHAPE, TYPE, VALUE, TARGET_TABLE, SOURCE_TABLE};
 use crate::utils::field_utils::get_field_ident;
 use crate::utils::path_utils::path_ident_equals;
 use crate::utils::type_utils::is_type_name;
@@ -62,6 +62,14 @@ pub struct Filter {
 }
 
 pub struct Options {}
+
+pub struct QueryShape {
+    pub module: String,
+    pub source_table: String,
+    pub target_table: String,
+    pub target_column: String,
+    pub result: String,
+}
 
 // impls
 macro_rules! explore_field_attrs (
@@ -496,7 +504,7 @@ impl EdgeEnumValue {
 impl Operator {
 
     fn from_str(ty: &Type, s: String) -> Operator {
-        let check_type = |field: &Type| {
+        let check_type = |_: &Type| {
             if is_type_name(&ty, "()") {
                 panic!("Type () is not accepted for Filter type {}", s);
             }
@@ -754,5 +762,71 @@ impl Options {
         }
 
         None
+    }
+}
+
+impl QueryShape {
+
+    pub fn from_field(field: &Field) -> Self {
+
+        let field_name = get_field_ident(field).to_string();
+
+        let mut map: HashMap<&str, Option<String>> = HashMap::new();
+        map.insert(MODULE, None);
+        map.insert(SOURCE_TABLE, None);
+        map.insert(TARGET_TABLE, None);
+        map.insert(TARGET_COLUMN, None);
+        map.insert(RESULT, None);
+
+        let (map_cloned, _) = explore_field_attrs!(
+            field <- field,
+            derive_name <- QUERY_SHAPE,
+            map <- map
+        );
+
+        let module = Self::get_value(&map_cloned, MODULE, field_name.clone());
+
+        let source_table = Self::get_value(&map_cloned, SOURCE_TABLE, field_name.clone());
+
+        let target_table= Self::get_value(&map_cloned, TARGET_TABLE, field_name.clone());
+
+        let target_column = Self::get_value(&map_cloned, TARGET_COLUMN, field_name.clone());
+
+        let result = Self::get_value(&map_cloned, RESULT, field_name.clone());
+
+
+        Self { module, source_table, target_table, target_column, result }
+    }
+
+
+    pub fn build_assignment(field: &Field) -> (String, String) {
+
+        let t = QueryShape::from_field(field);
+        let source = t.source_table;
+        let column = t.target_column;
+        let module = t.module;
+        let table = t.target_table;
+
+        (format!("select {module}::{source}.<{column}[is {module}::{table}]"), t.result.clone())
+    }
+
+    fn get_value(map_cloned: &HashMap<&str, Option<String>>, name: &str, field_name: String) -> String {
+        let result = if let Some(t) = map_cloned.get(name).unwrap().clone() {
+            Self::required(t, name)
+        } else {
+            panic!(r#"
+                Please add {} attribute to query_shape macro on field {}
+            "#, name, field_name)
+        };
+        result
+    }
+
+    fn required(value: String , name: & str) -> String {
+        if value.clone().is_empty() {
+            panic!(r#"
+                Non empty value required for {} attribute
+            "#, name)
+        }
+        value
     }
 }

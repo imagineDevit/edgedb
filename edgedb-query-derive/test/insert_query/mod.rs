@@ -1,10 +1,10 @@
 
 #[cfg(test)]
 mod insert {
-    use edgedb_protocol::codec::{EnumValue, ObjectShape};
+    use edgedb_protocol::codec::EnumValue;
     use edgedb_protocol::value::Value;
     use edgedb_query_derive::{InsertQuery, EdgedbEnum, EdgedbResult};
-    use edgedb_query::{*, models::{ edge_query::*, query_result::BasicResult}};
+    use edgedb_query::{*, ToEdgeShape, models::{ edge_query::*, query_result::BasicResult}};
 
     #[derive(InsertQuery)]
     pub struct InsertUser {
@@ -25,7 +25,12 @@ mod insert {
     #[derive(Default, EdgedbResult)]
     pub struct UserResult {
         pub id: String,
-        pub name: String,
+        pub name: NameResult,
+    }
+
+    #[derive(Default, EdgedbResult)]
+    pub struct NameResult {
+        pub name: String
     }
 
     #[derive(EdgedbEnum)]
@@ -72,7 +77,8 @@ mod insert {
                 gender := (select <users::Gender>$gender),
                 wallet := (select $wallet), })
                 {
-                    id, name
+                    id,
+                    name : { name }
                 } limit 1
         "#.to_owned().replace("\n", "");
 

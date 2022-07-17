@@ -30,3 +30,8 @@ pub const OPERATOR: &str = "operator";
 pub const CONJUNCTIVE: &str = "conjunctive";
 
 pub const VALUE: &str = "value";
+pub const QUERY_SHAPE: &str = "query_shape";
+pub const TARGET_TABLE: &str = "target_table";
+pub const SOURCE_TABLE: &str = "source_table";
+pub const TARGET_COLUMN: &str = "target_column";
+

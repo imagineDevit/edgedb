@@ -1,8 +1,7 @@
-use crate::constants::{BRACKET_OPEN, DD_SIGN, D_SIGN, INSERT, OPTION, SELECT};
+use crate::constants::{BRACKET_OPEN, DD_SIGN, INSERT, OPTION, SELECT};
 use crate::helpers::attributes::EdgeDbType;
 use crate::utils::{field_utils::*, type_utils::is_type_name};
 use proc_macro::TokenStream;
-use proc_macro2::Ident;
 
 use quote::quote;
 use syn::DeriveInput;
@@ -102,8 +101,9 @@ pub fn do_derive(ast_struct: &DeriveInput) -> TokenStream {
 
     let add_result_quote = quote! {
         if #has_result_type {
+            let shape = #result_type_name::shape();
             query.push_str(")");
-            query.push_str(result.to_edgeql().as_str());
+            query.push_str(shape.as_str());
         }
     };
 
@@ -116,8 +116,6 @@ pub fn do_derive(ast_struct: &DeriveInput) -> TokenStream {
                 #(#assign)*
 
                 query.push_str("}");
-
-                let result = #result_type_name::default();
 
                 #add_result_quote;
 
