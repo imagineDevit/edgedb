@@ -4,6 +4,8 @@ pub mod models;
 use edgedb_protocol::model::Uuid;
 use edgedb_protocol::value::Value;
 
+
+//----- ToEdgeQL  ToEdgeScalar ----
 macro_rules! _to_edgeql_and_to_edge_scalar_impls {
     ($($ty: ty => { scalar: $scalar: expr }),* $(,)?) => {
         $(
@@ -17,10 +19,16 @@ macro_rules! _to_edgeql_and_to_edge_scalar_impls {
                     $scalar.to_owned()
                 }
             }
+
+            impl ToEdgeShape for $ty {
+                fn to_edge_shape(&self) -> String {
+                    String::default()
+                }
+            }
         )*
     }
 }
-//----- ToEdgeQL----
+
 
 ///  ## ToEdgeQl
 pub trait ToEdgeQl {
@@ -45,6 +53,10 @@ pub trait ToEdgeScalar {
     ///     |   bool   | <bool>  |
     /// ```
     fn to_edge_scalar(&self) -> String;
+}
+
+pub trait ToEdgeShape {
+    fn to_edge_shape(&self) -> String;
 }
 
 _to_edgeql_and_to_edge_scalar_impls!(
@@ -84,6 +96,12 @@ impl<T: ToEdgeQl> ToEdgeQl for Vec<T> {
 impl<T: ToEdgeScalar + Default> ToEdgeScalar for Vec<T> {
     fn to_edge_scalar(&self) -> String {
         format!("<array{}>", T::default().to_edge_scalar())
+    }
+}
+
+impl<T> ToEdgeShape for Vec<T> {
+    fn to_edge_shape(&self) -> String {
+        String::default()
     }
 }
 
