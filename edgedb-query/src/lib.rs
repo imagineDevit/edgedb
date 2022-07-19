@@ -55,6 +55,7 @@ pub trait ToEdgeScalar {
     fn to_edge_scalar(&self) -> String;
 }
 
+/// ## ToEdgeShape
 pub trait ToEdgeShape {
     fn shape() -> String;
 }
