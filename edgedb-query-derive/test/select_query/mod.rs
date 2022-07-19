@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod select {
     use edgedb_protocol::value::Value;
-    use edgedb_query_derive::{SelectQuery, EdgedbResult};
+    use edgedb_query_derive::{SelectQuery, EdgedbResult, EdgedbFilters};
     use edgedb_query::{
         *,
         ToEdgeShape,
@@ -9,7 +9,7 @@ mod select {
 
     };
     use edgedb_query::models::edge_query::EdgeQuery;
-    use edgedb_query::queries::select::{OrderDir, OrderOptions, SelectOptions};
+    use edgedb_query::queries::{select::{OrderDir, OrderOptions, SelectOptions} , filter::Filter};
 
     #[derive(Default, EdgedbResult)]
     pub struct UserResult {
@@ -322,6 +322,61 @@ mod select {
             crate::test_utils::check_shape(&shape, vec!["age"]);
             assert_eq!(fields, vec![
                 Some(Value::Int16(q.age as i16))
+            ])
+        } else {
+            assert!(false)
+        }
+    }
+
+    #[derive(SelectQuery)]
+    pub struct FindMajorUsersWithFilters {
+        #[edgedb(module = "users", table = "User")]
+        #[query(result = "UserResult", order_by="name", order_dir="desc" )]
+        __meta__: (),
+
+        #[options]
+        options: SelectOptions<'static>,
+
+        #[filters]
+        filters: AgeFilter,
+
+    }
+
+    #[derive(EdgedbFilters)]
+    pub struct AgeFilter {
+        #[filter(operator="GreaterThanOrEqual")]
+        pub age: u8
+    }
+
+    #[test]
+    pub fn filters_select_options_attributes_test() {
+
+        let q = FindMajorUsersWithFilters {
+            __meta__ : (),
+            options: SelectOptions {
+                table_name: "User",
+                module: Some("users"),
+                order_options: Some(OrderOptions {
+                    order_by: "name".to_string(),
+                    order_direction: Some(OrderDir::Desc)
+                }),
+                page_options: None
+            },
+            filters: AgeFilter {
+                age: 18
+            }
+        };
+
+        let edge_query : EdgeQuery = q.to_edge_query();
+
+        let expected = "select users::User {id,name,age} filter users::User.age >= (select <int16>$age) order by users::User.name desc";
+
+        assert_eq!(edge_query.query, expected);
+
+        if let Some(Value::Object { shape, fields }) = edge_query.args {
+            crate::test_utils::check_shape(&shape, vec!["age"]);
+            assert_eq!(fields, vec![
+                Some(Value::Int16(q.filters.age as i16))
             ])
         } else {
             assert!(false)

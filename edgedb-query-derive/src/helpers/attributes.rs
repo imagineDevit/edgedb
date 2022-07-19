@@ -1,4 +1,4 @@
-use crate::constants::{TARGET_COLUMN, CONJUNCTIVE, DD_SIGN, EDGEDB, ENUM, FILTER, INF_SIGN, LIMIT, MODULE, NAME, OPERATOR, OPTIONS, ORDER_BY, ORDER_DIR, QUERY, RESULT, SELECT, SUP_SIGN, TABLE, QUERY_SHAPE, TYPE, VALUE, TARGET_TABLE, SOURCE_TABLE};
+use crate::constants::{TARGET_COLUMN, CONJUNCTIVE, DD_SIGN, EDGEDB, ENUM, FILTER, INF_SIGN, LIMIT, MODULE, NAME, OPERATOR, OPTIONS, ORDER_BY, ORDER_DIR, QUERY, RESULT, SELECT, SUP_SIGN, TABLE, QUERY_SHAPE, TYPE, VALUE, TARGET_TABLE, SOURCE_TABLE, FILTERS};
 use crate::utils::field_utils::get_field_ident;
 use crate::utils::path_utils::path_ident_equals;
 use crate::utils::type_utils::is_type_name;
@@ -61,7 +61,9 @@ pub struct Filter {
     pub conjunctive: Option<Conjunctive>,
 }
 
-pub struct Options {}
+pub struct Filters;
+
+pub struct Options;
 
 pub struct QueryShape {
     pub module: String,
@@ -179,6 +181,20 @@ macro_rules! explore_field_attrs (
         }
 
         (map_cloned, exist)
+    }};
+    (field <- $field: expr, derive_name <- $dn:expr) =>{{
+        let field: &Field = $field;
+        let d_name: &str = $dn;
+        let mut found = false;
+        for attr in &field.attrs {
+            if let Ok(Meta::Path(ref path)) = attr.parse_meta() {
+                if let Some((true, _)) = path_ident_equals(path, d_name) {
+                   found = true;
+                   break;
+                }
+            }
+        }
+        found
     }}
 
 );
@@ -751,17 +767,25 @@ impl Filter {
     }
 }
 
+impl Filters {
+    pub fn from_field(field: &Field) -> Option<Self> {
+        let found = explore_field_attrs!(
+            field <- field,
+            derive_name <- FILTERS
+        );
+
+        if found { Some(Self {}) } else { None }
+    }
+}
+
 impl Options {
     pub fn from_field(field: &Field) -> Option<Self> {
-        for attr in &field.attrs {
-            if let Ok(Meta::Path(ref path)) = attr.parse_meta() {
-                if let Some((true, _)) = path_ident_equals(path, OPTIONS) {
-                    return Some(Self {});
-                }
-            }
-        }
+        let found = explore_field_attrs!(
+            field <- field,
+            derive_name <- OPTIONS
+        );
 
-        None
+        if found { Some(Self {}) } else { None }
     }
 }
 
@@ -797,7 +821,6 @@ impl QueryShape {
 
         Self { module, source_table, target_table, target_column, result }
     }
-
 
     pub fn build_assignment(field: &Field) -> (String, String) {
 

@@ -1,8 +1,12 @@
-use crate::helpers::attributes::{EdgeDbMeta, Options, Query};
-use crate::utils::field_utils::get_struct_fields;
+use proc_macro2::TokenStream;
+use quote::quote;
+use crate::helpers::attributes::{EdgeDbMeta, Filter, Filters, Options, Query};
+use crate::utils::field_utils::{get_field_ident, get_struct_fields};
 use syn::{DeriveInput, Field};
+use crate::constants::{DD_SIGN, OPTION};
+use crate::utils::type_utils::is_type_name;
 
-pub fn start(ast_struct: &DeriveInput) -> (String, Query, bool, Option<Field>, Vec<Field>) {
+pub fn start(ast_struct: &DeriveInput) -> (String, Query, bool, Option<Field>, Option<Field>, Vec<Field>) {
     // Struct fields
     let fields = get_struct_fields(ast_struct.clone());
 
@@ -42,10 +46,18 @@ pub fn start(ast_struct: &DeriveInput) -> (String, Query, bool, Option<Field>, V
         .into_iter()
         .find(|f| Options::from_field(f).is_some());
 
+    let filters_field = fields
+        .clone()
+        .into_iter()
+        .find(|f| Filters::from_field(f).is_some());
+
     let filtered_fields = fields
         .clone()
         .into_iter()
-        .filter(|f| !EdgeDbMeta::from_field(f).is_valid() && Options::from_field(f).is_none())
+        .filter(|f| !EdgeDbMeta::from_field(f).is_valid()
+            && Options::from_field(f).is_none()
+            && Filters::from_field(f).is_none()
+        )
         .collect::<Vec<Field>>();
 
 
@@ -54,6 +66,101 @@ pub fn start(ast_struct: &DeriveInput) -> (String, Query, bool, Option<Field>, V
         query_attr,
         has_result_type,
         options_field,
+        filters_field,
         filtered_fields,
     )
+}
+
+pub fn filter_quote(field: &Field, table_name: String, index: &mut usize) -> TokenStream {
+
+    let p = Filter::build_filter_assignment(table_name.clone(), field, index.clone());
+
+    *index += 1;
+
+    let f_name = get_field_ident(field);
+
+    let assignment = format!("{}", p);
+
+    let dd_sign = DD_SIGN.to_string();
+
+    let format_scalar = format_scalar();
+
+    quote! {
+            let mut scalar: String = self.#f_name.clone().to_edge_scalar();
+            #format_scalar;
+            let p = #assignment.to_owned().replace(#dd_sign, scalar.as_str());
+            query.push_str(p.as_str());
+    }
+}
+
+
+pub fn filter_quote_(field: &Field, index: &mut usize) -> TokenStream {
+
+    let table_name: &str = "__table_name__";
+
+    let p = Filter::build_filter_assignment(table_name.to_string(), field, index.clone());
+
+    *index += 1;
+
+    let f_name = get_field_ident(field);
+
+    let assignment = format!("{}", p);
+
+    let dd_sign = DD_SIGN.to_string();
+
+    let format_scalar = format_scalar();
+
+    quote! {
+            let mut scalar: String = self.#f_name.clone().to_edge_scalar();
+            #format_scalar;
+            let p = #assignment.to_owned()
+                .replace(#dd_sign, scalar.as_str())
+                .replace(#table_name, table_name);
+            query.push_str(p.as_str());
+    }
+}
+
+pub fn format_scalar() -> TokenStream {
+    quote! {
+            if !scalar.is_empty() {
+                if !scalar.starts_with("<") {
+                    scalar = format!("{}{}", "<", scalar);
+                }
+                if !scalar.trim().ends_with(">") {
+                    scalar = format!("{}{}", scalar, ">");
+                }
+            }
+        }
+}
+
+pub fn shape_element_quote(field: &Field, index: &mut i16) -> TokenStream {
+    let f_name = format!("{}", get_field_ident(field));
+    *index += 1;
+    quote! {
+            edgedb_protocol::descriptors::ShapeElement {
+                flag_implicit: false,
+                flag_link_property: false,
+                flag_link: false,
+                cardinality: Some(edgedb_protocol::client_message::Cardinality::One),
+                name: #f_name.to_string(),
+                type_pos: edgedb_protocol::descriptors::TypePos(#index as u16),
+            }
+        }
+}
+
+pub fn edge_value_quote(field: &Field) -> TokenStream {
+    let field_is_option = is_type_name(&field.ty, OPTION);
+    let f_name = get_field_ident(field);
+
+    if field_is_option {
+        quote! {
+                if let Some(v) = &self.#f_name {
+                    fields.push(Some(v.to_edge_value()));
+                }
+            }
+    } else {
+        quote! {
+                fields.push(Some(self.#f_name.to_edge_value()));
+            }
+    }
 }

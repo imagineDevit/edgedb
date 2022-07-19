@@ -5,10 +5,9 @@ use proc_macro::TokenStream;
 use syn::{parse_macro_input, DeriveInput};
 
 mod constants;
-mod enumerations;
+mod shapes;
 mod helpers;
 mod insert;
-mod result;
 mod select;
 mod utils;
 
@@ -50,10 +49,10 @@ pub fn insert_query(input: TokenStream) -> TokenStream {
     result
 }
 
-/// <h1>Select Query</h1>
+/// # Select Query
 ///
 ///
-/// <h2 style = "text-decoration: underlined">Usage :</h2>
+/// <h3 style = "text-decoration: underlined">Usage :</h3>
 ///
 /// ```rust
 /// #[derive(SelectQuery)]
@@ -72,17 +71,16 @@ pub fn insert_query(input: TokenStream) -> TokenStream {
 ///     pub name: String,
 /// }
 /// ```
-#[proc_macro_derive(SelectQuery, attributes(edgedb, query, filter, options))]
+#[proc_macro_derive(SelectQuery, attributes(edgedb, query, filter, filters, options))]
 pub fn select_query(input: TokenStream) -> TokenStream {
     let ast_struct = parse_macro_input!(input as DeriveInput);
     let result = select::select_query::do_derive(&ast_struct);
     result
 }
 
-/// <h1>Edgedb Enum</h1>
+/// # Edgedb Enum
 ///
-///
-/// <h2 style = "text-decoration: underlined">Usage :</h2>
+/// <h3 style = "text-decoration: underlined">Usage :</h3>
 ///
 /// ```rust
 ///
@@ -116,13 +114,13 @@ pub fn select_query(input: TokenStream) -> TokenStream {
 #[proc_macro_derive(EdgedbEnum, attributes(value))]
 pub fn edgedb_enum(input: TokenStream) -> TokenStream {
     let ast_struct = parse_macro_input!(input as DeriveInput);
-    let tokens = enumerations::edgedb_enum::do_derive(&ast_struct);
+    let tokens = shapes::edgedb_enum::do_derive(&ast_struct);
     tokens.into()
 }
 
-/// <h1>EdgeResult</h1>
+/// # EdgeResult
 ///
-/// <h2 style = "text-decoration: underlined">Usage :</h2>
+/// <h3 style = "text-decoration: underlined">Usage :</h3>
 ///
 /// ``` rust
 /// #[derive(SelectQuery)]
@@ -148,12 +146,58 @@ pub fn edgedb_enum(input: TokenStream) -> TokenStream {
 ///     };
 ///     let eq: EdgeQuery = todo.to_edge_query();
 ///     
-///     assert_eq!(eq.query, "select users::User { id, name } filter .name = (select <str>$name) ");
+///     // assert_eq!(eq.query, "select users::User { id, name } filter .name = (select <str>$name) ");
 /// }
 /// ```
 #[proc_macro_derive(EdgedbResult, attributes(query_shape))]
 pub fn edgedb_result(input: TokenStream) -> TokenStream {
     let ast_struct = parse_macro_input!(input as DeriveInput);
-    let tokens = result::edgedb_result::do_derive(&ast_struct);
+    let tokens = shapes::edgedb_result::do_derive(&ast_struct);
+    tokens.into()
+}
+
+/// # EdgedbFilters
+///
+/// <h3 style = "text-decoration: underlined">Usage :</h3>
+///
+/// ```rust
+/// #[derive(SelectQuery)]
+/// pub struct FindUserByName {
+///     #[edgedb(module = "users", table = "User")]
+///     #[query(result = "UserResult")]
+///     __meta__: (),
+///
+///     #[filters]
+///     filters: NameFilter
+/// }
+/// #[derive(Default, EdgedbResult)]
+/// pub struct UserResult {
+///     pub id: String,
+///     pub name: String,
+/// }
+///
+/// #[derive(EdgedbFilters)]
+/// pub struct NameFilter {
+///     #[filter(Is)]
+///     pub name: String,
+/// }
+///
+/// fn main() {
+///     use edgedb_query::models::edge_query::EdgeQuery;
+///     let fubn = FindUserByName {
+///         __meta__: (),
+///         filters: NameFilter {
+///             name : "Joe".to_string(),
+///         }
+///     };
+///     let eq: EdgeQuery = fubn.to_edge_query();
+///
+///     // assert_eq!(eq.query, "select users::User { id, name } filter .name = (select <str>$name) ");
+/// }
+/// ```
+#[proc_macro_derive(EdgedbFilters, attributes(filter, edgedb))]
+pub fn edgedb_filters(input: TokenStream) -> TokenStream {
+    let ast_struct = parse_macro_input!(input as DeriveInput);
+    let tokens = shapes::edgedb_filter::do_derive(&ast_struct);
     tokens.into()
 }

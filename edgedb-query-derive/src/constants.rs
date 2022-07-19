@@ -1,4 +1,4 @@
-pub const D_SIGN: &str = "$";
+
 pub const DD_SIGN: &str = "$$";
 
 pub const INF_SIGN: &str = "<";
@@ -21,10 +21,10 @@ pub const RESULT: &str = "result";
 pub const ORDER_BY: &str = "order_by";
 pub const ORDER_DIR: &str = "order_dir";
 pub const LIMIT: &str = "limit";
-pub const OFFSET: &str = "offset";
 pub const OPTIONS: &str = "options";
 
 
+pub const FILTERS: &str = "filters";
 pub const FILTER: &str = "filter";
 pub const OPERATOR: &str = "operator";
 pub const CONJUNCTIVE: &str = "conjunctive";

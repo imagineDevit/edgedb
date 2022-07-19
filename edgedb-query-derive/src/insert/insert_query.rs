@@ -6,13 +6,13 @@ use proc_macro::TokenStream;
 use quote::quote;
 use syn::DeriveInput;
 
-use crate::utils::derive_utils::start;
+use crate::utils::derive_utils::{edge_value_quote, format_scalar, shape_element_quote, start};
 
 pub fn do_derive(ast_struct: &DeriveInput) -> TokenStream {
     // Name of struct
     let struct_name = &ast_struct.ident;
 
-    let (table_name, query_attr, has_result_type, _, filtered_fields) = start(&ast_struct);
+    let (table_name, query_attr, has_result_type, _, _, filtered_fields) = start(&ast_struct);
 
     let result_type_name = query_attr.to_ident(struct_name.span());
 
@@ -29,16 +29,7 @@ pub fn do_derive(ast_struct: &DeriveInput) -> TokenStream {
 
         let dd_sign = DD_SIGN.to_string();
 
-        let format_scalar = quote! {
-            if !scalar.is_empty() {
-                if !scalar.starts_with("<") {
-                    scalar = format!("{}{}", "<", scalar);
-                }
-                if !scalar.trim().ends_with(">") {
-                    scalar = format!("{}{}", scalar, ">");
-                }
-            }
-        };
+        let format_scalar = format_scalar();
 
         if field_is_option {
             quote! {
@@ -62,35 +53,11 @@ pub fn do_derive(ast_struct: &DeriveInput) -> TokenStream {
     let mut i: i16 = -1;
 
     let shapes = filtered_fields.clone().map(|field| {
-        let f_name = format!("{}", get_field_ident(field));
-        i = i + 1;
-        quote! {
-            edgedb_protocol::descriptors::ShapeElement {
-                flag_implicit: false,
-                flag_link_property: false,
-                flag_link: false,
-                cardinality: Some(edgedb_protocol::client_message::Cardinality::One),
-                name: #f_name.to_string(),
-                type_pos: edgedb_protocol::descriptors::TypePos(#i as u16),
-            }
-        }
+        shape_element_quote(field, &mut i)
     });
 
     let field_values = filtered_fields.map(|field| {
-        let field_is_option = is_type_name(&field.ty, OPTION);
-        let f_name = get_field_ident(field);
-
-        if field_is_option {
-            quote! {
-                if let Some(v) = &self.#f_name {
-                    fields.push(Some(v.to_edge_value()));
-                }
-            }
-        } else {
-            quote! {
-                fields.push(Some(self.#f_name.to_edge_value()));
-            }
-        }
+        edge_value_quote(field)
     });
 
     let mut q = format!("{} {} {} ", INSERT, table_name, BRACKET_OPEN);
