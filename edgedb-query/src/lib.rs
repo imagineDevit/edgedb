@@ -15,7 +15,7 @@ macro_rules! _to_edgeql_and_to_edge_scalar_impls {
                 }
             }
             impl ToEdgeScalar for $ty {
-                fn to_edge_scalar(&self) -> String {
+                fn scalar() -> String {
                     $scalar.to_owned()
                 }
             }
@@ -52,7 +52,7 @@ pub trait ToEdgeScalar {
     ///     ----------------------
     ///     |   bool   | <bool>  |
     /// ```
-    fn to_edge_scalar(&self) -> String;
+    fn scalar() -> String;
 }
 
 /// ## ToEdgeShape
@@ -78,7 +78,8 @@ _to_edgeql_and_to_edge_scalar_impls!(
 );
 
 impl ToEdgeScalar for () {
-    fn to_edge_scalar(&self) -> String {
+
+    fn scalar() -> String {
         "".to_owned()
     }
 }
@@ -95,8 +96,8 @@ impl<T: ToEdgeQl> ToEdgeQl for Vec<T> {
 }
 
 impl<T: ToEdgeScalar + Default> ToEdgeScalar for Vec<T> {
-    fn to_edge_scalar(&self) -> String {
-        format!("<array{}>", T::default().to_edge_scalar())
+    fn scalar() -> String {
+        format!("<array{}>", T::scalar())
     }
 }
 

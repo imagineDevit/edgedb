@@ -2,7 +2,7 @@ use crate::{ToEdgeQl, ToEdgeShape};
 
 const STRUCT_ID: &'static str = "{ id }";
 
-/// ## Basic EdgeBD query result
+/// ## Basic EdgeDB query result
 ///
 /// When you made an edgedb query without mentioning the returning fields,
 ///
