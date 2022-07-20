@@ -40,7 +40,7 @@ pub fn do_derive(ast_struct: &DeriveInput) -> TokenStream {
             }
         }
         impl edgedb_query::ToEdgeScalar for #enum_name {
-            fn to_edge_scalar(&self) -> String {
+            fn scalar() -> String {
                 #name.to_owned()
             }
         }

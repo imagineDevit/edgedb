@@ -171,7 +171,7 @@ pub fn do_derive(ast_struct: &DeriveInput) -> TokenStream {
         #to_edgeql_value_impls
 
         impl edgedb_query::ToEdgeScalar for #struct_name {
-            fn to_edge_scalar(&self) -> String {
+            fn scalar() -> String {
                 String::default()
             }
         }

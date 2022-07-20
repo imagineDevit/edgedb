@@ -1,11 +1,14 @@
 
-pub const DD_SIGN: &str = "$$";
+pub const SCALAR: &str = "$scalar_type$";
 
 pub const INF_SIGN: &str = "<";
 pub const SUP_SIGN: &str = ">";
 
 pub const BRACKET_OPEN: &str = "{";
 pub const OPTION: &str = "Option";
+pub const VEC: &str = "Vec";
+pub const TUPLE: &str = "()";
+
 
 pub const INSERT: &str = "insert";
 pub const SELECT: &str = "select";
@@ -35,3 +38,8 @@ pub const TARGET_TABLE: &str = "target_table";
 pub const SOURCE_TABLE: &str = "source_table";
 pub const TARGET_COLUMN: &str = "target_column";
 
+pub const FIELD: &str = "field";
+pub const WRAPPER_FN: &str = "wrapper_fn";
+pub const COLUMN_NAME: &str = "column_name";
+
+pub const LIMIT_1: &str = " limit 1";

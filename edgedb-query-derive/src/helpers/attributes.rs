@@ -1,4 +1,4 @@
-use crate::constants::{TARGET_COLUMN, CONJUNCTIVE, DD_SIGN, EDGEDB, ENUM, FILTER, INF_SIGN, LIMIT, MODULE, NAME, OPERATOR, OPTIONS, ORDER_BY, ORDER_DIR, QUERY, RESULT, SELECT, SUP_SIGN, TABLE, QUERY_SHAPE, TYPE, VALUE, TARGET_TABLE, SOURCE_TABLE, FILTERS};
+use crate::constants::{TARGET_COLUMN, CONJUNCTIVE, SCALAR, EDGEDB, ENUM, FILTER, INF_SIGN, LIMIT, MODULE, NAME, OPERATOR, OPTIONS, ORDER_BY, ORDER_DIR, QUERY, RESULT, SELECT, SUP_SIGN, TABLE, QUERY_SHAPE, TYPE, VALUE, TARGET_TABLE, SOURCE_TABLE, FILTERS, COLUMN_NAME, WRAPPER_FN, FIELD};
 use crate::utils::field_utils::get_field_ident;
 use crate::utils::path_utils::path_ident_equals;
 use crate::utils::type_utils::is_type_name;
@@ -71,6 +71,11 @@ pub struct QueryShape {
     pub target_table: String,
     pub target_column: String,
     pub result: String,
+}
+
+pub struct ResultField {
+    pub column_name: Option<String>,
+    pub wrapper_fn: Option<String>
 }
 
 // impls
@@ -453,7 +458,7 @@ impl EdgeDbType {
         if let Some(value) = db_type.value() {
             value
         } else {
-            DD_SIGN.to_string()
+            SCALAR.to_string()
         }
     }
 }
@@ -852,4 +857,73 @@ impl QueryShape {
         }
         value
     }
+}
+
+impl ResultField {
+
+    pub fn from_field(field: &Field) -> Self {
+        let mut map: HashMap<&str, Option<String>> = HashMap::new();
+        map.insert(COLUMN_NAME, None);
+        map.insert(WRAPPER_FN, None);
+
+        let (map_cloned, found) = explore_field_attrs!(
+            field <- field,
+            derive_name <- FIELD,
+            map <- map
+        );
+
+        let column_name = map_cloned.get(COLUMN_NAME).unwrap().clone();
+        let wrapper_fn = map_cloned.get(WRAPPER_FN).unwrap().clone();
+
+        let all_nones = vec![column_name.clone(), wrapper_fn.clone()].iter().all(|o| o.is_none());
+
+        if  found  && all_nones {
+            panic!("#[field] must have at least column_name or wrapper_fn attribute")
+        }
+
+        Self {
+            column_name,
+            wrapper_fn
+        }
+    }
+
+    pub fn build_statement(field: &Field) -> String {
+
+        let result_field = Self::from_field(field);
+
+        let f_name = get_field_ident(field).to_string();
+
+        let scalar = SCALAR;
+
+        match (result_field.column_name, result_field.wrapper_fn) {
+            (Some(column), None) => {
+                if column != f_name {
+                    format!("{} := .{}", f_name, column)
+                } else {
+                    f_name
+                }
+            }
+
+            (None, Some(wrapper_fn)) => {
+
+                format!("{name} := (select {scalar}{func}(.{name}))",
+                        scalar = scalar,
+                        name = f_name,
+                        func = wrapper_fn)
+            }
+
+            (Some(column), Some(wrapper_fn)) => {
+                format!("{name} := (select {scalar}{func}(.{column}))",
+                        name = f_name,
+                        scalar=scalar,
+                        func = wrapper_fn,
+                        column = column)
+            }
+
+            (None, None) => {
+                f_name
+            }
+        }
+    }
+
 }

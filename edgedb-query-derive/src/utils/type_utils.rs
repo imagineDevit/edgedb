@@ -19,13 +19,13 @@ pub fn is_type_name(ty: &Type, name: &str) -> bool {
 pub fn get_type_name(ty: &Type) -> String {
     match ty {
         Type::Path(ref p) => {
-            p.path
-                .segments
-                .iter()
-                .map(|s| s.ident.to_string())
-                .collect::<Vec<String>>()
-                .join("::")
-            //  p.path.segments[0].ident.to_string()
+            //p.path
+            //    .segments
+            //    .iter()
+            //    .map(|s| s.ident.to_string())
+            //    .collect::<Vec<String>>()
+            //    .join("::")
+            p.path.segments[0].ident.to_string()
         }
         Type::Tuple(TypeTuple { elems: _e, .. }) => {
             // if e.len() == 0 {}

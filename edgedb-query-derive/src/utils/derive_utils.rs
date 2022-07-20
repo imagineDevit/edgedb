@@ -3,8 +3,8 @@ use quote::quote;
 use crate::helpers::attributes::{EdgeDbMeta, Filter, Filters, Options, Query};
 use crate::utils::field_utils::{get_field_ident, get_struct_fields};
 use syn::{DeriveInput, Field};
-use crate::constants::{DD_SIGN, OPTION};
-use crate::utils::type_utils::is_type_name;
+use crate::constants::{SCALAR, OPTION, VEC, TUPLE};
+use crate::utils::type_utils::{get_wrapped_type, is_type_name};
 
 pub fn start(ast_struct: &DeriveInput) -> (String, Query, bool, Option<Field>, Option<Field>, Vec<Field>) {
     // Struct fields
@@ -77,22 +77,50 @@ pub fn filter_quote(field: &Field, table_name: String, index: &mut usize) -> Tok
 
     *index += 1;
 
-    let f_name = get_field_ident(field);
+    let field_is_vec = is_type_name(&field.ty, VEC);
+
+    let field_is_tuple = is_type_name(&field.ty, TUPLE);
+
+    let f_ty = &field.ty;
+
+    let tty = if field_is_vec {
+        get_wrapped_type(f_ty, VEC)
+    } else {
+        f_ty.clone()
+    };
 
     let assignment = format!("{}", p);
 
-    let dd_sign = DD_SIGN.to_string();
+    let dd_sign = SCALAR.to_string();
 
     let format_scalar = format_scalar();
 
-    quote! {
-            let mut scalar: String = self.#f_name.clone().to_edge_scalar();
+    if field_is_vec {
+        quote! {
+            let mut scalar: String = format!("<array{}>", #tty::scalar());
             #format_scalar;
             let p = #assignment.to_owned().replace(#dd_sign, scalar.as_str());
             query.push_str(p.as_str());
+        }
+    } else {
+        if field_is_tuple {
+            quote! {
+                let mut scalar: String = <#tty>::scalar();
+                #format_scalar;
+                let p = #assignment.to_owned().replace(#dd_sign, scalar.as_str());
+                query.push_str(p.as_str());
+            }
+        } else {
+                    quote! {
+                let mut scalar: String = #tty::scalar();
+                #format_scalar;
+                let p = #assignment.to_owned().replace(#dd_sign, scalar.as_str());
+                query.push_str(p.as_str());
+            }
+        }
+
     }
 }
-
 
 pub fn filter_quote_(field: &Field, index: &mut usize) -> TokenStream {
 
@@ -102,22 +130,55 @@ pub fn filter_quote_(field: &Field, index: &mut usize) -> TokenStream {
 
     *index += 1;
 
-    let f_name = get_field_ident(field);
+    let field_is_vec = is_type_name(&field.ty, VEC);
+
+    let field_is_tuple = is_type_name(&field.ty, TUPLE);
+
+    let f_ty = &field.ty;
+
+    let tty = if field_is_vec {
+        get_wrapped_type(f_ty, VEC)
+    } else {
+        f_ty.clone()
+    };
 
     let assignment = format!("{}", p);
 
-    let dd_sign = DD_SIGN.to_string();
+    let dd_sign = SCALAR.to_string();
 
     let format_scalar = format_scalar();
 
-    quote! {
-            let mut scalar: String = self.#f_name.clone().to_edge_scalar();
+    if field_is_vec {
+        quote! {
+            let mut scalar: String = format!("<array{}>", #tty::scalar());
             #format_scalar;
             let p = #assignment.to_owned()
                 .replace(#dd_sign, scalar.as_str())
                 .replace(#table_name, table_name);
             query.push_str(p.as_str());
+        }
+    } else {
+        if field_is_tuple {
+            quote! {
+                let mut scalar: String = <#tty>::scalar();
+                #format_scalar;
+                let p = #assignment.to_owned()
+                    .replace(#dd_sign, scalar.as_str())
+                    .replace(#table_name, table_name);
+                query.push_str(p.as_str());
+            }
+        } else {
+            quote! {
+                let mut scalar: String = #tty::scalar();
+                #format_scalar;
+                let p = #assignment.to_owned()
+                    .replace(#dd_sign, scalar.as_str())
+                    .replace(#table_name, table_name);
+                query.push_str(p.as_str());
+            }
+        }
     }
+
 }
 
 pub fn format_scalar() -> TokenStream {

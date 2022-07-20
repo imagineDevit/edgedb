@@ -149,7 +149,7 @@ pub fn edgedb_enum(input: TokenStream) -> TokenStream {
 ///     // assert_eq!(eq.query, "select users::User { id, name } filter .name = (select <str>$name) ");
 /// }
 /// ```
-#[proc_macro_derive(EdgedbResult, attributes(query_shape))]
+#[proc_macro_derive(EdgedbResult, attributes(field, query_shape))]
 pub fn edgedb_result(input: TokenStream) -> TokenStream {
     let ast_struct = parse_macro_input!(input as DeriveInput);
     let tokens = shapes::edgedb_result::do_derive(&ast_struct);
