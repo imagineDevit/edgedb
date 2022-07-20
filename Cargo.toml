@@ -1,5 +1,6 @@
 [workspace]
 members = [
+    "example",
     "edgedb-query",
     "edgedb-query-derive"
 ]
