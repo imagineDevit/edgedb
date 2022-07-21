@@ -15,7 +15,7 @@ jobs:
         uses: peaceiris/actions-mdbook@v1
         with:
           mdbook-version: 'latest'
-
+      - run: chmod 777 -R docs
       - run: mdbook build docs
 
       - name: deploy to gh-pages
