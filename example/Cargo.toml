@@ -7,6 +7,8 @@ edition = "2021"
 
 [dependencies]
 
+edgedb-query = { path = "../edgedb-query"}
+
 edgedb-query-derive = {path = "../edgedb-query-derive"}
 
 anyhow = "1.0.58"
