@@ -79,7 +79,7 @@ mod insert {
                 {
                     id,
                     name : { name }
-                } limit 1
+                }
         "#.to_owned().replace("\n", "");
 
         assert_eq!(query.query.replace(" ", ""), expected.replace(" ", ""));

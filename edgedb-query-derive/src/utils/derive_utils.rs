@@ -195,18 +195,38 @@ pub fn format_scalar() -> TokenStream {
 }
 
 pub fn shape_element_quote(field: &Field, index: &mut i16) -> TokenStream {
-    let f_name = format!("{}", get_field_ident(field));
+    let f_ident = get_field_ident(field);
+    let f_name = format!("{}", f_ident);
+    let field_is_option = is_type_name(&field.ty, OPTION);
+
     *index += 1;
-    quote! {
-            edgedb_protocol::descriptors::ShapeElement {
+
+    if field_is_option {
+        quote! {
+            if let Some(v) = self.#f_ident.clone() {
+                shapes.push(edgedb_protocol::descriptors::ShapeElement {
+                    flag_implicit: false,
+                    flag_link_property: false,
+                    flag_link: false,
+                    cardinality: Some(edgedb_protocol::client_message::Cardinality::One),
+                    name: #f_name.to_string(),
+                    type_pos: edgedb_protocol::descriptors::TypePos(#index as u16),
+                });
+            }
+        }
+    } else {
+        quote! {
+            shapes.push(edgedb_protocol::descriptors::ShapeElement {
                 flag_implicit: false,
                 flag_link_property: false,
                 flag_link: false,
                 cardinality: Some(edgedb_protocol::client_message::Cardinality::One),
                 name: #f_name.to_string(),
                 type_pos: edgedb_protocol::descriptors::TypePos(#index as u16),
-            }
+            });
         }
+    }
+
 }
 
 pub fn edge_value_quote(field: &Field) -> TokenStream {

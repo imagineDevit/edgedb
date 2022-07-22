@@ -46,17 +46,17 @@ pub fn do_derive(ast_struct: &DeriveInput) -> TokenStream {
 
                 let mut fields: Vec<Option<edgedb_protocol::value::Value>> = vec![];
 
-                let shape: &[edgedb_protocol::descriptors::ShapeElement] = &[
+                let mut shapes:  Vec<edgedb_protocol::descriptors::ShapeElement> = vec![];
 
-                    #(#shapes),*
+                #(#shapes)*
 
-                ];
+                let shape_slices: &[edgedb_protocol::descriptors::ShapeElement] = shapes.as_slice();
 
                 #(#field_values)*
 
                 edgedb_protocol::value::Value::Object {
 
-                    shape: edgedb_protocol::codec::ObjectShape::from(shape),
+                    shape: edgedb_protocol::codec::ObjectShape::from(shape_slices),
 
                     fields,
                 }
