@@ -18,7 +18,7 @@ jobs:
         with:
           toolchain: stable
 
-      - run: cd edge-query-derive && cargo test --test progress
+      - run: cd edgedb-query-derive && cargo test --test progress
 
   deploy-docs:
     runs-on: ubuntu-latest
