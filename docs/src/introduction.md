@@ -1,9 +1,8 @@
 # Introduction
-[![made-with-rust](https://img.shields.io/badge/Made%20with-Rust-1f425f.svg)](https://www.rust-lang.org/)
-![GitHub](https://img.shields.io/github/license/imagineDevit/edgedb?style=plastic)
+[![minimum rustc 1.31](https://img.shields.io/badge/rustc-1.59+-red.svg)](https://rust-lang.github.io/rfcs/2495-min-rust-version.html)
+[![GitHub](https://img.shields.io/github/license/imagineDevit/edgedb?style=flat)](https://github.com/imagineDevit/edgedb/blob/main/License)
 [![GitHub contributors](https://badgen.net/github/contributors/imagineDevit/edgedb)](https://github.com/imagineDevit/edgedb/graphs/contributors)
-![example workflow name](https://github.com/imagineDevit/edgedb/workflows/github%20pages/badge.svg)
-![GitHub Workflow Status (branch)](https://img.shields.io/github/workflow/status/imagineDevit/edgedb/github%20pages/main?style=plastic)
+[![GitHub Workflow Status (branch)](https://img.shields.io/github/workflow/status/imagineDevit/edgedb/github%20pages/main?style=flat)](https://github.com/imagineDevit/edgedb/runs/7468742405?check_suite_focus=true)
 
 ###  🤷‍♀️  What's EgdeDB ?
 

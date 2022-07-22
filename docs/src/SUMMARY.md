@@ -4,7 +4,7 @@
 
 # 📖 User Guide
 
-- [Installation]()
+- [Installation](./installation.md)
 - [Examples]()
 
 # 📖 Reference Guide
