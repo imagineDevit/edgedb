@@ -11,7 +11,7 @@ proc-macro = true
 
 
 [[test]]
-name = "test"
+name = "progress"
 path = "test/progress.rs"
 
 [dependencies]

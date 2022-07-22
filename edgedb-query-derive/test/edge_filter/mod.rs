@@ -11,7 +11,7 @@ mod filter {
     }
 
     #[test]
-    pub fn filter_test() {
+    pub fn test_filter() {
         let filter = MyFilter {
             name: "".to_string()
         };
