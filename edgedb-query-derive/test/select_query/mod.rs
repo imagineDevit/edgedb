@@ -15,7 +15,7 @@ mod select {
     pub struct UserResult {
         pub id: String,
         pub name: String,
-        pub age: u8,
+        pub age: i8,
     }
 
 
@@ -219,7 +219,7 @@ mod select {
         pub name: String,
 
         #[filter(operator = "GreaterThan", conjunctive="And")]
-        pub age: u8,
+        pub age: i8,
     }
 
     #[test]
@@ -255,7 +255,7 @@ mod select {
         __meta__: (),
 
         #[filter(operator = "GreaterThanOrEqual")]
-        pub age: u8,
+        pub age: i8,
     }
 
     #[test]
@@ -292,7 +292,7 @@ mod select {
         options: SelectOptions<'static>,
 
         #[filter(operator = "GreaterThanOrEqual")]
-        pub age: u8,
+        pub age: i8,
     }
 
     #[test]
@@ -345,7 +345,7 @@ mod select {
     #[derive(EdgedbFilters)]
     pub struct AgeFilter {
         #[filter(operator="GreaterThanOrEqual")]
-        pub age: u8
+        pub age: i8
     }
 
     #[test]

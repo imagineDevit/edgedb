@@ -62,10 +62,6 @@ pub trait ToEdgeShape {
 
 _to_edgeql_and_to_edge_scalar_impls!(
     String => { scalar: "<str>" },
-    u8 => { scalar: "<int16>" },
-    u16 => { scalar: "<int16>" },
-    u32 => { scalar: "<int32>" },
-    u64 => { scalar: "<int64>"  },
     i8 => { scalar: "<int16>" },
     i16 => { scalar: "<int16>" },
     i32 => { scalar: "<int32>" },
@@ -124,26 +120,7 @@ impl ToEdgeValue for String {
         Value::Str(self.to_string())
     }
 }
-impl ToEdgeValue for u8 {
-    fn to_edge_value(&self) -> Value {
-        Value::Int16(*self as i16)
-    }
-}
-impl ToEdgeValue for u16 {
-    fn to_edge_value(&self) -> Value {
-        Value::Int16(*self as i16)
-    }
-}
-impl ToEdgeValue for u32 {
-    fn to_edge_value(&self) -> Value {
-        Value::Int32(*self as i32)
-    }
-}
-impl ToEdgeValue for u64 {
-    fn to_edge_value(&self) -> Value {
-        Value::Int64(*self as i64)
-    }
-}
+
 impl ToEdgeValue for i8 {
     fn to_edge_value(&self) -> Value {
         Value::Int16(*self as i16)

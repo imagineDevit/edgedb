@@ -14,7 +14,7 @@ mod insert {
 
         pub name: String,
         pub surname: Option<String>,
-        pub age: u32,
+        pub age: i32,
         pub major: bool,
         pub vs: Vec<String>,
         #[edgedb(type = "enum", module = "users", name = "Gender")]
@@ -45,7 +45,7 @@ mod insert {
     pub struct Wallet {
         #[edgedb(module = "users", table = "Wallet")]
         __meta__: (),
-        pub money: u16,
+        pub money: i16,
     }
 
     #[test]

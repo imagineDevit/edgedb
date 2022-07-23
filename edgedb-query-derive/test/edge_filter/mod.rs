@@ -6,7 +6,7 @@ mod filter {
 
     #[derive(EdgedbFilters)]
     pub struct MyFilter {
-        #[filter(operator="Is")]
+        #[filter(operator="=")]
         pub name: String
     }
 

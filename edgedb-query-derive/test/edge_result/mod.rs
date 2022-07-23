@@ -7,7 +7,7 @@ mod result {
     #[derive(EdgedbResult)]
     pub struct Identity {
         pub name: String,
-        pub age: u8
+        pub age: i8
     }
 
     #[derive(EdgedbResult)]

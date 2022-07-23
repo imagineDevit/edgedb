@@ -75,7 +75,7 @@ pub struct QueryShape {
 
 pub struct ResultField {
     pub column_name: Option<String>,
-    pub wrapper_fn: Option<String>
+    pub wrapper_fn: Option<String>,
 }
 
 // impls
@@ -523,7 +523,6 @@ impl EdgeEnumValue {
 }
 
 impl Operator {
-
     fn from_str(ty: &Type, s: String) -> Operator {
         let check_type = |_: &Type| {
             if is_type_name(&ty, "()") {
@@ -531,8 +530,8 @@ impl Operator {
             }
         };
 
-        match s.as_str() {
-            "Exists" => {
+        match s.to_lowercase().as_str() {
+            "exists" => {
                 if !is_type_name(&ty, "()") {
                     panic!(
                         r#"
@@ -542,7 +541,7 @@ impl Operator {
                 }
                 Operator::Exists
             }
-            "NotExists" => {
+            "notexists" | "!exists" => {
                 if !is_type_name(&ty, "()") {
                     panic!(
                         r#"
@@ -552,15 +551,15 @@ impl Operator {
                 }
                 Operator::NotExists
             }
-            "Is" => {
+            "is" | "="=> {
                 check_type(ty);
                 Operator::Is
             }
-            "IsNot" => {
+            "isnot" | "!=" => {
                 check_type(ty);
                 Operator::IsNot
             }
-            "Like" => {
+            "like" => {
                 check_type(ty);
                 if !is_type_name(&ty, "String") {
                     panic!(
@@ -571,7 +570,7 @@ impl Operator {
                 }
                 Operator::Like
             }
-            "ILike" => {
+            "ilike" => {
                 check_type(ty);
                 if !is_type_name(&ty, "String") {
                     panic!(
@@ -582,7 +581,7 @@ impl Operator {
                 }
                 Operator::ILike
             }
-            "In" => {
+            "in" => {
                 check_type(ty);
                 if !is_type_name(&ty, "Vec") {
                     panic!(
@@ -593,7 +592,7 @@ impl Operator {
                 }
                 Operator::In
             }
-            "NotIn" => {
+            "notin" => {
                 check_type(ty);
                 if !is_type_name(&ty, "Vec") {
                     panic!(
@@ -604,19 +603,19 @@ impl Operator {
                 }
                 Operator::NotIn
             }
-            "GreaterThan" => {
+            "greaterthan" | ">" => {
                 check_type(ty);
                 Operator::GreaterThan
             }
-            "GreaterThanOrEqual" => {
+            "greaterthanorequal" | ">=" => {
                 check_type(ty);
                 Operator::GreaterThanOrEqual
             }
-            "LesserThan" => {
+            "lesserthan" | "<" => {
                 check_type(ty);
                 Operator::LesserThan
             }
-            "LesserThanOrEqual" => {
+            "lesserthanorequal" | "<=" => {
                 check_type(ty);
                 Operator::LesserThanOrEqual
             }
@@ -662,7 +661,7 @@ impl Operator {
             Operator::Exists => {
                 is_exists = true;
                 "exists"
-            },
+            }
             Operator::NotExists => {
                 is_exists = true;
                 "not exists"
@@ -795,9 +794,7 @@ impl Options {
 }
 
 impl QueryShape {
-
     pub fn from_field(field: &Field) -> Self {
-
         let field_name = get_field_ident(field).to_string();
 
         let mut map: HashMap<&str, Option<String>> = HashMap::new();
@@ -817,7 +814,7 @@ impl QueryShape {
 
         let source_table = Self::get_value(&map_cloned, SOURCE_TABLE, field_name.clone());
 
-        let target_table= Self::get_value(&map_cloned, TARGET_TABLE, field_name.clone());
+        let target_table = Self::get_value(&map_cloned, TARGET_TABLE, field_name.clone());
 
         let target_column = Self::get_value(&map_cloned, TARGET_COLUMN, field_name.clone());
 
@@ -828,7 +825,6 @@ impl QueryShape {
     }
 
     pub fn build_assignment(field: &Field) -> (String, String) {
-
         let t = QueryShape::from_field(field);
         let source = t.source_table;
         let column = t.target_column;
@@ -849,7 +845,7 @@ impl QueryShape {
         result
     }
 
-    fn required(value: String , name: & str) -> String {
+    fn required(value: String, name: &str) -> String {
         if value.clone().is_empty() {
             panic!(r#"
                 Non empty value required for {} attribute
@@ -860,7 +856,6 @@ impl QueryShape {
 }
 
 impl ResultField {
-
     pub fn from_field(field: &Field) -> Self {
         let mut map: HashMap<&str, Option<String>> = HashMap::new();
         map.insert(COLUMN_NAME, None);
@@ -877,18 +872,17 @@ impl ResultField {
 
         let all_nones = vec![column_name.clone(), wrapper_fn.clone()].iter().all(|o| o.is_none());
 
-        if  found  && all_nones {
+        if found && all_nones {
             panic!("#[field] must have at least column_name or wrapper_fn attribute")
         }
 
         Self {
             column_name,
-            wrapper_fn
+            wrapper_fn,
         }
     }
 
     pub fn build_statement(field: &Field) -> String {
-
         let result_field = Self::from_field(field);
 
         let f_name = get_field_ident(field).to_string();
@@ -905,7 +899,6 @@ impl ResultField {
             }
 
             (None, Some(wrapper_fn)) => {
-
                 format!("{name} := (select {scalar}{func}(.{name}))",
                         scalar = scalar,
                         name = f_name,
@@ -915,7 +908,7 @@ impl ResultField {
             (Some(column), Some(wrapper_fn)) => {
                 format!("{name} := (select {scalar}{func}(.{column}))",
                         name = f_name,
-                        scalar=scalar,
+                        scalar = scalar,
                         func = wrapper_fn,
                         column = column)
             }
@@ -925,5 +918,4 @@ impl ResultField {
             }
         }
     }
-
 }
