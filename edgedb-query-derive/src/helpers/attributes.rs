@@ -1,4 +1,4 @@
-use crate::constants::{TARGET_COLUMN, CONJUNCTIVE, SCALAR, EDGEDB, ENUM, FILTER, INF_SIGN, LIMIT, MODULE, NAME, OPERATOR, OPTIONS, ORDER_BY, ORDER_DIR, QUERY, RESULT, SELECT, SUP_SIGN, TABLE, QUERY_SHAPE, TYPE, VALUE, TARGET_TABLE, SOURCE_TABLE, FILTERS, COLUMN_NAME, WRAPPER_FN, FIELD};
+use crate::constants::{TARGET_COLUMN, CONJUNCTIVE, SCALAR, EDGEDB, ENUM, FILTER, INF_SIGN, LIMIT, MODULE, NAME, OPERATOR, OPTIONS, ORDER_BY, ORDER_DIR, QUERY, RESULT, SELECT, SUP_SIGN, TABLE, QUERY_SHAPE, TYPE, VALUE, TARGET_TABLE, SOURCE_TABLE, FILTERS, COLUMN_NAME, WRAPPER_FN, FIELD, DEFAULT_VALUE};
 use crate::utils::field_utils::get_field_ident;
 use crate::utils::path_utils::path_ident_equals;
 use crate::utils::type_utils::is_type_name;
@@ -76,6 +76,7 @@ pub struct QueryShape {
 pub struct ResultField {
     pub column_name: Option<String>,
     pub wrapper_fn: Option<String>,
+    pub default_value: Option<String>
 }
 
 // impls
@@ -201,7 +202,6 @@ macro_rules! explore_field_attrs (
         }
         found
     }}
-
 );
 
 impl ToString for Conjunctive {
@@ -860,6 +860,7 @@ impl ResultField {
         let mut map: HashMap<&str, Option<String>> = HashMap::new();
         map.insert(COLUMN_NAME, None);
         map.insert(WRAPPER_FN, None);
+        map.insert(DEFAULT_VALUE, None);
 
         let (map_cloned, found) = explore_field_attrs!(
             field <- field,
@@ -869,6 +870,7 @@ impl ResultField {
 
         let column_name = map_cloned.get(COLUMN_NAME).unwrap().clone();
         let wrapper_fn = map_cloned.get(WRAPPER_FN).unwrap().clone();
+        let default_value = map_cloned.get(DEFAULT_VALUE).unwrap().clone();
 
         let all_nones = vec![column_name.clone(), wrapper_fn.clone()].iter().all(|o| o.is_none());
 
@@ -876,9 +878,19 @@ impl ResultField {
             panic!("#[field] must have at least column_name or wrapper_fn attribute")
         }
 
+        if wrapper_fn.clone().is_none()  && default_value.is_some() {
+            if let Some(c) = column_name.clone() {
+                let f_name = get_field_ident(field).to_string();
+                if c == f_name {
+                    panic!("default_value cannot be applied to the field {}", f_name);
+                }
+            }
+        }
+
         Self {
             column_name,
             wrapper_fn,
+            default_value
         }
     }
 
@@ -889,7 +901,7 @@ impl ResultField {
 
         let scalar = SCALAR;
 
-        match (result_field.column_name, result_field.wrapper_fn) {
+        let mut s = match (result_field.column_name, result_field.wrapper_fn) {
             (Some(column), None) => {
                 if column != f_name {
                     format!("{} := .{}", f_name, column)
@@ -916,6 +928,12 @@ impl ResultField {
             (None, None) => {
                 f_name
             }
+        };
+
+        if let Some(v) = result_field.default_value {
+            s = format!("{s} ?? (select {scalar}'{v}')", s = s, scalar = scalar, v = v);
         }
+
+        s
     }
 }

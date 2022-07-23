@@ -41,5 +41,6 @@ pub const TARGET_COLUMN: &str = "target_column";
 pub const FIELD: &str = "field";
 pub const WRAPPER_FN: &str = "wrapper_fn";
 pub const COLUMN_NAME: &str = "column_name";
+pub const DEFAULT_VALUE: &str = "default_value";
 
 pub const LIMIT_1: &str = " limit 1";

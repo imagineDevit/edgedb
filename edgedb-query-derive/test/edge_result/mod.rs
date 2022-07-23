@@ -139,4 +139,15 @@ mod result {
         assert_eq!(shape, "{login := (select <str>str_upper(.pseudo)),identity : {name,age},friend := (select users::User.<friend[is users::Friend]{surname} limit 1)}")
     }
 
+    #[derive(EdgedbResult)]
+    pub struct UserWithDefault {
+        #[field(column_name="pseudo", wrapper_fn="str_upper", default_value="john")]
+        pub login: String,
+    }
+
+    #[test]
+    pub fn test_with_default() {
+        let shape = UserWithDefault::shape();
+        assert_eq!(shape, "{login := (select <str>str_upper(.pseudo)) ?? (select <str>'john')}")
+    }
 }
