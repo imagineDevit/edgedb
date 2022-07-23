@@ -1,5 +1,5 @@
 use crate::{ToEdgeQl, ToEdgeShape};
-
+use serde::Deserialize;
 const STRUCT_ID: &'static str = "{ id }";
 
 /// ## Basic EdgeDB query result
@@ -7,7 +7,7 @@ const STRUCT_ID: &'static str = "{ id }";
 /// When you made an edgedb query without mentioning the returning fields,
 ///
 /// the query returns a structure containing just the id field.
-#[derive(Default)]
+#[derive(Default, Deserialize)]
 pub struct BasicResult {
     pub id: String,
 }
