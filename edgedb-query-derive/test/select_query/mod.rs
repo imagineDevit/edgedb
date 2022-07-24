@@ -45,7 +45,6 @@ mod select {
         }
     }
 
-
     #[derive(SelectQuery)]
     pub struct FindUsersByNameExists {
         #[edgedb(module = "users", table = "User")]

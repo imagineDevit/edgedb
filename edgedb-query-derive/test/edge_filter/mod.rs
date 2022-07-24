@@ -6,7 +6,7 @@ mod filter {
 
     #[derive(EdgedbFilters)]
     pub struct MyFilter {
-        #[filter(operator="=")]
+        #[filter(operator="=", column_name="identity.first_name", wrapper_fn="str_lower")]
         pub name: String
     }
 
@@ -20,7 +20,7 @@ mod filter {
 
         let value: Value = filter.to_edge_value();
 
-        assert_eq!(query, "filter users::User.name = (select <str>$name)");
+        assert_eq!(query, "filter str_lower(users::User.identity.first_name) = (select <str>$name)");
 
         if let Value::Object { shape, fields } = value {
             crate::test_utils::check_shape(&shape, vec!["name"]);

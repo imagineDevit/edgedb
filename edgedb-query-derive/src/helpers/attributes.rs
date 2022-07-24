@@ -59,6 +59,8 @@ pub enum Conjunctive {
 pub struct Filter {
     pub operator: Operator,
     pub conjunctive: Option<Conjunctive>,
+    pub column_name: Option<String>,
+    pub wrapper_fn: Option<String>
 }
 
 pub struct Filters;
@@ -642,7 +644,7 @@ impl Operator {
         }
     }
 
-    pub fn build(&self, table_name: String, field: &Field) -> String {
+    pub fn build(&self, table_name: String, field: &Field, column_name: Option<String>, wrapper_fn: Option<String>) -> String {
         let ty = EdgeDbType::get_type(field);
 
         let mut is_exists = false;
@@ -668,21 +670,31 @@ impl Operator {
             }
         };
 
+        let field_name = get_field_ident(field).to_string();
+
+        let column_name = column_name.or_else(|| Some(field_name.clone())).unwrap();
+
+        let wrapped_field_name = if let Some(wfn) = wrapper_fn {
+            format!("{wfn}({table_name}.{column_name})")
+        } else {
+            format!("{table_name}.{column_name}")
+        };
+
         if is_exists {
             format!(
-                " {symbol} {table}.{field_name}",
+                " {symbol} {table}.{column_name}",
                 symbol = symbol,
                 table = table_name,
-                field_name = get_field_ident(field)
+                column_name = column_name
             )
         } else {
             format!(
-                " {table}.{field_name} {symbol} ({select} {edge_type}${field_name})",
-                table = table_name,
+                " {wrapped_field_name} {symbol} ({select} {edge_type}${field_name})",
                 symbol = symbol,
                 select = SELECT,
                 edge_type = ty,
-                field_name = get_field_ident(field)
+                wrapped_field_name = wrapped_field_name,
+                field_name = field_name
             )
         }
     }
@@ -693,6 +705,8 @@ impl Filter {
         let mut map: HashMap<&str, Option<String>> = HashMap::new();
         map.insert(OPERATOR, None);
         map.insert(CONJUNCTIVE, None);
+        map.insert(COLUMN_NAME, None);
+        map.insert(WRAPPER_FN, None);
 
         let (map_cloned, exist) = explore_field_attrs!(
             field <- field,
@@ -722,6 +736,8 @@ impl Filter {
         };
 
         let conjunctive = map_cloned.get(CONJUNCTIVE).unwrap().clone();
+        let column_name = map_cloned.get(COLUMN_NAME).unwrap().clone();
+        let wrapper_fn = map_cloned.get(WRAPPER_FN).unwrap().clone();
 
         let conjunctive = if let Some(c) = conjunctive {
             match c.as_str() {
@@ -756,12 +772,12 @@ impl Filter {
             None
         };
 
-        Filter { operator, conjunctive }
+        Filter { operator, conjunctive, column_name, wrapper_fn }
     }
 
     pub fn build_filter_assignment(table_name: String, field: &Field, index: usize) -> String {
         let filter = Filter::from_field(field, index);
-        let q = filter.operator.build(table_name, field);
+        let q = filter.operator.build(table_name, field, filter.column_name, filter.wrapper_fn);
         if index == 0 {
             q
         } else {
