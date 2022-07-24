@@ -1,54 +1,13 @@
-<img src="assets/logo.png" width="15%" style="margin-top: 25px" alt="https://www.edgedb.com/">  
-<i style="font-weight: bold; font-size: 18px; margin-left: 5px">EdgeDB</i> is a new graph-relational database built on top of <i style="font-size: 16px
-">🐘 Postgresql </i>
-
-_____
-
-
-🦾 This project aims to provide a bunch procedural macros in order to facilitate writing of edgedb queries while
-using [edgedb-tokio](https://crates.io/crates/edgedb-tokio) crate.
+## Edgedb query
+[![minimum rustc 1.31](https://img.shields.io/badge/rustc-1.59+-red.svg)](https://rust-lang.github.io/rfcs/2495-min-rust-version.html)
+[![GitHub](https://img.shields.io/github/license/imagineDevit/edgedb?style=flat)](https://github.com/imagineDevit/edgedb/blob/main/License)
+[![GitHub contributors](https://badgen.net/github/contributors/imagineDevit/edgedb)](https://github.com/imagineDevit/edgedb/graphs/contributors)
+[![GitHub Workflow Status (branch)](https://img.shields.io/github/workflow/status/imagineDevit/edgedb/github%20pages/main?style=flat)](https://github.com/imagineDevit/edgedb/runs/7468742405?check_suite_focus=true)
 
 
-----
+[**Edgedb-query**](https://github.com/imagineDevit/edgedb) is a rust crate project that aims to provide a bunch procedural macros in order to facilitate writing of [_edgeql_](https://www.edgedb.com/tutorial) queries when
+using [edgedb-rust](https://github.com/edgedb/edgedb-rust) crate.
 
-#### Examples
+___
 
-```rust
-
-#[EdgedbEnum]
-pub enum TodoStatus {
-    #[value("TodoReady")]
-    Ready,
-    #[value("TodoComplete")]
-    Complete
-}
-
-#[derive(InsertQuery)]
-pub struct Todo {
-    #[edgedb(module = "default", table = "Todos")]
-    pub __meta__: (),
-
-    pub label: String,
-    
-    #[edgedb(type = "enum", name = "Status")]
-    pub status: Status
-}
-
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let todo = Todo {
-        __meta__: (),
-        label: "Learn rust".to_string(),
-        status: TodoStatus::Complete
-    };
-    let edge_query: edgedb_query::models::EdgeQuery = todo.to_edge_query();
-
-    let client = edgedb_tokio::create_client().await?;
-
-    let json = client
-        .query_json(edge_query.query.as_str(), &edge_query.args.unwrap())
-        .await?;
-
-    println!("{:#?}", json.to_string());
-}
-```
+**Documentation** _available_ [_here_ 👉 ](https://imaginedevit.github.io/edgedb/)
