@@ -18,6 +18,33 @@ mod select {
         pub age: i8,
     }
 
+    #[derive(SelectQuery)]
+    pub struct FindUsers {
+        #[edgedb(module = "users", table = "User")]
+        #[query(result = "UserResult")]
+        __meta__: (),
+    }
+
+    #[test]
+    pub fn find_users_test() {
+
+        let q = FindUsers {
+            __meta__ : ()
+        };
+
+        let edge_query : EdgeQuery = q.to_edge_query();
+
+        let expected_query = "select users::User {id,name,age}";
+
+        assert_eq!(edge_query.query, expected_query);
+
+        if let Some(Value::Tuple(v)) = edge_query.args {
+            assert!(v.is_empty())
+        } else {
+            assert!(false)
+        }
+    }
+
 
     #[derive(SelectQuery)]
     pub struct FindUsersByNameExists {

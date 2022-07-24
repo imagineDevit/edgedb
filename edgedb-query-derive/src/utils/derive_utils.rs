@@ -245,3 +245,30 @@ pub fn edge_value_quote(field: &Field) -> TokenStream {
             }
     }
 }
+
+pub fn to_edge_ql_value_impl_empty_quote(struct_name: &syn::Ident, query: String, result_type: Option<syn::Ident>) -> TokenStream {
+
+    let push_result_shape = if let Some(result_type_name) = result_type {
+        quote! {
+            query.push_str(#result_type_name::shape().as_str());
+        }
+    } else {
+        quote!()
+    };
+
+    quote! {
+            impl edgedb_query::ToEdgeQl for #struct_name {
+                fn to_edgeql(&self) -> String {
+                    let mut query = #query.to_owned();
+                    #push_result_shape
+                    query
+                }
+            }
+
+            impl edgedb_query::ToEdgeValue for #struct_name {
+                fn to_edge_value(&self) -> edgedb_protocol::value::Value {
+                    edgedb_protocol::value::Value::empty_tuple()
+                }
+            }
+        }
+}

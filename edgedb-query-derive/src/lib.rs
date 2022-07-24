@@ -10,6 +10,7 @@ mod helpers;
 mod insert;
 mod select;
 mod utils;
+mod delete;
 
 /// <h1>Insert Query</h1>
 ///
@@ -61,7 +62,7 @@ pub fn insert_query(input: TokenStream) -> TokenStream {
 ///     #[query(result = "UserResult")]
 ///     __meta__: (),
 ///
-///     #[filter(Is)]
+///     #[filter(operator="Is")]
 ///     pub name: String,
 /// }
 ///
@@ -75,6 +76,29 @@ pub fn insert_query(input: TokenStream) -> TokenStream {
 pub fn select_query(input: TokenStream) -> TokenStream {
     let ast_struct = parse_macro_input!(input as DeriveInput);
     let result = select::select_query::do_derive(&ast_struct);
+    result
+}
+
+/// # Delete Query
+///
+///
+/// <h3 style = "text-decoration: underlined">Usage :</h3>
+///
+/// ```rust
+/// #[derive(DeleteQuery)]
+/// pub struct DeleteUserByName {
+///     #[edgedb(module = "users", table = "User")]
+///     __meta__: (),
+///
+///     #[filter(operator="=")]
+///     pub name: String,
+/// }
+///
+/// ```
+#[proc_macro_derive(DeleteQuery, attributes(edgedb, filter, filters))]
+pub fn delete_query(input: TokenStream) -> TokenStream {
+    let ast_struct = parse_macro_input!(input as DeriveInput);
+    let result = delete::delete_query::do_derive(&ast_struct);
     result
 }
 

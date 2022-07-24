@@ -6,6 +6,29 @@ mod insert {
     use edgedb_query_derive::{InsertQuery, EdgedbEnum, EdgedbResult};
     use edgedb_query::{*, ToEdgeShape, models::{ edge_query::*, query_result::BasicResult}};
 
+
+    #[derive(InsertQuery)]
+    pub struct InsertEmptyUser {
+        #[edgedb(module = "users", table = "User")]
+        #[query(result = "UserResult")]
+        __meta__: ()
+    }
+
+    #[test]
+    fn insert_empty_user_test() {
+
+        let insert_user = InsertEmptyUser {
+            __meta__: (),
+        };
+
+        let query: EdgeQuery = insert_user.to_edge_query();
+
+        let expected = "insert users::User";
+
+        assert_eq!(query.query, expected);
+
+    }
+
     #[derive(InsertQuery)]
     pub struct InsertUser {
         #[edgedb(module = "users", table = "User")]
@@ -49,7 +72,7 @@ mod insert {
     }
 
     #[test]
-    fn insert_query_test() {
+    fn insert_user_test() {
 
         let insert_user = InsertUser {
             __meta__: (),
@@ -111,6 +134,5 @@ mod insert {
         }
 
     }
-
 
 }

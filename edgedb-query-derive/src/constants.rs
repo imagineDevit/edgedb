@@ -12,6 +12,7 @@ pub const TUPLE: &str = "()";
 
 pub const INSERT: &str = "insert";
 pub const SELECT: &str = "select";
+pub const DELETE: &str = "delete";
 
 pub const EDGEDB: &str = "edgedb";
 pub const TYPE: &str = "type";
