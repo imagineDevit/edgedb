@@ -43,7 +43,7 @@ mod delete;
 ///     
 /// }
 /// ```
-#[proc_macro_derive(InsertQuery, attributes(edgedb, query))]
+#[proc_macro_derive(InsertQuery, attributes(edgedb, query, nested))]
 pub fn insert_query(input: TokenStream) -> TokenStream {
     let ast_struct = parse_macro_input!(input as DeriveInput);
     let result = insert::insert_query::do_derive(&ast_struct);
@@ -173,7 +173,7 @@ pub fn edgedb_enum(input: TokenStream) -> TokenStream {
 ///     // assert_eq!(eq.query, "select users::User { id, name } filter .name = (select <str>$name) ");
 /// }
 /// ```
-#[proc_macro_derive(EdgedbResult, attributes(field, query_shape))]
+#[proc_macro_derive(EdgedbResult, attributes(field, query_shape, nested))]
 pub fn edgedb_result(input: TokenStream) -> TokenStream {
     let ast_struct = parse_macro_input!(input as DeriveInput);
     let tokens = shapes::edgedb_result::do_derive(&ast_struct);

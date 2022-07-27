@@ -3,13 +3,15 @@ use crate::utils::path_utils::path_ident_equals;
 use syn::{Field, MetaNameValue, NestedMeta};
 
 pub fn has_attribute(field: &Field, attribute_derive_name: &str) -> bool {
+    let mut result = false;
     for att in &field.attrs {
         if let Some((true, _)) = path_ident_equals(&att.path, attribute_derive_name) {
-            return true;
+            result = true;
+            break;
         }
     }
 
-    false
+    result
 }
 
 pub fn has_attribute_value(

@@ -111,7 +111,7 @@ pub fn filter_quote(field: &Field, table_name: String, index: &mut usize) -> Tok
                 query.push_str(p.as_str());
             }
         } else {
-                    quote! {
+            quote! {
                 let mut scalar: String = #tty::scalar();
                 #format_scalar;
                 let p = #assignment.to_owned().replace(#dd_sign, scalar.as_str());

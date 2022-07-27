@@ -1,5 +1,6 @@
 
 pub const SCALAR: &str = "$scalar_type$";
+pub const EDGEQL: &str = "$edgeql$";
 
 pub const INF_SIGN: &str = "<";
 pub const SUP_SIGN: &str = ">";
@@ -43,5 +44,7 @@ pub const FIELD: &str = "field";
 pub const WRAPPER_FN: &str = "wrapper_fn";
 pub const COLUMN_NAME: &str = "column_name";
 pub const DEFAULT_VALUE: &str = "default_value";
+
+pub const NESTED: &str = "nested";
 
 pub const LIMIT_1: &str = " limit 1";

@@ -42,6 +42,7 @@ mod insert {
         pub vs: Vec<String>,
         #[edgedb(type = "enum", module = "users", name = "Gender")]
         pub gender: Gender,
+        #[nested]
         pub wallet: Wallet,
     }
 
@@ -89,6 +90,8 @@ mod insert {
 
         let query: EdgeQuery = insert_user.to_edge_query();
 
+        println!("{:#?}", query.query);
+
         let expected = r#"
            select (
               insert users::User {
@@ -98,7 +101,11 @@ mod insert {
                 major := (select <bool>$major),
                 vs := (select <array<str>>$vs),
                 gender := (select <users::Gender>$gender),
-                wallet := (select $wallet), })
+                wallet := (
+                    insert users::Wallet{
+                        money := (select <int16>$money),
+                    }),
+                })
                 {
                     id,
                     name : { name }
@@ -106,6 +113,7 @@ mod insert {
         "#.to_owned().replace("\n", "");
 
         assert_eq!(query.query.replace(" ", ""), expected.replace(" ", ""));
+
 
         if let Some(Value::Object { shape, mut fields}) = query.args {
 

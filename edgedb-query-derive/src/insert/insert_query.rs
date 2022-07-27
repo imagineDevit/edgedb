@@ -1,10 +1,11 @@
-use crate::constants::{BRACKET_OPEN, SCALAR, INSERT, OPTION, SELECT, VEC};
+use crate::constants::{BRACKET_OPEN, SCALAR, INSERT, OPTION, SELECT, VEC, NESTED, EDGEQL};
 use crate::helpers::attributes::EdgeDbType;
 use crate::utils::{field_utils::*, type_utils::is_type_name};
 use proc_macro::TokenStream;
 
 use quote::quote;
 use syn::DeriveInput;
+use crate::utils::attributes_utils::has_attribute;
 
 use crate::utils::derive_utils::{edge_value_quote, format_scalar, shape_element_quote, start, to_edge_ql_value_impl_empty_quote};
 use crate::utils::type_utils::get_wrapped_type;
@@ -38,11 +39,10 @@ pub fn do_derive(ast_struct: &DeriveInput) -> TokenStream {
         let filtered_fields = filtered_fields.iter();
 
         let assign = filtered_fields.clone().map(|field| {
+
             let field_is_option = is_type_name(&field.ty, OPTION);
 
             let field_is_vec = is_type_name(&field.ty, VEC);
-
-            let p = EdgeDbType::build_field_assignment(field);
 
             let f_name = get_field_ident(field);
 
@@ -58,37 +58,50 @@ pub fn do_derive(ast_struct: &DeriveInput) -> TokenStream {
                 }
             };
 
-            let assignment = format!("{}", p);
+            let is_nested = has_attribute(field, NESTED);
+
+            let assignment =  if is_nested {
+                format!("{} := ({}), ", f_name.to_string(), EDGEQL)
+            } else {
+                EdgeDbType::build_field_assignment(field)
+            };
 
             let dd_sign = SCALAR.to_string();
+            let edgeql = EDGEQL.to_string();
 
             let format_scalar = format_scalar();
 
             if field_is_option {
 
                 quote! {
-                if let Some(v) = &self.#f_name {
-                    let mut scalar: String = #tty::scalar();
-                    #format_scalar;
-                    let p = #assignment.to_owned().replace(#dd_sign, scalar.as_str());
-                    query.push_str(p.as_str());
+                    if let Some(v) = &self.#f_name {
+                        let mut scalar: String = #tty::scalar();
+                        #format_scalar;
+                        let p = #assignment.to_owned()
+                        .replace(#dd_sign, scalar.as_str())
+                        .replace(#edgeql, v.to_edgeql().as_str());
+                        query.push_str(p.as_str());
+                    }
                 }
-            }
             } else {
                 if  field_is_vec {
                     quote! {
-                    let mut scalar: String = format!("<array{}>", #tty::scalar());
-                    #format_scalar;
-                    let p = #assignment.to_owned().replace(#dd_sign, scalar.as_str());
-                    query.push_str(p.as_str());
-                }
+                        let mut scalar: String = format!("<array{}>", #tty::scalar());
+                        #format_scalar;
+                        let p = #assignment.to_owned()
+                            .replace(#dd_sign, scalar.as_str())
+                            .replace(#edgeql, self.#f_name.to_edgeql().as_str());
+                        query.push_str(p.as_str());
+                    }
                 } else {
                     quote! {
-                    let mut scalar: String = #tty::scalar();
-                    #format_scalar;
-                    let p = #assignment.to_owned().replace(#dd_sign, scalar.as_str());
-                    query.push_str(p.as_str());
-                }
+                        let mut scalar: String = #tty::scalar();
+                        #format_scalar;
+                        let p = #assignment.to_owned()
+                            .replace(#dd_sign, scalar.as_str())
+                            .replace(#edgeql, self.#f_name.to_edgeql().as_str());
+                        query.push_str(p.as_str());
+                    }
                 }
 
             }
