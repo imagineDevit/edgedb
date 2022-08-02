@@ -9,7 +9,7 @@ mod delete {
 
     #[derive(DeleteQuery)]
     pub struct DeleteUsers {
-        #[edgedb(module="users", table="User")]
+        #[meta(module="users", table="User")]
         __meta__: ()
     }
 
@@ -26,7 +26,7 @@ mod delete {
 
     #[derive(DeleteQuery)]
     pub struct DeleteUsersByName {
-        #[edgedb(module="users", table="User")]
+        #[meta(module="users", table="User")]
         __meta__: (),
         #[filters]
         pub filters: NameFilter
@@ -63,7 +63,7 @@ mod delete {
 
     #[derive(DeleteQuery)]
     pub struct DeleteUsersByAge {
-        #[edgedb(module="users", table="User")]
+        #[meta(module="users", table="User")]
         __meta__: (),
 
         #[filter(operator="=")]

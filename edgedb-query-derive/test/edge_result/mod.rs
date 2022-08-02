@@ -25,7 +25,7 @@ mod result {
     pub struct UserWithFriends {
         pub login: String,
         pub identity: Identity,
-        #[query_shape(
+        #[back_link(
             module="users",
             source_table="User",
             target_table="Friend",
@@ -39,7 +39,7 @@ mod result {
     pub struct UserWithFriend {
         pub login: String,
         pub identity: Identity,
-        #[query_shape(
+        #[back_link(
         module="users",
         source_table="User",
         target_table="Friend",
@@ -81,7 +81,7 @@ mod result {
         #[field(wrapper_fn="str_upper")]
         pub login: String,
         pub identity: Identity,
-        #[query_shape(
+        #[back_link(
         module="users",
         source_table="User",
         target_table="Friend",
@@ -102,7 +102,7 @@ mod result {
         #[field(column_name="pseudo")]
         pub login: String,
         pub identity: Identity,
-        #[query_shape(
+        #[back_link(
         module="users",
         source_table="User",
         target_table="Friend",
@@ -123,7 +123,7 @@ mod result {
         #[field(column_name="pseudo", wrapper_fn="str_upper")]
         pub login: String,
         pub identity: Identity,
-        #[query_shape(
+        #[back_link(
         module="users",
         source_table="User",
         target_table="Friend",

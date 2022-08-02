@@ -1,4 +1,4 @@
-use crate::constants::{TARGET_COLUMN, CONJUNCTIVE, SCALAR, EDGEDB, ENUM, FILTER, INF_SIGN, LIMIT, MODULE, NAME, OPERATOR, OPTIONS, ORDER_BY, ORDER_DIR, QUERY, RESULT, SELECT, SUP_SIGN, TABLE, QUERY_SHAPE, TYPE, VALUE, TARGET_TABLE, SOURCE_TABLE, FILTERS, COLUMN_NAME, WRAPPER_FN, FIELD, DEFAULT_VALUE};
+use crate::constants::{TARGET_COLUMN, CONJUNCTIVE, SCALAR_TYPE, META, ENUM, FILTER, INF_SIGN, LIMIT, MODULE, NAME, OPERATOR, OPTIONS, ORDER_BY, ORDER_DIR, QUERY, RESULT, SELECT, SUP_SIGN, TABLE, BACKLINK, TYPE, VALUE, TARGET_TABLE, SOURCE_TABLE, FILTERS, COLUMN_NAME, WRAPPER_FN, FIELD, DEFAULT_VALUE, SCALAR};
 use crate::utils::field_utils::get_field_ident;
 use crate::utils::path_utils::path_ident_equals;
 use crate::utils::type_utils::is_type_name;
@@ -243,7 +243,7 @@ impl EdgeDbMeta {
 
         let (attrs_values, _) = explore_field_attrs!(
              field <- field,
-             derive_name <- EDGEDB,
+             derive_name <- META,
              map <- map
          );
 
@@ -408,7 +408,7 @@ impl EdgeDbType {
 
         let (map_cloned, exist) = explore_field_attrs!(
             field <- field,
-            derive_name <- EDGEDB,
+            derive_name <- SCALAR,
             map <- map
         );
 
@@ -460,7 +460,7 @@ impl EdgeDbType {
         if let Some(value) = db_type.value() {
             value
         } else {
-            SCALAR.to_string()
+            SCALAR_TYPE.to_string()
         }
     }
 }
@@ -822,7 +822,7 @@ impl QueryShape {
 
         let (map_cloned, _) = explore_field_attrs!(
             field <- field,
-            derive_name <- QUERY_SHAPE,
+            derive_name <- BACKLINK,
             map <- map
         );
 
@@ -915,7 +915,7 @@ impl ResultField {
 
         let f_name = get_field_ident(field).to_string();
 
-        let scalar = SCALAR;
+        let scalar = SCALAR_TYPE;
 
         let mut s = match (result_field.column_name, result_field.wrapper_fn) {
             (Some(column), None) => {

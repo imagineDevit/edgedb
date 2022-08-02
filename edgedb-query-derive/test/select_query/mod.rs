@@ -20,7 +20,7 @@ mod select {
 
     #[derive(SelectQuery)]
     pub struct FindUsers {
-        #[edgedb(module = "users", table = "User")]
+        #[meta(module = "users", table = "User")]
         #[query(result = "UserResult")]
         __meta__: (),
     }
@@ -47,7 +47,7 @@ mod select {
 
     #[derive(SelectQuery)]
     pub struct FindUsersByNameExists {
-        #[edgedb(module = "users", table = "User")]
+        #[meta(module = "users", table = "User")]
         #[query(result = "UserResult")]
         __meta__: (),
 
@@ -72,7 +72,7 @@ mod select {
 
     #[derive(SelectQuery)]
     pub struct FindUsersByNameNotExists {
-        #[edgedb(module = "users", table = "User")]
+        #[meta(module = "users", table = "User")]
         #[query(result = "UserResult")]
         __meta__: (),
 
@@ -97,7 +97,7 @@ mod select {
 
     #[derive(SelectQuery)]
     pub struct FindUsersByNameIs {
-        #[edgedb(module = "users", table = "User")]
+        #[meta(module = "users", table = "User")]
         #[query(result = "UserResult")]
         __meta__: (),
 
@@ -122,7 +122,7 @@ mod select {
 
     #[derive(SelectQuery)]
     pub struct FindUsersByNameIsNot {
-        #[edgedb(module = "users", table = "User")]
+        #[meta(module = "users", table = "User")]
         #[query(result = "UserResult")]
         __meta__: (),
 
@@ -147,7 +147,7 @@ mod select {
 
     #[derive(SelectQuery)]
     pub struct FindUsersByNameLike {
-        #[edgedb(module = "users", table = "User")]
+        #[meta(module = "users", table = "User")]
         #[query(result = "UserResult")]
         __meta__: (),
 
@@ -172,7 +172,7 @@ mod select {
 
     #[derive(SelectQuery)]
     pub struct FindUsersByNameILike {
-        #[edgedb(module = "users", table = "User")]
+        #[meta(module = "users", table = "User")]
         #[query(result = "UserResult")]
         __meta__: (),
 
@@ -197,7 +197,7 @@ mod select {
 
     #[derive(SelectQuery)]
     pub struct FindUsersByNameIn {
-        #[edgedb(module = "users", table = "User")]
+        #[meta(module = "users", table = "User")]
         #[query(result = "UserResult")]
         __meta__: (),
 
@@ -237,7 +237,7 @@ mod select {
 
     #[derive(SelectQuery)]
     pub struct FindUsersByNameAndAgeGreaterThan {
-        #[edgedb(module = "users", table = "User")]
+        #[meta(module = "users", table = "User")]
         #[query(result = "UserResult")]
         __meta__: (),
 
@@ -276,7 +276,7 @@ mod select {
 
     #[derive(SelectQuery)]
     pub struct FindMajorUsers {
-        #[edgedb(module = "users", table = "User")]
+        #[meta(module = "users", table = "User")]
         #[query(result = "UserResult", order_by="name", order_dir="desc" )]
         __meta__: (),
 
@@ -310,7 +310,7 @@ mod select {
 
     #[derive(SelectQuery)]
     pub struct FindMajorUsersWithOptions {
-        #[edgedb(module = "users", table = "User")]
+        #[meta(module = "users", table = "User")]
         #[query(result = "UserResult", order_by="name", order_dir="desc" )]
         __meta__: (),
 
@@ -356,7 +356,7 @@ mod select {
 
     #[derive(SelectQuery)]
     pub struct FindMajorUsersWithFilters {
-        #[edgedb(module = "users", table = "User")]
+        #[meta(module = "users", table = "User")]
         #[query(result = "UserResult", order_by="name", order_dir="desc" )]
         __meta__: (),
 

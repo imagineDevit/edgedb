@@ -74,7 +74,6 @@ _to_edgeql_and_to_edge_scalar_impls!(
 );
 
 impl ToEdgeScalar for () {
-
     fn scalar() -> String {
         "".to_owned()
     }

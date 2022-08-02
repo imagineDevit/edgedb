@@ -4,7 +4,7 @@ use proc_macro2::Ident;
 use quote::quote;
 use syn::DeriveInput;
 use syn::spanned::Spanned;
-use crate::constants::{LIMIT_1, QUERY_SHAPE, SCALAR, VEC};
+use crate::constants::{LIMIT_1, BACKLINK, SCALAR_TYPE, VEC};
 use crate::helpers::attributes::{QueryShape, ResultField};
 use crate::utils::attributes_utils::has_attribute;
 use crate::utils::derive_utils::format_scalar;
@@ -24,7 +24,7 @@ pub fn do_derive(ast_struct: &DeriveInput) -> TokenStream {
             let f_ty = &field.ty;
             let f_name = format!("{}", f_ident.to_string());
 
-            let is_query_shape = has_attribute(field, QUERY_SHAPE);
+            let is_query_shape = has_attribute(field, BACKLINK);
 
             if is_query_shape {
                 let (ql, result_type_name) = QueryShape::build_assignment(field);
@@ -46,7 +46,7 @@ pub fn do_derive(ast_struct: &DeriveInput) -> TokenStream {
             } else {
 
                 let stmt = ResultField::build_statement(field);
-                let scalar = SCALAR.to_string();
+                let scalar = SCALAR_TYPE.to_string();
                 let format_scalar = format_scalar();
 
                 quote! {

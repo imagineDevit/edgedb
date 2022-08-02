@@ -1,4 +1,4 @@
-use crate::constants::{BRACKET_OPEN, SCALAR, INSERT, OPTION, SELECT, VEC, NESTED, EDGEQL};
+use crate::constants::{BRACKET_OPEN, SCALAR_TYPE, INSERT, OPTION, SELECT, VEC, NESTED, EDGEQL};
 use crate::helpers::attributes::EdgeDbType;
 use crate::utils::{field_utils::*, type_utils::is_type_name};
 use proc_macro::TokenStream;
@@ -66,7 +66,7 @@ pub fn do_derive(ast_struct: &DeriveInput) -> TokenStream {
                 EdgeDbType::build_field_assignment(field)
             };
 
-            let dd_sign = SCALAR.to_string();
+            let dd_sign = SCALAR_TYPE.to_string();
             let edgeql = EDGEQL.to_string();
 
             let format_scalar = format_scalar();

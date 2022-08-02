@@ -9,7 +9,7 @@ mod insert {
 
     #[derive(InsertQuery)]
     pub struct InsertEmptyUser {
-        #[edgedb(module = "users", table = "User")]
+        #[meta(module = "users", table = "User")]
         #[query(result = "UserResult")]
         __meta__: ()
     }
@@ -31,7 +31,7 @@ mod insert {
 
     #[derive(InsertQuery)]
     pub struct InsertUser {
-        #[edgedb(module = "users", table = "User")]
+        #[meta(module = "users", table = "User")]
         #[query(result = "UserResult")]
         __meta__: (),
 
@@ -40,9 +40,9 @@ mod insert {
         pub age: i32,
         pub major: bool,
         pub vs: Vec<String>,
-        #[edgedb(type = "enum", module = "users", name = "Gender")]
+        #[scalar(type = "enum", module = "users", name = "Gender")]
         pub gender: Gender,
-        #[nested]
+        #[nested_query]
         pub wallet: Wallet,
     }
 
@@ -67,7 +67,7 @@ mod insert {
 
     #[derive(InsertQuery)]
     pub struct Wallet {
-        #[edgedb(module = "users", table = "Wallet")]
+        #[meta(module = "users", table = "Wallet")]
         __meta__: (),
         pub money: i16,
     }

@@ -1,5 +1,5 @@
 
-pub const SCALAR: &str = "$scalar_type$";
+pub const SCALAR_TYPE: &str = "$scalar_type$";
 pub const EDGEQL: &str = "$edgeql$";
 
 pub const INF_SIGN: &str = "<";
@@ -15,7 +15,8 @@ pub const INSERT: &str = "insert";
 pub const SELECT: &str = "select";
 pub const DELETE: &str = "delete";
 
-pub const EDGEDB: &str = "edgedb";
+pub const META: &str = "meta";
+pub const SCALAR: &str = "scalar";
 pub const TYPE: &str = "type";
 pub const ENUM: &str = "enum";
 pub const NAME: &str = "name";
@@ -35,7 +36,7 @@ pub const OPERATOR: &str = "operator";
 pub const CONJUNCTIVE: &str = "conjunctive";
 
 pub const VALUE: &str = "value";
-pub const QUERY_SHAPE: &str = "query_shape";
+pub const BACKLINK: &str = "back_link";
 pub const TARGET_TABLE: &str = "target_table";
 pub const SOURCE_TABLE: &str = "source_table";
 pub const TARGET_COLUMN: &str = "target_column";
@@ -45,6 +46,6 @@ pub const WRAPPER_FN: &str = "wrapper_fn";
 pub const COLUMN_NAME: &str = "column_name";
 pub const DEFAULT_VALUE: &str = "default_value";
 
-pub const NESTED: &str = "nested";
+pub const NESTED: &str = "nested_query";
 
 pub const LIMIT_1: &str = " limit 1";

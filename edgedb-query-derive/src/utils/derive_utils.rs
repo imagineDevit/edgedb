@@ -3,7 +3,7 @@ use quote::quote;
 use crate::helpers::attributes::{EdgeDbMeta, Filter, Filters, Options, Query};
 use crate::utils::field_utils::{get_field_ident, get_struct_fields};
 use syn::{DeriveInput, Field};
-use crate::constants::{SCALAR, OPTION, VEC, TUPLE};
+use crate::constants::{SCALAR_TYPE, OPTION, VEC, TUPLE};
 use crate::utils::type_utils::{get_wrapped_type, is_type_name};
 
 pub fn start(ast_struct: &DeriveInput) -> (String, Query, bool, Option<Field>, Option<Field>, Vec<Field>) {
@@ -91,7 +91,7 @@ pub fn filter_quote(field: &Field, table_name: String, index: &mut usize) -> Tok
 
     let assignment = format!("{}", p);
 
-    let dd_sign = SCALAR.to_string();
+    let dd_sign = SCALAR_TYPE.to_string();
 
     let format_scalar = format_scalar();
 
@@ -144,7 +144,7 @@ pub fn filter_quote_(field: &Field, index: &mut usize) -> TokenStream {
 
     let assignment = format!("{}", p);
 
-    let dd_sign = SCALAR.to_string();
+    let dd_sign = SCALAR_TYPE.to_string();
 
     let format_scalar = format_scalar();
 

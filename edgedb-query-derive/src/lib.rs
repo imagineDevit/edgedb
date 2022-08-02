@@ -43,7 +43,7 @@ mod delete;
 ///     
 /// }
 /// ```
-#[proc_macro_derive(InsertQuery, attributes(edgedb, query, nested))]
+#[proc_macro_derive(InsertQuery, attributes(meta, query, scalar, nested_query))]
 pub fn insert_query(input: TokenStream) -> TokenStream {
     let ast_struct = parse_macro_input!(input as DeriveInput);
     let result = insert::insert_query::do_derive(&ast_struct);
@@ -72,7 +72,7 @@ pub fn insert_query(input: TokenStream) -> TokenStream {
 ///     pub name: String,
 /// }
 /// ```
-#[proc_macro_derive(SelectQuery, attributes(edgedb, query, filter, filters, options))]
+#[proc_macro_derive(SelectQuery, attributes(meta, query, filter, filters, options))]
 pub fn select_query(input: TokenStream) -> TokenStream {
     let ast_struct = parse_macro_input!(input as DeriveInput);
     let result = select::select_query::do_derive(&ast_struct);
@@ -95,7 +95,7 @@ pub fn select_query(input: TokenStream) -> TokenStream {
 /// }
 ///
 /// ```
-#[proc_macro_derive(DeleteQuery, attributes(edgedb, filter, filters))]
+#[proc_macro_derive(DeleteQuery, attributes(meta, filter, filters))]
 pub fn delete_query(input: TokenStream) -> TokenStream {
     let ast_struct = parse_macro_input!(input as DeriveInput);
     let result = delete::delete_query::do_derive(&ast_struct);
@@ -173,7 +173,7 @@ pub fn edgedb_enum(input: TokenStream) -> TokenStream {
 ///     // assert_eq!(eq.query, "select users::User { id, name } filter .name = (select <str>$name) ");
 /// }
 /// ```
-#[proc_macro_derive(EdgedbResult, attributes(field, query_shape, nested))]
+#[proc_macro_derive(EdgedbResult, attributes(field, back_link))]
 pub fn edgedb_result(input: TokenStream) -> TokenStream {
     let ast_struct = parse_macro_input!(input as DeriveInput);
     let tokens = shapes::edgedb_result::do_derive(&ast_struct);
@@ -219,7 +219,7 @@ pub fn edgedb_result(input: TokenStream) -> TokenStream {
 ///     // assert_eq!(eq.query, "select users::User { id, name } filter .name = (select <str>$name) ");
 /// }
 /// ```
-#[proc_macro_derive(EdgedbFilters, attributes(filter, edgedb))]
+#[proc_macro_derive(EdgedbFilters, attributes(filter))]
 pub fn edgedb_filters(input: TokenStream) -> TokenStream {
     let ast_struct = parse_macro_input!(input as DeriveInput);
     let tokens = shapes::edgedb_filter::do_derive(&ast_struct);
