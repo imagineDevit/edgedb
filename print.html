@@ -76,7 +76,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded affix "><a href="introduction.html">Introduction</a></li><li class="chapter-item expanded affix "><li class="part-title">📖 User Guide</li><li class="chapter-item expanded "><a href="installation.html"><strong aria-hidden="true">1.</strong> Installation</a></li><li class="chapter-item expanded "><div><strong aria-hidden="true">2.</strong> Examples</div></li><li class="chapter-item expanded affix "><li class="part-title">📖 Reference Guide</li><li class="chapter-item expanded "><div><strong aria-hidden="true">3.</strong> Query macros</div></li><li><ol class="section"><li class="chapter-item expanded "><div><strong aria-hidden="true">3.1.</strong> InsertQuery</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">3.2.</strong> SelectQuery</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">3.3.</strong> UpdateQuery</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">3.4.</strong> DeleteQuery</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">3.5.</strong> CustomQuery</div></li></ol></li><li class="chapter-item expanded "><div><strong aria-hidden="true">4.</strong> Shapes macros</div></li><li><ol class="section"><li class="chapter-item expanded "><div><strong aria-hidden="true">4.1.</strong> EdgedbResult</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">4.2.</strong> EdgedbEnum</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">4.3.</strong> EdgedbFilters</div></li></ol></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="introduction.html">Introduction</a></li><li class="chapter-item expanded affix "><li class="part-title">📖 User Guide</li><li class="chapter-item expanded "><a href="installation.html"><strong aria-hidden="true">1.</strong> Installation</a></li><li class="chapter-item expanded "><div><strong aria-hidden="true">2.</strong> Examples</div></li><li class="chapter-item expanded affix "><li class="part-title">📖 Reference Guide</li><li class="chapter-item expanded "><a href="shape-macros/shape-macros.html"><strong aria-hidden="true">3.</strong> Shapes macros</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="shape-macros/edgedb-enum.html"><strong aria-hidden="true">3.1.</strong> EdgedbEnum</a></li><li class="chapter-item expanded "><a href="shape-macros/edgedb-result.html"><strong aria-hidden="true">3.2.</strong> EdgedbResult</a></li><li class="chapter-item expanded "><a href="shape-macros/edgedb-filters.html"><strong aria-hidden="true">3.3.</strong> EdgedbFilters</a></li></ol></li><li class="chapter-item expanded "><a href="query-macros/query-macros.html"><strong aria-hidden="true">4.</strong> Query macros</a></li><li><ol class="section"><li class="chapter-item expanded "><div><strong aria-hidden="true">4.1.</strong> InsertQuery</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">4.2.</strong> SelectQuery</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">4.3.</strong> UpdateQuery</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">4.4.</strong> DeleteQuery</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">4.5.</strong> CustomQuery</div></li></ol></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -168,6 +168,356 @@ edgedb-protocol = &quot;0.3&quot;
 <p>Since you are going to use edgedb-tokio, you will also need to add <a href="https://github.com/tokio-rs/tokio">tokio</a> crate 👇 </p>
 <pre><code class="language-toml">tokio = { version = &quot;1.19.2&quot;, features = [&quot;full&quot;] }
 </code></pre>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="shape-macros"><a class="header" href="#shape-macros">Shape macros</a></h1>
+<p><a href="https://github.com/imagineDevit/edgedb"><strong>Edgedb-query-derive</strong></a> crate provide 3 macros derive for struct representation of :</p>
+<ul>
+<li>edgedb enum type  👉 <a href="shape-macros/./edgedb-enum.html"><strong><em>EdgedbEnum</em></strong></a></li>
+<li>edgedb query result  👉 <a href="shape-macros/./edgedb-result.html"><strong><em>EdgedbResult</em></strong></a></li>
+<li>edgedb select query filters  👉 <a href="shape-macros/./edgedb-filters.html"><strong><em>EdgedbFilters</em></strong></a></li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="edgedbenum"><a class="header" href="#edgedbenum">EdgedbEnum</a></h1>
+<h3 id="list-of-attributes"><a class="header" href="#list-of-attributes">List of attributes</a></h3>
+<table>
+    <thead>
+        <tr>
+            <th>Attributes</th>
+            <th>Optional</th>
+            <th>Description </th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td> <strong style="color: #008200">value</strong> </td>
+            <td>Yes</td>
+            <td>The edgedb enum corresponding value. If the attribute is absent, the rust enum value is considered to be the same as the edgedb scalar type one.</td>
+        </tr>
+    </tbody>
+</table>
+<br><br>
+<p>The following scalar enum types 👇</p>
+<pre><code class="language-sql">    scalar type Gender extending enum&lt;Man, Woman&gt;;
+    scalar type Status extending enum&lt;Opened, InProgress, Done, Closed&gt;;
+</code></pre>
+<p>can then be represented by 👇 </p>
+<pre><code class="language-rust">    #[derive(EdgedbEnum)]
+    pub enum Gender {
+        #[value(&quot;Man&quot;)]
+        Male,
+        #[value(&quot;Woman&quot;)]
+        Female,
+    }
+
+    #[derive(EdgedbEnum)]
+    pub enum Status {
+        Opened,
+        InProgress,
+        #[value(&quot;Done&quot;)]
+        Finished,
+        Closed
+    }
+</code></pre>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="edgedbresult"><a class="header" href="#edgedbresult">EdgedbResult</a></h1>
+<h3 id="list-of-attributes-1"><a class="header" href="#list-of-attributes-1">List of attributes</a></h3>
+<table>
+    <thead>
+        <tr>
+            <th rowspan="2">Attributes</th>
+            <th rowspan="2">Optional</th>
+            <th rowspan="2">Description</th>
+            <th colspan="3">Options</th>
+        </tr>
+    <tr>
+            <th>Name</th>
+            <th>Optional</th>
+            <th>Description</th>
+    </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td rowspan="3"> <strong style="color: #008200">field</strong> </td>
+            <td rowspan="3"> Yes </td>
+            <td rowspan="3"> The <strong style="color: #91b362">field</strong> attribute represents the edgedb query result field. </td>
+            <td><i style="color: yellow">column_name</i></td>
+            <td>Yes</td>
+            <td>The column_name in the egdedb table. It's defined when the struct field do not match the column name.</td>
+        </tr>
+        <tr>
+             <td><i style="color: yellow">wrapper_fn</i></td>
+            <td>Yes</td>
+            <td>The <i style="color: #d4c89f">wrapper_fn</i> option is the edgedb function to apply to the field.</td>
+        </tr>
+        <tr>
+             <td><i style="color: yellow">default_value</i></td>
+            <td>Yes</td>
+            <td>The default value to return when the column value is an empty set.</td>
+        </tr>
+        <tr>
+            <td rowspan="5"> <strong style="color: #008200">back_link</strong> </td>
+            <td rowspan="5"> Yes </td>
+            <td rowspan="5"> 
+                The <strong style="color: #91b362">back_link</strong> attribute is used when the field value is a result of a backlink.
+            </td>
+            <td><i style="color: yellow">module</i></td>
+            <td>Yes</td>
+            <td>The edgedb schema module</td>
+        </tr>
+        <tr>
+             <td><i style="color: yellow">source_table</i></td>
+            <td>No</td>
+            <td>The query source edgedb table name.</td>
+        </tr>
+        <tr>
+             <td><i style="color: yellow">target_table</i></td>
+            <td>No</td>
+            <td>The name of table targeted by the backlink.</td>
+        </tr>
+        <tr>
+             <td><i style="color: yellow">target_column</i></td>
+            <td>No</td>
+            <td>The name of the targeted_table column targeted by the backlink.</td>
+        </tr>
+        <tr>
+             <td><i style="color: yellow">result</i></td>
+            <td>No</td>
+            <td>The backlink expected result type.</td>
+        </tr>
+    </tbody>
+</table>
+<br><br>
+<p>This is an example of usage of the <strong><em>field</em></strong> attribute 👇</p>
+<pre><code class="language-rust">     #[derive(EdgedbResult)]
+     pub struct UserResult {
+         #[field(column_name=&quot;pseudo&quot;, wrapper_fn=&quot;str_upper&quot;, default_value=&quot;john&quot;)]
+         pub login: String,
+     }
+
+    fn main() {
+        let shape = UserResult::shape();
+        assert_eq!(shape, &quot;{login := (select &lt;str&gt;str_upper(.pseudo)) ?? (select &lt;str&gt;'john')}&quot;)
+    }
+</code></pre>
+<br>
+<p>And then, an example of usage of <strong><em>backlink</em></strong> attribute 👇</p>
+<pre><code class="language-sql">    module cinema {
+        
+        type Movie {
+            required property title -&gt; str;
+            multi link actors -&gt; Actor;
+        }
+        
+        type Actor {
+            required property name -&gt; str;
+        }
+    }
+</code></pre>
+<p>Considering the edgedb module above 👆
+<br><br>
+To query the <em><strong>Actor</strong></em> <em>table</em> and get the actor's name and all the movies he's been in, we need to write the following query :</p>
+<pre><code class="language-sql">     select Actor
+        {
+            name,
+            movies := (
+                select Actor.&lt;actors[is Movie] {
+                    title
+                }
+            )
+        }
+</code></pre>
+<p>Using <strong><em>EdgedbResult</em></strong> derive and it's <strong><em>backlink</em></strong> attribute we can do things like this 👇</p>
+<pre><code class="language-rust">    #[derive(EdgedbResult)]
+    pub struct MovieResult {
+        pub title: String,
+    }
+    
+    #[derive(EdgedbResult)]
+    pub struct Actor {
+        pub name: String,
+        #[back_link(
+            module=&quot;cinema&quot;,
+            source_table=&quot;Actor&quot;,
+            target_table=&quot;Movie&quot;,
+            target_column=&quot;actors&quot;,
+            result=&quot;MovieResult&quot;
+        )]
+        pub movies: Vec&lt;MovieResult&gt;,
+    }
+
+    fn main() {
+        let rm_spaces = |s: &amp;str| s.split_whitespace().collect::&lt;String&gt;();
+        
+        let shape = Actor::shape();
+        let expected_shape = r#&quot;
+            {
+                name, 
+                movies := (
+                    select cinema::Actor.&lt;actors[is cinema::Movie] {
+                       title
+                    }
+                )
+            }
+        &quot;#;
+        assert_eq!(rm_spaces(shape.as_str()), rm_spaces(expected_shape));
+    }
+</code></pre>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="edgedbfilters"><a class="header" href="#edgedbfilters">EdgedbFilters</a></h1>
+<h3 id="list-of-attributes-2"><a class="header" href="#list-of-attributes-2">List of attributes</a></h3>
+<table>
+    <thead>
+        <tr>
+            <th rowspan="2">Attributes</th>
+            <th rowspan="2">Optional</th>
+            <th rowspan="2">Description</th>
+            <th colspan="3">Options</th>
+        </tr>
+    <tr>
+            <th>Name</th>
+            <th>Optional</th>
+            <th>Description</th>
+    </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td rowspan="4"> <strong style="color: #008200">filter</strong> </td>
+            <td rowspan="4"> No </td>
+            <td rowspan="4"> The <strong style="color: #91b362">filter</strong> attribute represents a filter statement in a edgedb select query. </td>
+            <td><i style="color: yellow">operator</i></td>
+            <td>No</td>
+            <td>
+                The ofilter operator that can takes following values :
+                <ul>
+                    <li>Exists</li>
+                    <li>NotExists</li>
+                    <li>Is ( or <strong>=</strong> )</li>
+                    <li>IsNot ( or <strong>!=</strong> )</li>
+                    <li>Like</li>
+                    <li>ILike</li>
+                    <li>In</li>
+                    <li>NotIn</li>
+                    <li>GreaterThan ( or <strong> > </strong> )</li>
+                    <li>GreaterThanOrEqual ( or <strong> >= </strong> )</li>
+                    <li>LessThan ( or <strong> < </strong> )</li>
+                    <li>LessThanOrEqual ( or <strong> <= </strong> )</li>
+                </ul>
+            </td>
+        </tr>
+        <tr>
+            <td><i style="color: yellow">conjunctive</i></td>
+            <td>No (if it's not the first filter) </td>
+            <td>
+                Conjunctive operator that can be:
+                <ul>
+                    <li>And</li>
+                    <li>Or</li>
+                </ul>
+            </td>
+        </tr>
+        <tr>
+            <td><i style="color: yellow">column_name</i></td>
+            <td>Yes</td>
+            <td>The column_name on which the filter is applied. Only if the column name differs from the rust struct field name.</td>
+        </tr>
+        <tr>
+            <td><i style="color: yellow">wrapper_fn</i></td>
+            <td>Yes</td>
+            <td>The edgedb function to apply to the column value while filtering.</td>
+        </tr>
+    </tbody>
+</table>
+<br><br>
+<p>When applying <strong>EdgedbFilters</strong> derive to a struct, the <strong><em>edgedb_query::queries::filter::Filter</em></strong> trait implementation are generated for this one.</p>
+<pre><code class="language-rust">    pub trait Filter {
+        fn to_edgeql(&amp;self, table_name: &amp;str) -&gt; String;
+        fn to_edge_value(&amp;self) -&gt; edgedb_protocol::value::Value;
+    }
+</code></pre>
+<ul>
+<li><em><strong>to_edgeql()</strong></em> returns the filter statement.</li>
+<li><em><strong>to_edge_value()</strong></em> returns the statement arguments values
+<br></li>
+</ul>
+<p>Consider the following struct 👇 </p>
+<pre><code class="language-rust">
+    #[derive(EdgedbFilters)]
+    pub struct UserFilter {
+        #[filter(operator=&quot;=&quot;, column_name=&quot;identity.first_name&quot;, wrapper_fn=&quot;str_lower&quot;)]
+        pub name: String,
+        #[filter(operator=&quot;&gt;=&quot;,  conjunctive=&quot;And&quot;)]
+        pub age: i8,
+    }
+</code></pre>
+<pre><code class="language-rust">    fn main() {
+        let filter = UserFilter {
+            name: &quot;Joe&quot;.to_string(),
+            age: 18
+        };
+    
+        let query = filter.to_edgeql(&quot;users::User&quot;);
+    
+        let value: Value = filter.to_edge_value();
+
+        println!(&quot;QUERY -&gt; {:#?}&quot;, query);
+        println!(&quot;VALUE -&gt; {:#?}&quot;, value);
+    }
+</code></pre>
+<h4 id="output-"><a class="header" href="#output-">output :</a></h4>
+<pre><code>⌲ QUERY -&gt; &quot;filter str_lower(users::User.identity.first_name) = (select &lt;str&gt;$name) and users::User.age &gt;= (select &lt;int16&gt;$age)&quot;
+</code></pre>
+<pre><code>⌲ VALUE -&gt; Object {
+    shape: ObjectShape(
+        ObjectShapeInfo {
+            elements: [
+                ShapeElement {
+                    flag_implicit: false,
+                    flag_link_property: false,
+                    flag_link: false,
+                    cardinality: Some(
+                        One,
+                    ),
+                    name: &quot;name&quot;,
+                },
+                ShapeElement {
+                    flag_implicit: false,
+                    flag_link_property: false,
+                    flag_link: false,
+                    cardinality: Some(
+                        One,
+                    ),
+                    name: &quot;age&quot;,
+                },
+            ],
+        },
+    ),
+    fields: [
+        Some(
+            Str(
+                &quot;Joe&quot;,
+            ),
+        ), 
+        Some(
+            Int16(
+                18,
+            ),
+        ),
+    ],
+}
+</code></pre>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="query-macros"><a class="header" href="#query-macros">Query macros</a></h1>
+<p><a href="https://github.com/imagineDevit/edgedb"><strong>Edgedb-query-derive</strong></a> crate provide 5 types of query macros :</p>
+<ul>
+<li><a href="query-macros/"><strong><em>InsertQuery</em></strong></a></li>
+<li><a href="query-macros/"><strong><em>SelectQuery</em></strong></a></li>
+<li><a href="query-macros/"><strong><em>UpdateQuery</em></strong></a></li>
+<li><a href="query-macros/"><strong><em>DeleteQuery</em></strong></a></li>
+<li><a href="query-macros/"><strong><em>CustomQuery</em></strong></a></li>
+</ul>
+<p>Each of those derive macros generate under the hood implementations of the five following traits for the decorated struct:</p>
+<ul>
+<li><strong>ToEdgeQl</strong></li>
+<li><strong>ToEdgeValue</strong></li>
+<li><strong>ToEdgeQuery</strong></li>
+<li><strong>ToEdgeScalar</strong></li>
+<li><strong>ToString</strong></li>
+</ul>
 
                     </main>
 
