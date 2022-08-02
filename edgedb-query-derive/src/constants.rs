@@ -5,7 +5,6 @@ pub const EDGEQL: &str = "$edgeql$";
 pub const INF_SIGN: &str = "<";
 pub const SUP_SIGN: &str = ">";
 
-pub const BRACKET_OPEN: &str = "{";
 pub const OPTION: &str = "Option";
 pub const VEC: &str = "Vec";
 pub const TUPLE: &str = "()";
@@ -22,7 +21,7 @@ pub const ENUM: &str = "enum";
 pub const NAME: &str = "name";
 pub const MODULE: &str = "module";
 pub const TABLE: &str = "table";
-pub const QUERY: &str = "query";
+
 pub const RESULT: &str = "result";
 pub const ORDER_BY: &str = "order_by";
 pub const ORDER_DIR: &str = "order_dir";

@@ -43,7 +43,7 @@ mod delete;
 ///     
 /// }
 /// ```
-#[proc_macro_derive(InsertQuery, attributes(meta, query, scalar, nested_query))]
+#[proc_macro_derive(InsertQuery, attributes(meta, result, scalar, nested_query))]
 pub fn insert_query(input: TokenStream) -> TokenStream {
     let ast_struct = parse_macro_input!(input as DeriveInput);
     let result = insert::insert_query::do_derive(&ast_struct);
@@ -72,7 +72,7 @@ pub fn insert_query(input: TokenStream) -> TokenStream {
 ///     pub name: String,
 /// }
 /// ```
-#[proc_macro_derive(SelectQuery, attributes(meta, query, filter, filters, options))]
+#[proc_macro_derive(SelectQuery, attributes(meta, result, filter, filters, options))]
 pub fn select_query(input: TokenStream) -> TokenStream {
     let ast_struct = parse_macro_input!(input as DeriveInput);
     let result = select::select_query::do_derive(&ast_struct);

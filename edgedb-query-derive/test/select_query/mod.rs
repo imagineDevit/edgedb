@@ -21,7 +21,7 @@ mod select {
     #[derive(SelectQuery)]
     pub struct FindUsers {
         #[meta(module = "users", table = "User")]
-        #[query(result = "UserResult")]
+        #[result(type = "UserResult")]
         __meta__: (),
     }
 
@@ -48,7 +48,7 @@ mod select {
     #[derive(SelectQuery)]
     pub struct FindUsersByNameExists {
         #[meta(module = "users", table = "User")]
-        #[query(result = "UserResult")]
+        #[result(type = "UserResult")]
         __meta__: (),
 
         #[filter(operator = "Exists")]
@@ -73,7 +73,7 @@ mod select {
     #[derive(SelectQuery)]
     pub struct FindUsersByNameNotExists {
         #[meta(module = "users", table = "User")]
-        #[query(result = "UserResult")]
+        #[result(type = "UserResult")]
         __meta__: (),
 
         #[filter(operator = "NotExists")]
@@ -98,7 +98,7 @@ mod select {
     #[derive(SelectQuery)]
     pub struct FindUsersByNameIs {
         #[meta(module = "users", table = "User")]
-        #[query(result = "UserResult")]
+        #[result(type = "UserResult")]
         __meta__: (),
 
         #[filter(operator = "Is")]
@@ -123,7 +123,7 @@ mod select {
     #[derive(SelectQuery)]
     pub struct FindUsersByNameIsNot {
         #[meta(module = "users", table = "User")]
-        #[query(result = "UserResult")]
+        #[result(type = "UserResult")]
         __meta__: (),
 
         #[filter(operator = "IsNot")]
@@ -148,7 +148,7 @@ mod select {
     #[derive(SelectQuery)]
     pub struct FindUsersByNameLike {
         #[meta(module = "users", table = "User")]
-        #[query(result = "UserResult")]
+        #[result(type = "UserResult")]
         __meta__: (),
 
         #[filter(operator = "Like")]
@@ -173,7 +173,7 @@ mod select {
     #[derive(SelectQuery)]
     pub struct FindUsersByNameILike {
         #[meta(module = "users", table = "User")]
-        #[query(result = "UserResult")]
+        #[result(type = "UserResult")]
         __meta__: (),
 
         #[filter(operator = "ILike")]
@@ -198,7 +198,7 @@ mod select {
     #[derive(SelectQuery)]
     pub struct FindUsersByNameIn {
         #[meta(module = "users", table = "User")]
-        #[query(result = "UserResult")]
+        #[result(type = "UserResult")]
         __meta__: (),
 
         #[filter(operator = "In")]
@@ -238,7 +238,7 @@ mod select {
     #[derive(SelectQuery)]
     pub struct FindUsersByNameAndAgeGreaterThan {
         #[meta(module = "users", table = "User")]
-        #[query(result = "UserResult")]
+        #[result(type = "UserResult")]
         __meta__: (),
 
         #[filter(operator = "Is")]
@@ -277,7 +277,7 @@ mod select {
     #[derive(SelectQuery)]
     pub struct FindMajorUsers {
         #[meta(module = "users", table = "User")]
-        #[query(result = "UserResult", order_by="name", order_dir="desc" )]
+        #[result(type = "UserResult", order_by="name", order_dir="desc" )]
         __meta__: (),
 
         #[filter(operator = "GreaterThanOrEqual")]
@@ -311,7 +311,7 @@ mod select {
     #[derive(SelectQuery)]
     pub struct FindMajorUsersWithOptions {
         #[meta(module = "users", table = "User")]
-        #[query(result = "UserResult", order_by="name", order_dir="desc" )]
+        #[result(type = "UserResult")]
         __meta__: (),
 
         #[options]
@@ -357,7 +357,7 @@ mod select {
     #[derive(SelectQuery)]
     pub struct FindMajorUsersWithFilters {
         #[meta(module = "users", table = "User")]
-        #[query(result = "UserResult", order_by="name", order_dir="desc" )]
+        #[result(type = "UserResult")]
         __meta__: (),
 
         #[options]

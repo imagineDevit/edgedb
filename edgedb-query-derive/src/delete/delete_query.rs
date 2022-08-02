@@ -2,7 +2,7 @@
 use proc_macro::TokenStream;
 use quote::quote;
 use syn::DeriveInput;
-use crate::constants::{BRACKET_OPEN, DELETE, FILTER};
+use crate::constants::{DELETE, FILTER};
 use crate::utils::derive_utils::{edge_value_quote, filter_quote, shape_element_quote, start, to_edge_ql_value_impl_empty_quote};
 use crate::utils::field_utils::get_field_ident;
 

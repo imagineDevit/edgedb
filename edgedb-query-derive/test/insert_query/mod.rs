@@ -10,7 +10,7 @@ mod insert {
     #[derive(InsertQuery)]
     pub struct InsertEmptyUser {
         #[meta(module = "users", table = "User")]
-        #[query(result = "UserResult")]
+        #[result(type = "UserResult")]
         __meta__: ()
     }
 
@@ -32,7 +32,7 @@ mod insert {
     #[derive(InsertQuery)]
     pub struct InsertUser {
         #[meta(module = "users", table = "User")]
-        #[query(result = "UserResult")]
+        #[result(type = "UserResult")]
         __meta__: (),
 
         pub name: String,
@@ -41,7 +41,7 @@ mod insert {
         pub major: bool,
         pub vs: Vec<String>,
         #[scalar(type = "enum", module = "users", name = "Gender")]
-        pub gender: Gender,
+        pub gender: Sex,
         #[nested_query]
         pub wallet: Wallet,
     }
@@ -58,7 +58,7 @@ mod insert {
     }
 
     #[derive(EdgedbEnum)]
-    pub enum Gender {
+    pub enum Sex {
         #[value("male")]
         Male,
         #[value("female")]
@@ -74,7 +74,6 @@ mod insert {
 
     #[test]
     fn insert_user_test() {
-
         let insert_user = InsertUser {
             __meta__: (),
             name: "Joe".to_string(),
@@ -82,7 +81,7 @@ mod insert {
             age: 35,
             major: true,
             vs: vec!["vs1".to_string()],
-            gender: Gender::Male,
+            gender: Sex::Male,
             wallet: Wallet {
                 __meta__: (),
                 money: 0 }

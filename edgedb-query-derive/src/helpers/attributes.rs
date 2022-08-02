@@ -1,4 +1,4 @@
-use crate::constants::{TARGET_COLUMN, CONJUNCTIVE, SCALAR_TYPE, META, ENUM, FILTER, INF_SIGN, LIMIT, MODULE, NAME, OPERATOR, OPTIONS, ORDER_BY, ORDER_DIR, QUERY, RESULT, SELECT, SUP_SIGN, TABLE, BACKLINK, TYPE, VALUE, TARGET_TABLE, SOURCE_TABLE, FILTERS, COLUMN_NAME, WRAPPER_FN, FIELD, DEFAULT_VALUE, SCALAR};
+use crate::constants::{TARGET_COLUMN, CONJUNCTIVE, SCALAR_TYPE, META, ENUM, FILTER, INF_SIGN, LIMIT, MODULE, NAME, OPERATOR, OPTIONS, ORDER_BY, ORDER_DIR, RESULT, SELECT, SUP_SIGN, TABLE, BACKLINK, TYPE, VALUE, TARGET_TABLE, SOURCE_TABLE, FILTERS, COLUMN_NAME, WRAPPER_FN, FIELD, DEFAULT_VALUE, SCALAR};
 use crate::utils::field_utils::get_field_ident;
 use crate::utils::path_utils::path_ident_equals;
 use crate::utils::type_utils::is_type_name;
@@ -30,8 +30,8 @@ pub struct OrderOption {
 }
 
 #[derive(Clone, Default)]
-pub struct Query {
-    pub result: Option<String>,
+pub struct QueryResult {
+    pub result_type: Option<String>,
     pub order: Option<OrderOption>,
     pub limit: Option<u32>,
 }
@@ -254,24 +254,24 @@ impl EdgeDbMeta {
     }
 }
 
-impl Query {
+impl QueryResult {
     pub fn has_result(&self) -> bool {
-        self.result.is_some()
+        self.result_type.is_some()
     }
 
     pub fn from_field(field: &Field) -> Self {
         let mut map: HashMap<&str, Option<String>> = HashMap::new();
-        map.insert(RESULT, None);
+        map.insert(TYPE, None);
         map.insert(ORDER_BY, None);
         map.insert(ORDER_DIR, None);
 
         let (map_cloned, _) = explore_field_attrs!(
             field <- field,
-            derive_name <- QUERY,
+            derive_name <- RESULT,
             map <- map
         );
 
-        let result = map_cloned.get(RESULT).unwrap().clone();
+        let result = map_cloned.get(TYPE).unwrap().clone();
         let order_by = map_cloned.get(ORDER_BY).unwrap().clone();
         let order_dir = map_cloned.get(ORDER_DIR).unwrap().clone();
 
@@ -279,7 +279,7 @@ impl Query {
         map.insert(LIMIT, None);
         let (map_cloned, _) = explore_field_attrs!(
             field <- field,
-            derive_name <- QUERY,
+            derive_name <- RESULT,
             map <- map,
             number <- ()
         );
@@ -321,14 +321,14 @@ impl Query {
             None
         };
         Self {
-            result,
+            result_type: result,
             order,
             limit,
         }
     }
 
     pub fn to_ident(&self, span: Span) -> Ident {
-        self.result
+        self.result_type
             .clone()
             .or_else(|| Some("BasicResult".to_string()))
             .map(|s| Ident::new(s.as_str(), span))

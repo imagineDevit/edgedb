@@ -1,12 +1,12 @@
 use proc_macro2::TokenStream;
 use quote::quote;
-use crate::helpers::attributes::{EdgeDbMeta, Filter, Filters, Options, Query};
+use crate::helpers::attributes::{EdgeDbMeta, Filter, Filters, Options, QueryResult};
 use crate::utils::field_utils::{get_field_ident, get_struct_fields};
 use syn::{DeriveInput, Field};
 use crate::constants::{SCALAR_TYPE, OPTION, VEC, TUPLE};
 use crate::utils::type_utils::{get_wrapped_type, is_type_name};
 
-pub fn start(ast_struct: &DeriveInput) -> (String, Query, bool, Option<Field>, Option<Field>, Vec<Field>) {
+pub fn start(ast_struct: &DeriveInput) -> (String, QueryResult, bool, Option<Field>, Option<Field>, Vec<Field>) {
     // Struct fields
     let fields = get_struct_fields(ast_struct.clone());
 
@@ -34,11 +34,11 @@ pub fn start(ast_struct: &DeriveInput) -> (String, Query, bool, Option<Field>, O
 
     let (query_attr, has_result_type) = if let Some(result_field) = fields_cloned
         .iter()
-        .find(|f| Query::from_field(f).has_result())
+        .find(|f| QueryResult::from_field(f).has_result())
     {
-        (Query::from_field(result_field), true)
+        (QueryResult::from_field(result_field), true)
     } else {
-        (Query::default(), false)
+        (QueryResult::default(), false)
     };
 
     let options_field = fields
