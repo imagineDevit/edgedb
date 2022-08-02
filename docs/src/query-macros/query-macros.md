@@ -2,7 +2,7 @@
 
 [**Edgedb-query-derive**](https://github.com/imagineDevit/edgedb) crate provide 5 types of query macros :
 
-- [**_InsertQuery_**]()
+- [**_InsertQuery_**](./insert-query.md)
 - [**_SelectQuery_**]()
 - [**_UpdateQuery_**]()
 - [**_DeleteQuery_**]()

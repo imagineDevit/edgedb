@@ -17,7 +17,7 @@
   
 
 - [Query macros](./query-macros/query-macros.md)
-    - [InsertQuery]()
+    - [InsertQuery](./query-macros/insert-query.md)
     - [SelectQuery]()
     - [UpdateQuery]()
     - [DeleteQuery]()
