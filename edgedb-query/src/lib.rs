@@ -1,6 +1,7 @@
 
 pub mod queries;
 pub mod models;
+
 use edgedb_protocol::model::Uuid;
 use edgedb_protocol::value::Value;
 
@@ -71,6 +72,12 @@ _to_edgeql_and_to_edge_scalar_impls!(
     bool => { scalar: "<bool>" },
     serde_json::Value => { scalar: "<json>" },
     uuid::Uuid => { scalar:"<uuid>"},
+    chrono::DateTime<chrono::Utc> => { scalar: "<datetime>"},
+    chrono::DateTime<chrono::Local> => { scalar: "<cal::local_datetime>"},
+    chrono::Duration => { scalar : "<duration>"},
+    chrono::Date<chrono::Local> => { scalar: "<cal::local_date>"},
+    chrono::NaiveTime => { scalar: "<cal::local_time>"},
+    chrono::NaiveDate => { scalar: "<cal::local_date>"},
 );
 
 impl ToEdgeScalar for () {
