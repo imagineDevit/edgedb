@@ -13,6 +13,7 @@ pub const TUPLE: &str = "()";
 pub const INSERT: &str = "insert";
 pub const SELECT: &str = "select";
 pub const DELETE: &str = "delete";
+pub const UPDATE: &str = "update";
 
 pub const META: &str = "meta";
 pub const SCALAR: &str = "scalar";
@@ -21,6 +22,9 @@ pub const ENUM: &str = "enum";
 pub const NAME: &str = "name";
 pub const MODULE: &str = "module";
 pub const TABLE: &str = "table";
+
+
+pub const SET: &str = "set";
 
 pub const RESULT: &str = "result";
 pub const ORDER_BY: &str = "order_by";
@@ -44,6 +48,7 @@ pub const FIELD: &str = "field";
 pub const WRAPPER_FN: &str = "wrapper_fn";
 pub const COLUMN_NAME: &str = "column_name";
 pub const DEFAULT_VALUE: &str = "default_value";
+pub const ASSIGNMENT: &str = "assignment";
 
 pub const NESTED: &str = "nested_query";
 

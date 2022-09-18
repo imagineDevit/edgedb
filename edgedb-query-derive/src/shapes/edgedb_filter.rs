@@ -13,7 +13,7 @@ pub fn do_derive(ast_struct: &DeriveInput) -> TokenStream {
 
     if fields.len() == 0 {
         panic!(r#"
-            Filter must have almost one named field
+            Filter must have at least one named field
         "#)
     }
 

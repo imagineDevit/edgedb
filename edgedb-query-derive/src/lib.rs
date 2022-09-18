@@ -11,6 +11,7 @@ mod insert;
 mod select;
 mod utils;
 mod delete;
+mod update;
 
 /// <h1>Insert Query</h1>
 ///
@@ -76,6 +77,44 @@ pub fn insert_query(input: TokenStream) -> TokenStream {
 pub fn select_query(input: TokenStream) -> TokenStream {
     let ast_struct = parse_macro_input!(input as DeriveInput);
     let result = select::select_query::do_derive(&ast_struct);
+    result
+}
+
+/// <h1>Insert Query</h1>
+///
+///
+/// <h2 style = "text-decoration: underlined">Usage :</h2>
+///
+/// ```rust
+/// #[derive(InsertQuery)]
+/// pub struct User {
+///     #[edgedb(module = "users", table = "User")]
+///     #[query(result = "UserResult")]
+///     __meta__: (),
+///
+///     pub name: String,
+///     #[edgedb(type="int16")]
+///     pub age: u8,
+///     pub major: bool,
+///     #[edgedb(type = "enum", name = "Gender")]
+///     pub gender: String,
+///     pub b: Option<u8>,
+/// }
+///
+/// #[derive(Default, EdgedbResult)]
+/// pub struct UserResult {
+///     pub id: String,
+///     pub name: String,
+/// }
+///
+/// fn main() {
+///
+/// }
+/// ```
+#[proc_macro_derive(UpdateQuery, attributes(meta, result, set, filters))]
+pub fn update_query(input: TokenStream) -> TokenStream {
+    let ast_struct = parse_macro_input!(input as DeriveInput);
+    let result = update::update_query::do_derive(&ast_struct);
     result
 }
 
@@ -223,5 +262,12 @@ pub fn edgedb_result(input: TokenStream) -> TokenStream {
 pub fn edgedb_filters(input: TokenStream) -> TokenStream {
     let ast_struct = parse_macro_input!(input as DeriveInput);
     let tokens = shapes::edgedb_filter::do_derive(&ast_struct);
+    tokens.into()
+}
+
+#[proc_macro_derive(EdgedbSet, attributes(scalar, field))]
+pub fn edgedb_set(input: TokenStream) -> TokenStream {
+    let ast_struct = parse_macro_input!(input as DeriveInput);
+    let tokens = shapes::edgedb_set::do_derive(&ast_struct);
     tokens.into()
 }

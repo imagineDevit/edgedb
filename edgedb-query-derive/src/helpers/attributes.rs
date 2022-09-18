@@ -1,4 +1,4 @@
-use crate::constants::{TARGET_COLUMN, CONJUNCTIVE, SCALAR_TYPE, META, ENUM, FILTER, INF_SIGN, LIMIT, MODULE, NAME, OPERATOR, OPTIONS, ORDER_BY, ORDER_DIR, RESULT, SELECT, SUP_SIGN, TABLE, BACKLINK, TYPE, VALUE, TARGET_TABLE, SOURCE_TABLE, FILTERS, COLUMN_NAME, WRAPPER_FN, FIELD, DEFAULT_VALUE, SCALAR};
+use crate::constants::{TARGET_COLUMN, CONJUNCTIVE, SCALAR_TYPE, META, ENUM, FILTER, INF_SIGN, LIMIT, MODULE, NAME, OPERATOR, OPTIONS, ORDER_BY, ORDER_DIR, RESULT, SELECT, SUP_SIGN, TABLE, BACKLINK, TYPE, VALUE, TARGET_TABLE, SOURCE_TABLE, FILTERS, COLUMN_NAME, WRAPPER_FN, FIELD, DEFAULT_VALUE, SCALAR, ASSIGNMENT};
 use crate::utils::field_utils::get_field_ident;
 use crate::utils::path_utils::path_ident_equals;
 use crate::utils::type_utils::is_type_name;
@@ -79,6 +79,17 @@ pub struct ResultField {
     pub column_name: Option<String>,
     pub wrapper_fn: Option<String>,
     pub default_value: Option<String>
+}
+
+pub enum SetOption {
+    Assign,
+    Concat,
+    Push,
+}
+
+pub struct SetField {
+    pub column_name: Option<String>,
+    pub option: SetOption
 }
 
 // impls
@@ -443,15 +454,15 @@ impl EdgeDbType {
             if db_type.ty.is_none() {
                 panic!(
                     r#"
-                    Please specify the edgedb type by adding 
-                    #[edgedb(type="")]
+                    Please specify the scalar type by adding
+                    #[scalar(type="")]
                 "#
                 )
             } else if db_type.is_enum() && db_type.name.is_none() {
                 panic!(
                     r#"
-                    If the edgedb type is enum you must specify its name and its module as follow :
-                    #[edgedb(type="enum", name="...", module="")]
+                    If the scalar type is enum you must specify its name and its module as follow :
+                    #[scalar(type="enum", name="...", module="")]
                 "#
                 )
             }
@@ -951,5 +962,69 @@ impl ResultField {
         }
 
         s
+    }
+}
+
+impl SetField {
+    pub fn from_field(field: &Field) -> Self {
+
+        let mut map: HashMap<&str, Option<String>> = HashMap::new();
+        map.insert(COLUMN_NAME, None);
+        map.insert(ASSIGNMENT, None);
+
+        let (map_cloned, _) = explore_field_attrs!(
+            field <- field,
+            derive_name <- FIELD,
+            map <- map
+        );
+
+        let column_name = map_cloned.get(COLUMN_NAME).unwrap().clone();
+        let option = if let Some(assignment)  = map_cloned.get(ASSIGNMENT).unwrap().clone() {
+           match assignment.to_lowercase().as_str() {
+               "concat" => SetOption::Concat,
+               "assign" => SetOption::Assign,
+               "push" => SetOption::Push,
+               _ => SetOption::Assign
+           }
+        } else {
+            SetOption::Assign
+        };
+
+        Self {
+            column_name,
+            option,
+        }
+    }
+
+    pub fn build_field_assignment(field: &Field) -> String {
+        let ty = EdgeDbType::get_type(field);
+        let set_field = SetField::from_field(&field);
+
+        let fname = get_field_ident(field);
+
+        match set_field.option {
+            SetOption::Assign => format!(
+                "{column_name} := ({select} {edge_type}${field_name}), ",
+                column_name = set_field.column_name.unwrap_or(fname.to_string()),
+                select = SELECT,
+                edge_type = ty,
+                field_name = fname
+            ),
+            SetOption::Concat => format!(
+                "{column_name} := .{column_name} ++ ({select} {edge_type}${field_name}), ",
+                column_name = set_field.column_name.unwrap_or(fname.to_string()),
+                select = SELECT,
+                edge_type = ty,
+                field_name = fname
+            ),
+            SetOption::Push => format!(
+                "{column_name} += ({select} {edge_type}${field_name}), ",
+                column_name = set_field.column_name.unwrap_or(fname.to_string()),
+                select = SELECT,
+                edge_type = ty,
+                field_name = fname
+            )
+        }
+
     }
 }
