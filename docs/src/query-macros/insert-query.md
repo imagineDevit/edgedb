@@ -41,7 +41,7 @@
             <td>This attribute must also decorate the field called  <strong style="color: #c82829">__meta__</strong>. It's used to declare the query result properties</td>
             <td><i style="color: yellow">type</i></td>
             <td>Yes ("BasicResult") </td>
-            <td>The struct representing the expected result shape </td>
+            <td>The struct representing the expected result shape and must be annotated <strong><a href="../shape-macros/edgedb-result.html">#[derive(EdgedbResult)]</a></strong> </td>
         </tr>
         <tr>
             <td rowspan=3> <strong style="color: #008200">scalar</strong> </td>
@@ -64,7 +64,7 @@
         <tr>
             <td> <strong style="color: #008200">nested_query</strong> </td>
             <td>yes</td>
-            <td>This attribute indicates that the field references an edgedb <strong>select</strong> or <strong>insert</strong> query</td>
+            <td colspan="4">This attribute indicates that the field references an edgedb <strong>select</strong> or <strong>insert</strong> query</td>
         </tr>
     </tbody>
 </table>
@@ -170,7 +170,7 @@ async fn main() -> Result<()> {
     let query = edge_query.query.as_str();
     
     if let Some(json) = client.query_single_json(query, args).await? {
-        if let Ok(result) = serde_json:from_str::<Person>(json.as_ref) {
+        if let Ok(result) = serde_json:from_str::<Person>(json.as_ref()) {
             assert_eq!(result.user_name, "Joe");
             assert_eq!(result.age, 35);
         } else {

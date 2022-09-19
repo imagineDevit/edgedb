@@ -899,7 +899,7 @@ impl ResultField {
         let wrapper_fn = map_cloned.get(WRAPPER_FN).unwrap().clone();
         let default_value = map_cloned.get(DEFAULT_VALUE).unwrap().clone();
 
-        let all_nones = vec![column_name.clone(), wrapper_fn.clone()].iter().all(|o| o.is_none());
+        let all_nones = vec![column_name.clone(), wrapper_fn.clone(), default_value.clone()].iter().all(|o| o.is_none());
 
         if found && all_nones {
             panic!("#[field] must have at least column_name or wrapper_fn attribute")
@@ -984,7 +984,7 @@ impl SetField {
                "concat" => SetOption::Concat,
                "assign" => SetOption::Assign,
                "push" => SetOption::Push,
-               _ => SetOption::Assign
+               _ => panic!("Only 'Concat', 'Assign' or 'Push' are allowed for assignment option")
            }
         } else {
             SetOption::Assign
@@ -1017,13 +1017,18 @@ impl SetField {
                 edge_type = ty,
                 field_name = fname
             ),
-            SetOption::Push => format!(
-                "{column_name} += ({select} {edge_type}${field_name}), ",
-                column_name = set_field.column_name.unwrap_or(fname.to_string()),
-                select = SELECT,
-                edge_type = ty,
-                field_name = fname
-            )
+            SetOption::Push => {
+                if !is_type_name(&field.ty, "vec") {
+                    panic!("Push option is only allowed for vec type")
+                }
+                format!(
+                    "{column_name} += ({select} {edge_type}${field_name}), ",
+                    column_name = set_field.column_name.unwrap_or(fname.to_string()),
+                    select = SELECT,
+                    edge_type = ty,
+                    field_name = fname
+                )
+            }
         }
 
     }

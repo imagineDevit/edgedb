@@ -106,6 +106,9 @@ pub fn do_derive(ast_struct: &DeriveInput) -> TokenStream {
 
                 #(#assign)*
 
+                query.pop();
+                query.pop();
+
                 query.push_str("}");
 
                 query

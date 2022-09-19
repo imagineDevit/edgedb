@@ -38,8 +38,8 @@ mod select {
 
         assert_eq!(edge_query.query, expected_query);
 
-        if let Some(Value::Tuple(v)) = edge_query.args {
-            assert!(v.is_empty())
+        if let Some(Value::Nothing) = edge_query.args {
+            assert!(true)
         } else {
             assert!(false)
         }

@@ -49,7 +49,7 @@ mod update {
             filter str_lower(users::User.identity.first_name) = (select <str>$first_name)
             and users::User.age >= (select <int16>$age)
             set {
-                name := (select <str>$name),
+                name := (select <str>$name)
             }
         "#.to_owned().replace("\n", "");
 

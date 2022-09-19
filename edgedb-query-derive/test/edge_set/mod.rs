@@ -1,7 +1,6 @@
 
 #[cfg(test)]
 mod tests {
-    use std::sync::Arc;
     use edgedb_protocol::codec::EnumValue;
     use edgedb_protocol::value::Value;
     use edgedb_query::{ToEdgeScalar, ToEdgeQl, ToEdgeValue};
@@ -19,7 +18,7 @@ mod tests {
 
     #[derive(EdgedbEnum)]
     pub enum Status {
-        Open, Closed
+        Open, _Closed
     }
 
     #[test]
@@ -29,10 +28,7 @@ mod tests {
             status: Status::Open
         };
 
-        println!("{}", set.to_edgeql());
-
-        assert_eq!("set { first_name := .first_name ++ (select <str>$name), status := (select <default::State>$status), }", set.to_edgeql());
-
+        assert_eq!("set { first_name := .first_name ++ (select <str>$name), status := (select <default::State>$status)}", set.to_edgeql());
 
         if let Value::Object { shape, fields} = set.to_edge_value() {
             check_shape(&shape, vec!["name", "status"]);

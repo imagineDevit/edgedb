@@ -267,7 +267,7 @@ pub fn to_edge_ql_value_impl_empty_quote(struct_name: &syn::Ident, query: String
 
             impl edgedb_query::ToEdgeValue for #struct_name {
                 fn to_edge_value(&self) -> edgedb_protocol::value::Value {
-                    edgedb_protocol::value::Value::empty_tuple()
+                    edgedb_protocol::value::Value::Nothing
                 }
             }
         }
