@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>InsertQuery - edgedb-query documentation</title>
+        <title>SelectQuery - edgedb-query documentation</title>
         <!-- Custom HTML head -->
         <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
         <meta name="description" content="">
@@ -75,7 +75,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded affix "><a href="../introduction.html">Introduction</a></li><li class="chapter-item expanded affix "><li class="part-title">📖 User Guide</li><li class="chapter-item expanded "><a href="../installation.html"><strong aria-hidden="true">1.</strong> Installation</a></li><li class="chapter-item expanded "><div><strong aria-hidden="true">2.</strong> Examples</div></li><li class="chapter-item expanded affix "><li class="part-title">📖 Reference Guide</li><li class="chapter-item expanded "><a href="../shape-macros/shape-macros.html"><strong aria-hidden="true">3.</strong> Shapes macros</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../shape-macros/edgedb-enum.html"><strong aria-hidden="true">3.1.</strong> EdgedbEnum</a></li><li class="chapter-item expanded "><a href="../shape-macros/edgedb-result.html"><strong aria-hidden="true">3.2.</strong> EdgedbResult</a></li><li class="chapter-item expanded "><a href="../shape-macros/edgedb-filters.html"><strong aria-hidden="true">3.3.</strong> EdgedbFilters</a></li><li class="chapter-item expanded "><a href="../shape-macros/edgedb-set.html"><strong aria-hidden="true">3.4.</strong> EdgedbSet</a></li></ol></li><li class="chapter-item expanded "><a href="../query-macros/query-macros.html"><strong aria-hidden="true">4.</strong> Query macros</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../query-macros/insert-query.html" class="active"><strong aria-hidden="true">4.1.</strong> InsertQuery</a></li><li class="chapter-item expanded "><a href="../query-macros/select-query.html"><strong aria-hidden="true">4.2.</strong> SelectQuery</a></li><li class="chapter-item expanded "><div><strong aria-hidden="true">4.3.</strong> UpdateQuery</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">4.4.</strong> DeleteQuery</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">4.5.</strong> CustomQuery</div></li></ol></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="../introduction.html">Introduction</a></li><li class="chapter-item expanded affix "><li class="part-title">📖 User Guide</li><li class="chapter-item expanded "><a href="../installation.html"><strong aria-hidden="true">1.</strong> Installation</a></li><li class="chapter-item expanded "><div><strong aria-hidden="true">2.</strong> Examples</div></li><li class="chapter-item expanded affix "><li class="part-title">📖 Reference Guide</li><li class="chapter-item expanded "><a href="../shape-macros/shape-macros.html"><strong aria-hidden="true">3.</strong> Shapes macros</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../shape-macros/edgedb-enum.html"><strong aria-hidden="true">3.1.</strong> EdgedbEnum</a></li><li class="chapter-item expanded "><a href="../shape-macros/edgedb-result.html"><strong aria-hidden="true">3.2.</strong> EdgedbResult</a></li><li class="chapter-item expanded "><a href="../shape-macros/edgedb-filters.html"><strong aria-hidden="true">3.3.</strong> EdgedbFilters</a></li><li class="chapter-item expanded "><a href="../shape-macros/edgedb-set.html"><strong aria-hidden="true">3.4.</strong> EdgedbSet</a></li></ol></li><li class="chapter-item expanded "><a href="../query-macros/query-macros.html"><strong aria-hidden="true">4.</strong> Query macros</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../query-macros/insert-query.html"><strong aria-hidden="true">4.1.</strong> InsertQuery</a></li><li class="chapter-item expanded "><a href="../query-macros/select-query.html" class="active"><strong aria-hidden="true">4.2.</strong> SelectQuery</a></li><li class="chapter-item expanded "><div><strong aria-hidden="true">4.3.</strong> UpdateQuery</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">4.4.</strong> DeleteQuery</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">4.5.</strong> CustomQuery</div></li></ol></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -134,7 +134,7 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="insertquery"><a class="header" href="#insertquery">InsertQuery</a></h1>
+                        <h1 id="selectquery"><a class="header" href="#selectquery">SelectQuery</a></h1>
 <h4 id="list-of-possibles-attributes-"><a class="header" href="#list-of-possibles-attributes-">List of possibles attributes :</a></h4>
 <table>
     <thead>
@@ -178,32 +178,70 @@
             <td>The struct representing the expected result shape and must be annotated <strong><a href="../shape-macros/edgedb-result.html">#[derive(EdgedbResult)]</a></strong> </td>
         </tr>
         <tr>
-            <td rowspan=3> <strong style="color: #008200">scalar</strong> </td>
-            <td rowspan=3>yes</td>
-            <td rowspan=3>This attribute is used to give information about the field type</td>
-            <td><i style="color: yellow">type</i></td>
+            <td rowspan="4"> <strong style="color: #008200">filter</strong> </td>
+            <td rowspan="4"> Yes </td>
+            <td rowspan="4"> The <strong style="color: #91b362">filter</strong> attribute represents a filter statement in a edgedb select query. </td>
+            <td><i style="color: yellow">operator</i></td>
             <td>No</td>
-            <td>The field scalar type name. If the type is an <i>enum</i>, the type is equal "enum"</td>
+            <td>
+                The ofilter operator that can takes following values :
+                <ul>
+                    <li>Exists</li>
+                    <li>NotExists</li>
+                    <li>Is ( or <strong>=</strong> )</li>
+                    <li>IsNot ( or <strong>!=</strong> )</li>
+                    <li>Like</li>
+                    <li>ILike</li>
+                    <li>In</li>
+                    <li>NotIn</li>
+                    <li>GreaterThan ( or <strong> > </strong> )</li>
+                    <li>GreaterThanOrEqual ( or <strong> >= </strong> )</li>
+                    <li>LessThan ( or <strong> < </strong> )</li>
+                    <li>LessThanOrEqual ( or <strong> <= </strong> )</li>
+                </ul>
+            </td>
         </tr>
         <tr>
-            <td><i style="color: yellow">module</i></td>
-            <td>Yes ("default")</td>
-            <td>The scalar type module </td>
-        </tr>
-         <tr>
-            <td><i style="color: yellow">name</i></td>
-            <td>No when type = "enum"</td>
-            <td>The enum name </td>
+            <td><i style="color: yellow">conjunctive</i></td>
+            <td>No (if it's not the first filter) </td>
+            <td>
+                Conjunctive operator that can be:
+                <ul>
+                    <li>And</li>
+                    <li>Or</li>
+                </ul>
+            </td>
         </tr>
         <tr>
-            <td> <strong style="color: #008200">nested_query</strong> </td>
-            <td>yes</td>
-            <td colspan="4">This attribute indicates that the field references an edgedb <strong>select</strong> or <strong>insert</strong> query</td>
+            <td><i style="color: yellow">column_name</i></td>
+            <td>Yes</td>
+            <td>The column_name on which the filter is applied. Only if the column name differs from the rust struct field name.</td>
+        </tr>
+        <tr>
+            <td><i style="color: yellow">wrapper_fn</i></td>
+            <td>Yes</td>
+            <td>The edgedb function to apply to the column value while filtering.</td>
+        </tr>
+        <tr>
+            <td> <strong style="color: #008200">filters</strong> </td>
+            <td>Yes</td>
+            <td colspan="4"><i style="color: #91b362">filters</i> attribute is used to combine all the filters in a unique annotated <strong style="color: #9d00ec">#[derive(EdgedbFilters)]</strong> <br> see <a href="../shape-macros/edgedb-filters.html"> EdgedbFilters</a></td>
+        </tr>
+        <tr>
+            <td> <strong style="color: #008200">options</strong> </td>
+            <td>Yes</td>
+            <td colspan="4"><i style="color: #91b362">options</i> attribute represents additional select options :
+                <ul>
+                    <li>order options</li>
+                    <li>pagination options.</li>
+                </ul> 
+            <i style="color: #91b362">options</i> attribute must annotate a field of type <i style="color:#ff7733"> edgedb_query::queries::select::SelectOptions</i>
+            </td>
         </tr>
     </tbody>
 </table>
 <br>
-<p><strong>InsertQuery</strong> derive macro generates a insert edgeql query.</p>
+<p><strong>SelectQuery</strong> derive macro generates a select edgeql query.</p>
 <p>Let's see how to use it:</p>
 <p>Consider the following edgeDB schema 👇</p>
 <pre><code class="language-sql">   module models {
@@ -215,18 +253,9 @@
             required property gender -&gt; Gender;
             link address -&gt; Address;
         }
-        
-       
-            
-        type Address {
-            required property num -&gt; int16;
-            required property street -&gt; str;
-            required property city -&gt; str;
-            required property zipcode -&gt; int32;
-        }
    }
 </code></pre>
-<p>To perform a insert query using <a href="https://github.com/edgedb/edgedb-rust">edgedb-tokio</a> we can write code as follows 👇</p>
+<p>To perform a select query using <a href="https://github.com/edgedb/edgedb-rust">edgedb-tokio</a> we can write code as follows 👇</p>
 <pre><code class="language-rust">
 #[derive(EdgedbEnum)]
 pub enum Sex {
@@ -234,34 +263,23 @@ pub enum Sex {
     Female,
 }
 
-#[derive(InsertQuery)]
-pub struct InsertPerson {
+#[derive(SelectQuery)]
+pub struct SelectPerson {
     #[meta(module = &quot;models&quot;, table = &quot;Person&quot;)]
     #[result(type = &quot;Person&quot;)]
     __meta__: (),
 
-    pub user_name: String,
+    #[filter(operator = &quot;Like&quot;, column_name=&quot;user_name&quot;)]
+    pub name: String,
 
-    pub age: i8,
+    #[filter(operator = &quot;&lt;=&quot;, conjunctive=&quot;And&quot;)]
+    pub age: u16,
 
-    #[scalar(type = &quot;enum&quot;, module = &quot;models&quot;, name = &quot;Gender&quot;)]
-    pub gender: Sex,
-
-    #[nested_query]
-    pub address: InsertAddress,
+    #[options]
+    options: SelectOptions&lt;'static&gt;
 }
 
-#[derive(InsertQuery)]
-pub struct InsertAddress {
-    #[meta(module = &quot;models&quot;, table = &quot;Address&quot;)]
-    __meta__: (),
-    pub num: i16,
-    pub street: String,
-    pub city: String,
-    pub zipcode: i32,
-}
-
-#[derive(EdgedbResult)]
+#[derive(EdgedbResult, Deserialize)]
 pub struct Person {
     pub user_name: String,
     pub age: i8
@@ -269,35 +287,33 @@ pub struct Person {
 
 #[tokio::main]
 async fn main() -&gt; Result&lt;()&gt; {
-    
     let client = edgedb_tokio::create_client().await?;
 
-    let insert_person = InsertPerson {
+    let select_person = SelectPerson {
         __meta__: (),
-
-        user_name: &quot;Joe&quot;.to_owned(),
-        age: 35,
-        gender: Sex::Male,
-        address: InsertAddress {
-            __meta__: (),
-            
-            num: 12,
-            street: &quot;rust street&quot;.to_owned(),
-            city: &quot;rust City&quot;.to_owned(),
-            zipcode: 4567
+        
+        name: &quot;%oe&quot;.to_owned(),
+        age: 18,
+        options: SelectOptions {
+            table_name: &quot;Person&quot;,
+            module: Some(&quot;models&quot;),
+            order_options: Some(OrderOptions {
+                order_by: &quot;name&quot;.to_string(),
+                order_direction: Some(OrderDir::Desc)
+            }),
+            page_options: None
         }
     };
-    
-    let edge_query: EdgeQuery  = insert_person.to_edge_query();
+
+    let edge_query: EdgeQuery = select_person.to_edge_query();
 
     let args = &amp;edge_query.args.unwrap();
 
     let query = edge_query.query.as_str();
-    
-    if let Some(json) = client.query_single_json(query, args).await? {
-        if let Ok(result) = serde_json:from_str::&lt;Person&gt;(json.as_ref()) {
-            assert_eq!(result.user_name, &quot;Joe&quot;);
-            assert_eq!(result.age, 35);
+
+    if let Some(json) = client.query_json(query, args).await? {
+        if let Ok(persons) = serde_json: from_str::&lt;Vec&lt;Person&gt;&gt;(json.as_ref()) {
+            assert!(persons.len() &gt; 0 );
         } else {
             assert!(false);
         }
@@ -311,11 +327,8 @@ async fn main() -&gt; Result&lt;()&gt; {
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="../query-macros/query-macros.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="../query-macros/insert-query.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <i class="fa fa-angle-left"></i>
-                            </a>
-                            <a rel="next" href="../query-macros/select-query.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
-                                <i class="fa fa-angle-right"></i>
                             </a>
                         <div style="clear: both"></div>
                     </nav>
@@ -323,11 +336,8 @@ async fn main() -&gt; Result&lt;()&gt; {
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="../query-macros/query-macros.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="../query-macros/insert-query.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <i class="fa fa-angle-left"></i>
-                    </a>
-                    <a rel="next" href="../query-macros/select-query.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
-                        <i class="fa fa-angle-right"></i>
                     </a>
             </nav>
 
