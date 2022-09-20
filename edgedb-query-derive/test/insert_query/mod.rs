@@ -113,7 +113,6 @@ mod insert {
 
         assert_eq!(query.query.replace(" ", ""), expected.replace(" ", ""));
 
-
         if let Some(Value::Object { shape, mut fields}) = query.args {
 
             crate::test_utils::check_shape(&shape, vec!["name", "surname", "age", "major", "vs", "gender", "wallet"]);

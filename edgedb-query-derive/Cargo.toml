@@ -1,10 +1,13 @@
 [package]
 name = "edgedb-query-derive"
-version = "0.0.0"
+version = "0.1.0"
+description = "Crate that provide a bunch of derive macros that help to build EdgeDB query using edgedb-tokio crate"
 authors = ["hsedjame <sedhjodev@gmail.com>"]
-description = "A `cargo generate` template for quick-starting a procedural macro crate"
+repository = "https://github.com/imagineDevit/edgedb/tree/main/edgedb-query-derive"
 keywords = ["template", "proc_macro", "procmacro"]
 edition = "2018"
+license = "MIT"
+readme = "README.md"
 
 [lib]
 proc-macro = true
@@ -22,8 +25,13 @@ serde = { version ="1.0", features = ["derive", "serde_derive"] }
 serde_json = "1.0"
 edgedb = "0.1"
 edgedb-protocol = "0.4"
-edgedb-query = { path = "../edgedb-query"}
+edgedb-query = "0.1.1"
 
 [dev-dependencies]
 trybuild = { version = "1.0", features = ["diff"] }
 
+[profile.dev]
+opt-level = 0
+
+[profile.release]
+opt-level = 3
