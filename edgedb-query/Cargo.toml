@@ -1,8 +1,10 @@
 [package]
 name = "edgedb-query"
+description = "Crate that provide a bunch of traits and structs used by edgedb-query-derive crate"
 version = "0.1.0"
 edition = "2021"
 authors  = ["Henri Joel Sedjame <sedhjodev@gmail.com>"]
+license = "MIT"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -16,6 +18,12 @@ serde = {version = "1.0", features= ["derive"] }
 serde_derive = "1.0"
 serde_json = "1.0"
 edgedb = "0.1"
-edgedb-protocol = "0.3"
+edgedb-protocol = "0.4"
 uuid = { version = "1.1", features=["v4"] }
 chrono = "0.4.19"
+
+[profile.dev]
+opt-level = 0
+
+[profile.release]
+opt-level = 3

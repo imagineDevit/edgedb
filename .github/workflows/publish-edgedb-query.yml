@@ -1,0 +1,23 @@
+name: Publish edgedb-query on crates.io
+
+on:
+  push:
+    tags:
+      - 'eq/*'
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v2
+
+      - name: Install stable toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+
+      - run: cd edgedb-query && cargo publish --token ${CRATES_TOKEN}
+        env:
+          CRATES_TOKEN : ${{ secrets.CRATES_TOKEN }}

@@ -2,9 +2,9 @@ use crate::ToEdgeQl;
 use crate::ToEdgeValue;
 use edgedb_protocol::value::Value;
 
-/// ## EdgeQuery
+/// EgdeQuery represents a edgeDB query.
 ///
-/// EgdeQuery represents a sql query string associated to the query arguments
+/// It combines the string query and its query arguments
 ///
 /// __query__ : the string query
 ///
@@ -47,10 +47,11 @@ pub struct EdgeQuery {
     pub args: Option<Value>,
 }
 
-/// ## ToEdgeQuery
-///
+
 /// ToEdgeQuery trait
 pub trait ToEdgeQuery: ToEdgeQl + ToEdgeValue {
+
+    /// Convert a given struct into a EdgeQuery struct
     fn to_edge_query(&self) -> EdgeQuery {
         EdgeQuery {
             query: self.to_edgeql(),

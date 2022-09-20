@@ -5,10 +5,10 @@ const OFFSET: &'static str = "offset";
 const ASC: &'static str = " asc";
 const DESC: &'static str = " desc";
 
-/// # Select query Options
-///
-/// Trait representing a select query options
-///
+/// Options Trait represents an EdgeDB select query options :
+/// * order options
+/// * pagination options
+
 pub trait Options {
 
     /// returns the edgedb module targeted by the query
@@ -20,13 +20,13 @@ pub trait Options {
     /// returns the query's order options
     fn order_options(&self) -> Option<OrderOptions>;
 
-    /// returns the query's page options
+    /// returns the query's pagination options
     fn page_options(&self) -> Option<PageOptions>;
 }
 
 /// Parse the select query options
 ///
-/// __returns__ : the select options statement
+/// __returns__ : the select options statment
 ///
 /// ## Examples
 ///
@@ -84,28 +84,28 @@ pub fn parse_options<T: Options>(options: &T) -> String {
     stmt
 }
 
-/// ## Select query Order direction
+/// Select query Order direction
 #[derive(Clone)]
 pub enum OrderDir {
     Asc,
     Desc,
 }
 
-/// ## Select query Order options
+/// Select query Order options
 #[derive(Clone)]
 pub struct OrderOptions {
     pub order_by: String,
     pub order_direction: Option<OrderDir>,
 }
 
-/// ## Select query Page Options
+/// Select query Page Options
 #[derive(Clone)]
 pub struct PageOptions {
     pub limit: u32,
     pub offset: Option<u32>,
 }
 
-/// ## Select Options structure
+/// Select Options struct
 pub struct SelectOptions<'a> {
     pub table_name: &'a str,
     pub module: Option<&'a str>,

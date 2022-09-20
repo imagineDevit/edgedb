@@ -1,12 +1,24 @@
+//! Edgedb-query crate aims to provide a bunch of traits or structs used
+//! by Edgedb-query-derive crate
 
 pub mod queries;
 pub mod models;
+
+pub use models::edge_query::EdgeQuery;
+pub use models::edge_query::ToEdgeQuery;
+pub use models::query_result::BasicResult;
+pub use queries::filter::Filter;
+pub use queries::select::Options;
+pub use queries::select::SelectOptions;
+pub use queries::select::OrderDir;
+pub use queries::select::OrderOptions;
+pub use queries::select::PageOptions;
 
 use edgedb_protocol::model::Uuid;
 use edgedb_protocol::value::Value;
 
 
-//----- ToEdgeQL  ToEdgeScalar ----
+
 macro_rules! _to_edgeql_and_to_edge_scalar_impls {
     ($($ty: ty => { scalar: $scalar: expr }),* $(,)?) => {
         $(
@@ -31,34 +43,23 @@ macro_rules! _to_edgeql_and_to_edge_scalar_impls {
 }
 
 
-///  ## ToEdgeQl
 pub trait ToEdgeQl {
-
-    /// Transform a struct into a edgeDB query language statement
+    /// Transform a struct into a edgeDB query language statment
     fn to_edgeql(&self) -> String;
 }
 
-/// ## ToEdgeScalar
 pub trait ToEdgeScalar {
     /// returns the cast expression corresponding to the self struct
-    ///
-    /// <br>
-    ///
-    /// ## Examples
-    ///
-    /// ``` html
-    ///     |  string  | <str>   |
-    ///     ----------------------
-    ///     |   u8     | <int16> |
-    ///     ----------------------
-    ///     |   bool   | <bool>  |
-    /// ```
     fn scalar() -> String;
 }
 
-/// ## ToEdgeShape
 pub trait ToEdgeShape {
     fn shape() -> String;
+}
+
+pub trait ToEdgeValue {
+    /// Transform a struct data into a edgedb_protocol::value::Value
+    fn to_edge_value(&self) -> Value;
 }
 
 _to_edgeql_and_to_edge_scalar_impls!(
@@ -109,18 +110,12 @@ impl<T> ToEdgeShape for Vec<T> {
     }
 }
 
-//----- ToEdgeValue----
-
-pub trait ToEdgeValue {
-    /// Transform a struct data into a edgedb_protocol::value::Value
-    fn to_edge_value(&self) -> Value;
-}
-
 impl ToEdgeValue for () {
     fn to_edge_value(&self) -> Value {
         Value::Str("".to_string())
     }
 }
+
 impl ToEdgeValue for String {
     fn to_edge_value(&self) -> Value {
         Value::Str(self.to_string())
@@ -132,36 +127,43 @@ impl ToEdgeValue for i8 {
         Value::Int16(*self as i16)
     }
 }
+
 impl ToEdgeValue for i16 {
     fn to_edge_value(&self) -> Value {
         Value::Int16(*self)
     }
 }
+
 impl ToEdgeValue for i32 {
     fn to_edge_value(&self) -> Value {
         Value::Int32(*self)
     }
 }
+
 impl ToEdgeValue for i64 {
     fn to_edge_value(&self) -> Value {
         Value::Int64(*self)
     }
 }
+
 impl ToEdgeValue for f32 {
     fn to_edge_value(&self) -> Value {
         Value::Float32(*self)
     }
 }
+
 impl ToEdgeValue for f64 {
     fn to_edge_value(&self) -> Value {
         Value::Float64(*self)
     }
 }
+
 impl ToEdgeValue for bool {
     fn to_edge_value(&self) -> Value {
         Value::Bool(*self)
     }
 }
+
 impl<T: ToEdgeValue> ToEdgeValue for Vec<T> {
     fn to_edge_value(&self) -> Value {
         Value::Array(
@@ -171,12 +173,14 @@ impl<T: ToEdgeValue> ToEdgeValue for Vec<T> {
         )
     }
 }
+
 impl ToEdgeValue for serde_json::Value {
     fn to_edge_value(&self) -> Value {
         Value::Json(self.to_string())
     }
 }
-impl ToEdgeValue for uuid::Uuid {
+
+impl ToEdgeValue for Uuid {
     fn to_edge_value(&self) -> Value {
         Value::Uuid(Uuid::from_u128(self.as_u128()))
     }
