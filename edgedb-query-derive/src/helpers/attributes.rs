@@ -266,7 +266,7 @@ impl EdgeDbMeta {
 }
 
 impl QueryResult {
-    pub fn has_result(&self) -> bool {
+    pub fn has_result_type(&self) -> bool {
         self.result_type.is_some()
     }
 

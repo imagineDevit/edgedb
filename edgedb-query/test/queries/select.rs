@@ -1,6 +1,6 @@
 
 #[cfg(test)]
-mod tests {
+mod select_tests {
     use edgedb_query::queries::select::{OrderDir, OrderOptions, PageOptions, parse_options, SelectOptions};
 
     #[test]

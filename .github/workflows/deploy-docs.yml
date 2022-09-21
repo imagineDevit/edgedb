@@ -1,25 +1,11 @@
-name: github pages
+name: Deploy MdBook on github pages
 
 on:
   push:
     branches:
-      - main
+      - doc/*
 
 jobs:
-
-  tests:
-    runs-on: ubuntu-latest
-    concurrency:
-      group: ${{ github.workflow }}-${{ github.ref }}
-
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-
-      - run: cd edgedb-query-derive && cargo test --test progress
-
   deploy-docs:
     runs-on: ubuntu-latest
     concurrency:

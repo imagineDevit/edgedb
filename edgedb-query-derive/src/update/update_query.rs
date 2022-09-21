@@ -9,7 +9,11 @@ use crate::utils::field_utils::get_field_ident;
 pub fn do_derive(ast_struct: &DeriveInput) -> TokenStream {
     let struct_name = &ast_struct.ident;
 
-    let (table_name, query_attr, has_result_type, _, filters, filtered_fields) = start(&ast_struct);
+    let (table_name, _query_attr, has_result_type, _, filters, filtered_fields) = start(&ast_struct);
+
+    if has_result_type {
+        panic!("Result type is not allowed for update query")
+    }
 
     if filtered_fields.len() != 1 {
         panic!("Update query struct must have only one unannotated field")
@@ -95,15 +99,15 @@ pub fn do_derive(ast_struct: &DeriveInput) -> TokenStream {
         panic!("")
     };
 
-    let result_quote = if has_result_type {
-        let result_type_name = query_attr.to_ident(struct_name.span());
-        quote! {
-            query.push_str(" ");
-            query.push_str(#result_type_name::shape().as_str());
-        }
-    } else {
-        quote!()
-    };
+    //let result_quote = if has_result_type {
+    //    let result_type_name = query_attr.to_ident(struct_name.span());
+    //    quote! {
+    //        query.push_str(" ");
+    //        query.push_str(#result_type_name::shape().as_str());
+    //    }
+    //} else {
+    //    quote!()
+    //};
 
     let tokens = quote! {
 
@@ -112,7 +116,7 @@ pub fn do_derive(ast_struct: &DeriveInput) -> TokenStream {
                 let mut query = #query_str.to_owned();
                 #filter_quote
                 #set_quote
-                #result_quote
+                //#result_quote
                 query
             }
         }

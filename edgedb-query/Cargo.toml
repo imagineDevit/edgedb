@@ -10,8 +10,8 @@ license = "MIT"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [[test]]
-name="select_test"
-path="test/queries/select.rs"
+name="lib_tests"
+path="test/tests.rs"
 
 
 [dependencies]
