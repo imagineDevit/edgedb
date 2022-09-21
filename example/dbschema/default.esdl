@@ -2,7 +2,7 @@ module default {
 
     type Person {
         required property name -> str;
-        property places_visited -> array<str>;
+        multi link places_visited -> City;
     }
 
     type City {

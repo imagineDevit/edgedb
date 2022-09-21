@@ -3,6 +3,10 @@ name = "example"
 version = "0.1.0"
 edition = "2021"
 
+[[test]]
+name = "example"
+path = "src/main.rs"
+
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
@@ -19,9 +23,14 @@ tokio-stream = "0.1.9"
 
 # Edge DB
 edgedb = "0.1"
-edgedb-tokio = "0.2"
-edgedb-protocol = "0.3"
+edgedb-tokio = "0.3"
+edgedb-protocol = "0.4"
 
 # Serde
-serde = "1.0.137"
+serde = {version = "1.0", features= ["derive"] }
 serde_json = "1.0.81"
+
+# Testing
+rstest = "0.15.0"
+async-std = { version = "1.12.0", features = ["tokio1", "attributes"] }
+
