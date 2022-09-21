@@ -11,3 +11,255 @@ using [edgedb-rust](https://github.com/edgedb/edgedb-rust) crate.
 ___
 
 **Documentation** _available_ [_here_ 👉 ](https://imaginedevit.github.io/edgedb/)
+
+
+---
+
+## Example
+
+[**Edgedb-query-derive**](https://github.com/imagineDevit/edgedb) allows you to go from this 👇
+
+````rust
+
+use edgedb_protocol::value::Value;
+use edgedb_protocol::codec::ObjectShape;
+use edgedb_protocol::codec::ShapeElement;
+use edgedb_protocol::common::Cardinality;
+use edgedb_protocol::codec::EnumValue;
+
+#[tokio::main]
+async fn main() -> anyhow::Result<()> {
+    
+    let client = edgedb_tokio::create_client().await?;
+
+    let query = r#"
+        select (
+            insert users::User {
+                name := (select <str>$name),
+                surname := (select <str>$surname),
+                age := (select <int32>$age),
+                major := (select <bool>$major),
+                vs := (select <array<str>>$vs),
+                gender := (select <users::Gender>$gender),
+                wallet := (
+                    insert users::Wallet {
+                            money := (select <int16>$money)
+                       })
+                   }
+        ) {
+            id,
+            name : {
+                name
+            }
+         }
+    "#;
+
+
+    let elements = vec![
+        ShapeElement {
+            flag_implicit: false,
+            flag_link_property: false,
+            flag_link: false,
+            cardinality: Some(
+                Cardinality::One,
+            ),
+            name: "name".to_string(),
+        },
+        ShapeElement {
+            flag_implicit: false,
+            flag_link_property: false,
+            flag_link: false,
+            cardinality: Some(
+                Cardinality::One,
+            ),
+            name: "surname".to_string(),
+        },
+        ShapeElement {
+            flag_implicit: false,
+            flag_link_property: false,
+            flag_link: false,
+            cardinality: Some(
+                Cardinality::One,
+            ),
+            name: "age".to_string(),
+        },
+        ShapeElement {
+            flag_implicit: false,
+            flag_link_property: false,
+            flag_link: false,
+            cardinality: Some(
+                Cardinality::One,
+            ),
+            name: "major".to_string(),
+        },
+        ShapeElement {
+            flag_implicit: false,
+            flag_link_property: false,
+            flag_link: false,
+            cardinality: Some(
+                Cardinality::One,
+            ),
+            name: "vs".to_string(),
+        },
+        ShapeElement {
+            flag_implicit: false,
+            flag_link_property: false,
+            flag_link: false,
+            cardinality: Some(
+                Cardinality::One,
+            ),
+            name: "gender".to_string(),
+        },
+        ShapeElement {
+            flag_implicit: false,
+            flag_link_property: false,
+            flag_link: false,
+            cardinality: Some(
+                Cardinality::One,
+            ),
+            name: "wallet".to_string(),
+        },
+    ];
+
+    let args =  Value::Object {
+        shape: ObjectShape::new(elements),
+        fields: vec![
+            Some(
+                Value::Str(
+                    "Joe".to_string(),
+                ),
+            ),
+            Some(
+                Value::Str(
+                    "Henri".to_string(),
+                ),
+            ),
+            Some(
+                Value::Int32(
+                    35,
+                ),
+            ),
+            Some(
+                Value::Bool(
+                    true,
+                ),
+            ),
+            Some(
+                Value::Array(
+                    vec![
+                        Value::Str(
+                            "vs1".to_string(),
+                        ),
+                    ],
+                ),
+            ),
+            Some(
+                Value::Enum(
+                    EnumValue::from("male"),
+                ),
+            ),
+            Some(
+                Value::Object {
+                    shape: ObjectShape::new(
+                        vec![
+                            ShapeElement {
+                                flag_implicit: false,
+                                flag_link_property: false,
+                                flag_link: false,
+                                cardinality: Some(
+                                    Cardinality::One,
+                                ),
+                                name: "money".to_string(),
+                            },
+                        ]
+                    ),
+                    fields: vec![
+                        Some(
+                            Value::Int16(
+                                0,
+                            ),
+                        ),
+                    ],
+                },
+            ),
+        ],
+    };
+
+
+    let _result = client.query_json(query, &args).await?;
+    
+    
+    Ok(())
+}
+
+````
+to this 👇
+
+````rust
+    use edgedb_query_derive::{InsertQuery, EdgedbEnum, EdgedbResult};
+    use edgedb_query::{*, ToEdgeShape, models::{ edge_query::EdgeQuery, query_result::BasicResult}};
+
+    #[derive(InsertQuery)]
+    pub struct InsertUser {
+        #[meta(module = "users", table = "User")]
+        #[result(type = "UserResult")]
+        __meta__: (),
+
+        pub name: String,
+        pub surname: Option<String>,
+        pub age: i32,
+        pub major: bool,
+        pub vs: Vec<String>,
+        #[scalar(type = "enum", module = "users", name = "Gender")]
+        pub gender: Sex,
+        #[nested_query]
+        pub wallet: Wallet,
+    }
+
+    #[derive(Default, EdgedbResult)]
+    pub struct UserResult {
+        pub id: String,
+        pub name: NameResult,
+    }
+
+    #[derive(Default, EdgedbResult)]
+    pub struct NameResult {
+        pub name: String
+    }
+
+    #[derive(EdgedbEnum)]
+    pub enum Sex {
+        #[value("male")]
+        Male,
+        #[value("female")]
+        Female,
+    }
+
+    #[derive(InsertQuery)]
+    pub struct Wallet {
+        #[meta(module = "users", table = "Wallet")]
+        __meta__: (),
+        pub money: i16,
+    }
+
+    #[tokio::main]
+    async fn main() -> anyhow::Result<()> {
+        let client = edgedb_tokio::create_client().await?;
+        let insert_user: EdgeQuery = InsertUser {
+            __meta__: (),
+            name: "Joe".to_string(),
+            surname: Some("sj".to_string()),
+            age: 35,
+            major: true,
+            vs: vec!["vs1".to_string()],
+            gender: Sex::Male,
+            wallet: Wallet {
+                __meta__: (),
+                money: 0 }
+        }.to_edge_query();
+
+        let _result = client.query_json(insert_user.query, &insert_user.args).await?;
+        
+        OK(())
+    }
+````
