@@ -3,7 +3,7 @@ name: Publish edgedb-query-derive on crates.io
 on:
   push:
     tags:
-      - 'eqd/*'
+      - eqd/*
 jobs:
   publish:
     runs-on: ubuntu-latest

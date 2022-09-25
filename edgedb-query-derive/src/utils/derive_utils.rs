@@ -34,7 +34,7 @@ pub fn start(ast_struct: &DeriveInput) -> (String, QueryResult, bool, Option<Fie
 
     let (query_attr, has_result_type) = if let Some(result_field) = fields_cloned
         .iter()
-        .find(|f| QueryResult::from_field(f).has_result())
+        .find(|f| QueryResult::from_field(f).has_result_type())
     {
         (QueryResult::from_field(result_field), true)
     } else {

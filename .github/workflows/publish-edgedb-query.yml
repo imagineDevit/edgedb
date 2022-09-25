@@ -3,7 +3,7 @@ name: Publish edgedb-query on crates.io
 on:
   push:
     tags:
-      - 'eq/*'
+      - eq/*
 jobs:
   publish:
     runs-on: ubuntu-latest

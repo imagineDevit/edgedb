@@ -14,8 +14,8 @@ proc-macro = true
 
 
 [[test]]
-name = "progress"
-path = "test/progress.rs"
+name = "lib_tests"
+path = "test/tests.rs"
 
 [dependencies]
 quote = "1"
