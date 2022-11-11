@@ -1,27 +1,30 @@
 use proc_macro::TokenStream;
 
-use quote::quote;
+use quote::{quote, ToTokens};
 use syn::DeriveInput;
 use crate::utils::derive_utils::{edge_value_quote, filter_quote_, shape_element_quote};
 use crate::utils::field_utils::get_struct_fields;
 
 
-pub fn do_derive(ast_struct: &DeriveInput) -> TokenStream {
+pub fn do_derive(ast_struct: &DeriveInput) -> syn::Result<TokenStream> {
     let struct_name = &ast_struct.ident;
 
-    let fields = get_struct_fields(ast_struct.clone());
+    let fields = get_struct_fields(ast_struct.clone())?;
 
     if fields.len() == 0 {
-        panic!(r#"
-            Filter must have at least one named field
-        "#)
+        return Err(
+            syn::Error::new_spanned(
+                struct_name.into_token_stream(),
+                " Filter must have at least one named field"
+            )
+        );
     }
 
     let mut i = 0;
     let fields_iter = fields.iter();
     let filters = fields_iter.clone().map(|field| {
         filter_quote_(field, &mut i)
-    });
+    }).map(|r : syn::Result<_>| r.unwrap_or_else(|e| e.to_compile_error().into()));
 
     let mut i: i16 = -1;
 
@@ -64,5 +67,5 @@ pub fn do_derive(ast_struct: &DeriveInput) -> TokenStream {
         }
     };
 
-    tokens.into()
+    Ok(tokens.into())
 }

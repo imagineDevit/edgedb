@@ -1,16 +1,22 @@
 
 use proc_macro::TokenStream;
-use quote::quote;
+use quote::{quote, ToTokens};
 use syn::DeriveInput;
 use crate::constants::{DELETE, FILTER};
-use crate::utils::derive_utils::{edge_value_quote, filter_quote, shape_element_quote, start, to_edge_ql_value_impl_empty_quote};
+use crate::utils::derive_utils::{edge_value_quote, filter_quote, shape_element_quote, start, StartResult, to_edge_ql_value_impl_empty_quote};
 use crate::utils::field_utils::get_field_ident;
 
-pub fn do_derive(ast_struct: &DeriveInput) -> TokenStream {
+pub fn do_derive(ast_struct: &DeriveInput) -> syn::Result<TokenStream> {
 
     let struct_name = &ast_struct.ident;
 
-    let (table_name, _query_attr, _has_result_type, _,  filters_field, filtered_fields) = start(&ast_struct);
+
+    let StartResult {
+        table_name,
+        filters_field,
+        filtered_fields ,
+        ..
+    } = start(&ast_struct)?;
 
     let nb_fields = filtered_fields.len();
 
@@ -23,7 +29,10 @@ pub fn do_derive(ast_struct: &DeriveInput) -> TokenStream {
     let to_edgeql_value_impls = if let Some(field) = filters_field {
 
         if nb_fields > 0 {
-            panic!("#[filters] and #[filter] attributes cannot coexist");
+            return Err(syn::Error::new_spanned(
+                field.attrs[0].clone().into_token_stream(),
+                "#[filters] and #[filter] attributes cannot coexist"
+            ));
         }
 
         let f_name = get_field_ident(&field);
@@ -62,7 +71,7 @@ pub fn do_derive(ast_struct: &DeriveInput) -> TokenStream {
 
             let query_filters = filtered_fields.clone().map(|field| {
                 filter_quote(field, table_name.clone(), &mut index)
-            });
+            }).map(|r: syn::Result<_>| r.unwrap_or_else(|e|e.to_compile_error().into()));
 
             let shapes = filtered_fields.clone().map(|field| {
                 shape_element_quote(field, &mut i)
@@ -130,5 +139,5 @@ pub fn do_derive(ast_struct: &DeriveInput) -> TokenStream {
         }
     };
 
-    tokens.into()
+    Ok(tokens.into())
 }

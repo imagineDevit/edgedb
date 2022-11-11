@@ -138,7 +138,7 @@ mod update;
 pub fn insert_query(input: TokenStream) -> TokenStream {
     let ast_struct = parse_macro_input!(input as DeriveInput);
     let result = insert::insert_query::do_derive(&ast_struct);
-    result
+    result.unwrap_or_else(|e| e.to_compile_error().into())
 }
 
 /// SelectQuery creates implementations of following traits for the annotated struct :
@@ -209,8 +209,9 @@ pub fn insert_query(input: TokenStream) -> TokenStream {
 #[proc_macro_derive(SelectQuery, attributes(meta, result, filter, filters, options))]
 pub fn select_query(input: TokenStream) -> TokenStream {
     let ast_struct = parse_macro_input!(input as DeriveInput);
+
     let result = select::select_query::do_derive(&ast_struct);
-    result
+    result.unwrap_or_else(|e| e.to_compile_error().into())
 }
 
 /// UpdateQuery creates implementations of following traits for the annotated struct :
@@ -292,7 +293,7 @@ pub fn select_query(input: TokenStream) -> TokenStream {
 pub fn update_query(input: TokenStream) -> TokenStream {
     let ast_struct = parse_macro_input!(input as DeriveInput);
     let result = update::update_query::do_derive(&ast_struct);
-    result
+    result.unwrap_or_else(|e| e.to_compile_error().into())
 }
 
 /// UpdateQuery creates implementations of following traits for the annotated struct :
@@ -350,7 +351,7 @@ pub fn update_query(input: TokenStream) -> TokenStream {
 pub fn delete_query(input: TokenStream) -> TokenStream {
     let ast_struct = parse_macro_input!(input as DeriveInput);
     let result = delete::delete_query::do_derive(&ast_struct);
-    result
+    result.unwrap_or_else(|e| e.to_compile_error().into())
 }
 
 /// EdgedbEnum creates implementations of following traits for the annotated struct :
@@ -374,8 +375,8 @@ pub fn delete_query(input: TokenStream) -> TokenStream {
 #[proc_macro_derive(EdgedbEnum, attributes(value))]
 pub fn edgedb_enum(input: TokenStream) -> TokenStream {
     let ast_struct = parse_macro_input!(input as DeriveInput);
-    let tokens = shapes::edgedb_enum::do_derive(&ast_struct);
-    tokens.into()
+    let result = shapes::edgedb_enum::do_derive(&ast_struct);
+    result.unwrap_or_else(|e| e.to_compile_error().into())
 }
 
 /// EdgedbResult creates implementations of following traits for the annotated struct :
@@ -394,8 +395,8 @@ pub fn edgedb_enum(input: TokenStream) -> TokenStream {
 #[proc_macro_derive(EdgedbResult, attributes(field, back_link))]
 pub fn edgedb_result(input: TokenStream) -> TokenStream {
     let ast_struct = parse_macro_input!(input as DeriveInput);
-    let tokens = shapes::edgedb_result::do_derive(&ast_struct);
-    tokens.into()
+    let result = shapes::edgedb_result::do_derive(&ast_struct);
+    result.unwrap_or_else(|e| e.to_compile_error().into())
 }
 
 /// EdgedbFilters creates implementation of following traits for the annotated struct :
@@ -413,8 +414,8 @@ pub fn edgedb_result(input: TokenStream) -> TokenStream {
 #[proc_macro_derive(EdgedbFilters, attributes(filter))]
 pub fn edgedb_filters(input: TokenStream) -> TokenStream {
     let ast_struct = parse_macro_input!(input as DeriveInput);
-    let tokens = shapes::edgedb_filter::do_derive(&ast_struct);
-    tokens.into()
+    let result = shapes::edgedb_filter::do_derive(&ast_struct);
+    result.unwrap_or_else(|e| e.to_compile_error().into())
 }
 
 /// EdgedbSet creates implementations of following traits for the annotated struct :
@@ -442,6 +443,6 @@ pub fn edgedb_filters(input: TokenStream) -> TokenStream {
 #[proc_macro_derive(EdgedbSet, attributes(scalar, field))]
 pub fn edgedb_set(input: TokenStream) -> TokenStream {
     let ast_struct = parse_macro_input!(input as DeriveInput);
-    let tokens = shapes::edgedb_set::do_derive(&ast_struct);
-    tokens.into()
+    let result = shapes::edgedb_set::do_derive(&ast_struct);
+    result.unwrap_or_else(|e| e.to_compile_error().into())
 }
