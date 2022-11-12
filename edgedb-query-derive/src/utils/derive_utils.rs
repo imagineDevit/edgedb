@@ -1,14 +1,25 @@
 use proc_macro2::TokenStream;
-use quote::quote;
-use crate::helpers::attributes::{EdgeDbMeta, Filter, Filters, Options, QueryResult};
-use crate::utils::field_utils::{get_field_ident, get_struct_fields};
+use quote::{quote, ToTokens};
 use syn::{DeriveInput, Field};
-use crate::constants::{SCALAR_TYPE, OPTION, VEC, TUPLE};
+
+use crate::constants::{OPTION, RESULT, SCALAR_TYPE, TUPLE, VEC};
+use crate::helpers::attributes::{EdgeDbMeta, Filter, Filters, Options, QueryResult, SetField};
+use crate::utils::attributes_utils::has_attribute;
+use crate::utils::field_utils::{get_field_ident, get_struct_fields};
 use crate::utils::type_utils::{get_wrapped_type, is_type_name};
 
-pub fn start(ast_struct: &DeriveInput) -> (String, QueryResult, bool, Option<Field>, Option<Field>, Vec<Field>) {
+pub struct StartResult {
+    pub table_name: String, 
+    pub query_result: QueryResult,
+    pub result_field: Option<Field>,
+    pub options_field: Option<Field>,
+    pub filters_field: Option<Field>,
+    pub filtered_fields: Vec<Field>
+}
+
+pub fn start(ast_struct: &DeriveInput) -> syn::Result<StartResult> {
     // Struct fields
-    let fields = get_struct_fields(ast_struct.clone());
+    let fields = get_struct_fields(ast_struct.clone())?;
 
     let fields_cloned = fields.clone();
 
@@ -18,27 +29,28 @@ pub fn start(ast_struct: &DeriveInput) -> (String, QueryResult, bool, Option<Fie
     {
         EdgeDbMeta::from_field(table_field).value().unwrap()
     } else {
-        panic!(
+        return Err(syn::Error::new_spanned(
+            ast_struct.ident.to_token_stream(),
             r#"
-            Specify the module's and the table's names 
+            Specify the module's and the table's names
             by adding an attribute of type () with attribute as follow:
-            
-            #[edgedb(module = "", table="")]
+
+            #[meta(module = "", table="")]
             __meta__: ()
-            
+
         "#
-        );
+        ));
     };
 
     let fields_cloned = fields.clone();
 
-    let (query_attr, has_result_type) = if let Some(result_field) = fields_cloned
+    let (query_attr, result_f) = if let Some(result_field) = fields_cloned
         .iter()
-        .find(|f| QueryResult::from_field(f).has_result_type())
+        .find(|f| has_attribute(f, RESULT))
     {
-        (QueryResult::from_field(result_field), true)
+        (QueryResult::from_field(result_field)?, Some(result_field.clone()))
     } else {
-        (QueryResult::default(), false)
+        (QueryResult::default(), None)
     };
 
     let options_field = fields
@@ -56,24 +68,25 @@ pub fn start(ast_struct: &DeriveInput) -> (String, QueryResult, bool, Option<Fie
         .into_iter()
         .filter(|f| !EdgeDbMeta::from_field(f).is_valid()
             && Options::from_field(f).is_none()
-            && Filters::from_field(f).is_none()
+            && Filters::from_field(f).is_none(),
+       
         )
         .collect::<Vec<Field>>();
-
-
-    (
+    
+    
+    Ok(StartResult{
         table_name,
-        query_attr,
-        has_result_type,
+        query_result: query_attr,
+        result_field: result_f,
         options_field,
         filters_field,
-        filtered_fields,
-    )
+        filtered_fields
+    })
 }
 
-pub fn filter_quote(field: &Field, table_name: String, index: &mut usize) -> TokenStream {
+pub fn filter_quote(field: &Field, table_name: String, index: &mut usize) -> syn::Result<TokenStream> {
 
-    let p = Filter::build_filter_assignment(table_name.clone(), field, index.clone());
+    let p = Filter::build_filter_assignment(table_name.clone(), field, index.clone())?;
 
     *index += 1;
 
@@ -96,37 +109,36 @@ pub fn filter_quote(field: &Field, table_name: String, index: &mut usize) -> Tok
     let format_scalar = format_scalar();
 
     if field_is_vec {
-        quote! {
+        Ok(quote! {
             let mut scalar: String = format!("<array{}>", #tty::scalar());
             #format_scalar;
             let p = #assignment.to_owned().replace(#dd_sign, scalar.as_str());
             query.push_str(p.as_str());
-        }
+        })
     } else {
         if field_is_tuple {
-            quote! {
+            Ok(quote! {
                 let mut scalar: String = <#tty>::scalar();
                 #format_scalar;
                 let p = #assignment.to_owned().replace(#dd_sign, scalar.as_str());
                 query.push_str(p.as_str());
-            }
+            })
         } else {
-            quote! {
+            Ok(quote! {
                 let mut scalar: String = #tty::scalar();
                 #format_scalar;
                 let p = #assignment.to_owned().replace(#dd_sign, scalar.as_str());
                 query.push_str(p.as_str());
-            }
+            })
         }
-
     }
 }
 
-pub fn filter_quote_(field: &Field, index: &mut usize) -> TokenStream {
+pub fn filter_quote_(field: &Field, index: &mut usize) -> syn::Result<TokenStream> {
 
     let table_name: &str = "__table_name__";
 
-    let p = Filter::build_filter_assignment(table_name.to_string(), field, index.clone());
+    let p = Filter::build_filter_assignment(table_name.to_string(), field, index.clone())?;
 
     *index += 1;
 
@@ -149,33 +161,33 @@ pub fn filter_quote_(field: &Field, index: &mut usize) -> TokenStream {
     let format_scalar = format_scalar();
 
     if field_is_vec {
-        quote! {
+        Ok(quote! {
             let mut scalar: String = format!("<array{}>", #tty::scalar());
             #format_scalar;
             let p = #assignment.to_owned()
                 .replace(#dd_sign, scalar.as_str())
                 .replace(#table_name, table_name);
             query.push_str(p.as_str());
-        }
+        })
     } else {
         if field_is_tuple {
-            quote! {
+            Ok(quote! {
                 let mut scalar: String = <#tty>::scalar();
                 #format_scalar;
                 let p = #assignment.to_owned()
                     .replace(#dd_sign, scalar.as_str())
                     .replace(#table_name, table_name);
                 query.push_str(p.as_str());
-            }
+            })
         } else {
-            quote! {
+            Ok(quote! {
                 let mut scalar: String = #tty::scalar();
                 #format_scalar;
                 let p = #assignment.to_owned()
                     .replace(#dd_sign, scalar.as_str())
                     .replace(#table_name, table_name);
                 query.push_str(p.as_str());
-            }
+            })
         }
     }
 

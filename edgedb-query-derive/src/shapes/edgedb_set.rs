@@ -1,4 +1,5 @@
 use proc_macro::TokenStream;
+use proc_macro2::Span;
 use quote::quote;
 use syn::DeriveInput;
 use crate::constants::{EDGEQL, NESTED, OPTION, SCALAR_TYPE, VEC};
@@ -8,21 +9,22 @@ use crate::utils::derive_utils::{edge_value_quote, format_scalar, shape_element_
 use crate::utils::field_utils::{get_field_ident, get_struct_fields};
 use crate::utils::type_utils::{get_wrapped_type, is_type_name};
 
-pub fn do_derive(ast_struct: &DeriveInput) -> TokenStream {
+pub fn do_derive(ast_struct: &DeriveInput) -> syn::Result<TokenStream> {
 
     let struct_name = &ast_struct.ident;
 
-    let fields = get_struct_fields(ast_struct.clone());
+    let fields = get_struct_fields(ast_struct.clone())?;
 
     if fields.len() == 0 {
-        panic!(r#"
-            Set must have at least one named field
-        "#)
+        return Err(syn::Error::new(
+            Span::mixed_site(),
+            " Set must have at least one named field"
+        ));
     }
 
     let field_iter = fields.iter();
 
-    let assign = field_iter.clone().map(|field| {
+    let assign_result = field_iter.clone().map(|field| {
 
         let field_is_option = is_type_name(&field.ty, OPTION);
 
@@ -47,8 +49,9 @@ pub fn do_derive(ast_struct: &DeriveInput) -> TokenStream {
         let assignment =  if is_nested {
             format!("{} := ({}), ", f_name.to_string(), EDGEQL)
         } else {
-            SetField::build_field_assignment(field)
+            SetField::build_field_assignment(field)?
         };
+
 
         let dd_sign = SCALAR_TYPE.to_string();
         let edgeql = EDGEQL.to_string();
@@ -56,7 +59,7 @@ pub fn do_derive(ast_struct: &DeriveInput) -> TokenStream {
         let format_scalar = format_scalar();
 
         if field_is_option {
-            quote! {
+            Ok(quote! {
                     if let Some(v) = &self.#f_name {
                         let mut scalar: String = #tty::scalar();
                         #format_scalar;
@@ -65,28 +68,27 @@ pub fn do_derive(ast_struct: &DeriveInput) -> TokenStream {
                         .replace(#edgeql, v.to_edgeql().as_str());
                         query.push_str(p.as_str());
                     }
-                }
+                })
         } else if  field_is_vec {
-            quote! {
+            Ok(quote! {
                     let mut scalar: String = format!("<array{}>", #tty::scalar());
                     #format_scalar;
                     let p = #assignment.to_owned()
                         .replace(#dd_sign, scalar.as_str())
                         .replace(#edgeql, self.#f_name.to_edgeql().as_str());
                     query.push_str(p.as_str());
-                }
+                })
         } else {
-            quote! {
+            Ok(quote! {
                     let mut scalar: String = #tty::scalar();
                     #format_scalar;
                     let p = #assignment.to_owned()
                         .replace(#dd_sign, scalar.as_str())
                         .replace(#edgeql, self.#f_name.to_edgeql().as_str());
                     query.push_str(p.as_str());
-                }
-
+                })
         }
-    });
+    }).map(|r: syn::Result<_>| r.unwrap_or_else(|e| e.to_compile_error().into()));
 
 
     let mut i: i16 = -1;
@@ -104,7 +106,7 @@ pub fn do_derive(ast_struct: &DeriveInput) -> TokenStream {
             fn to_edgeql(&self) -> String {
                 let mut query = "set { ".to_owned();
 
-                #(#assign)*
+                #(#assign_result)*
 
                 query.pop();
                 query.pop();
@@ -131,5 +133,5 @@ pub fn do_derive(ast_struct: &DeriveInput) -> TokenStream {
         }
     };
 
-    tokens.into()
+    Ok(tokens.into())
 }

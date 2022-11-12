@@ -4,8 +4,9 @@ use crate::utils::path_utils::path_ident_equals;
 use crate::utils::type_utils::is_type_name;
 use proc_macro2::{Ident, Span};
 use std::collections::HashMap;
+use quote::ToTokens;
 
-use syn::{Field, Meta, MetaNameValue, NestedMeta, Type, Variant};
+use syn::{Attribute, Field, Meta, MetaNameValue, NestedMeta, Type, Variant};
 
 pub struct EdgeDbMeta {
     pub module: Option<String>,
@@ -270,7 +271,7 @@ impl QueryResult {
         self.result_type.is_some()
     }
 
-    pub fn from_field(field: &Field) -> Self {
+    pub fn from_field(field: &Field) -> syn::Result<Self> {
         let mut map: HashMap<&str, Option<String>> = HashMap::new();
         map.insert(TYPE, None);
         map.insert(ORDER_BY, None);
@@ -297,13 +298,16 @@ impl QueryResult {
 
         let limit = map_cloned.get(LIMIT).unwrap().clone();
 
+        let attrs = field.attrs.iter().filter(|att| att.path.is_ident(RESULT)).collect::<Vec<&Attribute>>();
+
         let order = if let Some(o) = order_by {
             if let Some(dir) = order_dir.clone() {
                 if dir != "asc".to_owned() && dir != "desc".to_owned() {
-                    panic!(
-                        r#"
-                      Only value 'asc' or 'desc' are accepted for attribute order_dir
-                    "#
+                    return Err(
+                        syn::Error::new_spanned(
+                            attrs[0].clone().tokens,
+                            "Only value 'asc' or 'desc' are accepted for attribute order_dir"
+                        )
                     );
                 }
             }
@@ -313,10 +317,11 @@ impl QueryResult {
             })
         } else {
             if order_dir.is_some() {
-                panic!(
-                    r#"
-                  order_by is required when order_dir is specified.
-                "#
+                return Err(
+                    syn::Error::new_spanned(
+                        attrs[0].clone().tokens,
+                        "order_by is required when order_dir is specified."
+                    )
                 );
             }
             None
@@ -326,16 +331,21 @@ impl QueryResult {
             if let Ok(ll) = l.parse::<u32>() {
                 Some(ll)
             } else {
-                panic!("Limit attribute must be a number")
+                return Err(
+                    syn::Error::new_spanned(
+                        attrs[0].clone().tokens,
+                        "Limit attribute must be a number"
+                    )
+                );
             }
         } else {
             None
         };
-        Self {
+        Ok(Self {
             result_type: result,
             order,
             limit,
-        }
+        })
     }
 
     pub fn to_ident(&self, span: Span) -> Ident {
@@ -436,48 +446,50 @@ impl EdgeDbType {
         }
     }
 
-    pub fn build_field_assignment(field: &Field) -> String {
-        let ty = EdgeDbType::get_type(field);
+    pub fn build_field_assignment(field: &Field) -> syn::Result<String> {
+        let ty = EdgeDbType::get_type(field)?;
 
-        format!(
+        Ok(format!(
             "{field_name} := ({select} {edge_type}${field_name}), ",
             select = SELECT,
             edge_type = ty,
             field_name = get_field_ident(field)
-        )
+        ))
     }
 
-    pub fn get_type(field: &Field) -> String {
+    pub fn get_type(field: &Field) -> syn::Result<String> {
         let db_type = EdgeDbType::from_field(field);
 
         if db_type.exist {
             if db_type.ty.is_none() {
-                panic!(
-                    r#"
+                return Err(
+                    syn::Error::new_spanned(
+                        field.attrs[0].clone().into_token_stream(),
+                        r#"
                     Please specify the scalar type by adding
                     #[scalar(type="")]
-                "#
-                )
+                "#));
             } else if db_type.is_enum() && db_type.name.is_none() {
-                panic!(
-                    r#"
+                return Err(
+                    syn::Error::new_spanned(
+                        field.attrs[0].clone().into_token_stream(),
+                        r#"
                     If the scalar type is enum you must specify its name and its module as follow :
                     #[scalar(type="enum", name="...", module="")]
-                "#
-                )
+                "#));
             }
         };
 
         if let Some(value) = db_type.value() {
-            value
+           Ok(value)
         } else {
-            SCALAR_TYPE.to_string()
+            Ok(SCALAR_TYPE.to_string())
         }
     }
 }
 
 impl EdgeEnumValue {
-    pub fn from_variant(variant: &Variant) -> Self {
+    pub fn from_variant(variant: &Variant) -> syn::Result<Self> {
         let mut exist = false;
         let mut value: Option<String> = None;
 
@@ -498,7 +510,10 @@ impl EdgeEnumValue {
                             exist = true;
                             for ne in nested.iter() {
                                 if let NestedMeta::Lit(syn::Lit::Str(s)) = ne {
-                                    value = Some(s.value());
+                                    let val = s.value();
+                                    if !val.is_empty() {
+                                        value = Some(val);
+                                    }
                                     break;
                                 }
                             }
@@ -511,130 +526,106 @@ impl EdgeEnumValue {
             }
         }
 
-        if exist && (value.is_none() || value.clone().unwrap().is_empty()) {
-            if value.is_none() {
-                panic!(
-                    r#"
-                    Please specify a value #[value("...")] for enum variant {} 
-                "#,
-                    variant.ident.to_string()
+        if exist && value.is_none()  {
+            return Err(
+                syn::Error::new_spanned(
+                    variant.attrs[0].clone().into_token_stream(),
+                    format!(r#" Please specify a non empty value #[value("...")] for enum variant {} "#,
+                            variant.ident.to_string())
                 )
-            }
-
-            if value.clone().unwrap().is_empty() {
-                panic!(
-                    r#"
-                    Please specify a non empty value for #[value("...")] for enum variant {} 
-                "#,
-                    variant.ident.to_string()
-                )
-            }
+            );
         }
 
-        Self { value }
+        Ok(Self { value })
     }
 }
 
 impl Operator {
-    fn from_str(ty: &Type, s: String) -> Operator {
-        let check_type = |_: &Type| {
+    fn from_str(field: &Field, s: String) -> syn::Result<Operator> {
+
+        let ty = &field.ty;
+
+        let check_not_accepted_type = |_: &Type| -> syn::Result<()>{
             if is_type_name(&ty, "()") {
-                panic!("Type () is not accepted for Filter type {}", s);
+                return Err(
+                    syn::Error::new_spanned(
+                        field.attrs[0].clone().into_token_stream(),
+                        format!("Type () is not accepted for Filter type {}", s))
+                );
             }
+
+            Ok(())
+        };
+
+        let check_only_accepted_type = |ty: &Type, op: &str, tty: &str| -> syn::Result<()> {
+            if !is_type_name(&ty, tty) {
+                return Err(
+                    syn::Error::new_spanned(
+                        field.attrs[0].clone().into_token_stream(),
+                        format!("Filter type {} is only accepted for field of type {}", op, tty))
+                );
+            }
+            Ok(())
         };
 
         match s.to_lowercase().as_str() {
             "exists" => {
-                if !is_type_name(&ty, "()") {
-                    panic!(
-                        r#"
-                        Filter type Exists is only accepted for field of type ()
-                    "#
-                    )
-                }
-                Operator::Exists
+                check_only_accepted_type(ty, "Exists", "()")?;
+                Ok(Operator::Exists)
             }
             "notexists" | "!exists" => {
-                if !is_type_name(&ty, "()") {
-                    panic!(
-                        r#"
-                        Filter type NotExists is only accepted for field of type ()
-                    "#
-                    )
-                }
-                Operator::NotExists
+                check_only_accepted_type(ty, "NotExists", "()")?;
+                Ok(Operator::NotExists)
             }
             "is" | "="=> {
-                check_type(ty);
-                Operator::Is
+                check_not_accepted_type(ty)?;
+                Ok(Operator::Is)
             }
             "isnot" | "!=" => {
-                check_type(ty);
-                Operator::IsNot
+                check_not_accepted_type(ty)?;
+                Ok(Operator::IsNot)
             }
             "like" => {
-                check_type(ty);
-                if !is_type_name(&ty, "String") {
-                    panic!(
-                        r#"
-                        Filter type Like is only accepted for field of type String
-                    "#
-                    )
-                }
-                Operator::Like
+                check_not_accepted_type(ty)?;
+                check_only_accepted_type(ty, "Like", "String")?;
+                Ok(Operator::Like)
             }
             "ilike" => {
-                check_type(ty);
-                if !is_type_name(&ty, "String") {
-                    panic!(
-                        r#"
-                        Filter type ILike is only accepted for field of type String
-                    "#
-                    )
-                }
-                Operator::ILike
+                check_not_accepted_type(ty)?;
+                check_only_accepted_type(ty, "ILike", "String")?;
+                Ok(Operator::ILike)
             }
             "in" => {
-                check_type(ty);
-                if !is_type_name(&ty, "Vec") {
-                    panic!(
-                        r#"
-                        Filter type In is only accepted for field of type Vec<>
-                    "#
-                    )
-                }
-                Operator::In
+                check_not_accepted_type(ty)?;
+                check_only_accepted_type(ty, "In", "Vec")?;
+                Ok(Operator::In)
             }
             "notin" => {
-                check_type(ty);
-                if !is_type_name(&ty, "Vec") {
-                    panic!(
-                        r#"
-                        Filter type NotIn is only accepted for field of type Vec<>
-                    "#
-                    )
-                }
-                Operator::NotIn
+                check_not_accepted_type(ty)?;
+                check_only_accepted_type(ty, "NotIn", "Vec")?;
+                Ok(Operator::NotIn)
             }
             "greaterthan" | ">" => {
-                check_type(ty);
-                Operator::GreaterThan
+                check_not_accepted_type(ty)?;
+               Ok(Operator::GreaterThan)
             }
             "greaterthanorequal" | ">=" => {
-                check_type(ty);
-                Operator::GreaterThanOrEqual
+                check_not_accepted_type(ty)?;
+                Ok(Operator::GreaterThanOrEqual)
             }
             "lesserthan" | "<" => {
-                check_type(ty);
-                Operator::LesserThan
+                check_not_accepted_type(ty)?;
+                Ok(Operator::LesserThan)
             }
             "lesserthanorequal" | "<=" => {
-                check_type(ty);
-                Operator::LesserThanOrEqual
+                check_not_accepted_type(ty)?;
+                Ok(Operator::LesserThanOrEqual)
             }
             _ => {
-                panic!(
-                    r#"
+                return Err(
+                    syn::Error::new_spanned(
+                        field.attrs[0].clone().into_token_stream(),
+                        format!(r#"
                     {} is not a valid filter type.
                     Only filter types :
                       - Exists
@@ -648,15 +639,13 @@ impl Operator {
                       - LesserThan
                       - LesserThanOrEqual
                     are accepted
-                "#,
-                    s
-                )
+                "#, s)));
             }
         }
     }
 
-    pub fn build(&self, table_name: String, field: &Field, column_name: Option<String>, wrapper_fn: Option<String>) -> String {
-        let ty = EdgeDbType::get_type(field);
+    pub fn build(&self, table_name: String, field: &Field, column_name: Option<String>, wrapper_fn: Option<String>) -> syn::Result<String> {
+        let ty = EdgeDbType::get_type(field)?;
 
         let mut is_exists = false;
 
@@ -692,27 +681,27 @@ impl Operator {
         };
 
         if is_exists {
-            format!(
+            Ok(format!(
                 " {symbol} {table}.{column_name}",
                 symbol = symbol,
                 table = table_name,
                 column_name = column_name
-            )
+            ))
         } else {
-            format!(
+            Ok(format!(
                 " {wrapped_field_name} {symbol} ({select} {edge_type}${field_name})",
                 symbol = symbol,
                 select = SELECT,
                 edge_type = ty,
                 wrapped_field_name = wrapped_field_name,
                 field_name = field_name
-            )
+            ))
         }
     }
 }
 
 impl Filter {
-    pub fn from_field(field: &Field, index: usize) -> Self {
+    pub fn from_field(field: &Field, index: usize) -> syn::Result<Self> {
         let mut map: HashMap<&str, Option<String>> = HashMap::new();
         map.insert(OPERATOR, None);
         map.insert(CONJUNCTIVE, None);
@@ -726,74 +715,76 @@ impl Filter {
         );
 
         if !exist {
-            panic!(
-                "Please please add #[filter(operator=\"...\",)] attribute to field {}",
-                get_field_ident(field)
-            )
+            return Err(
+                syn::Error::new_spanned(
+                    field.into_token_stream(),
+                    format!("Please please add #[filter(operator=\"...\",)] attribute to field {}",
+                            get_field_ident(field)))
+            );
         }
 
         let operator = map_cloned.get(OPERATOR).unwrap().clone();
 
         let operator = if let Some(op) = operator {
-            Operator::from_str(&field.ty, op)
+            Operator::from_str(&field, op)?
         } else {
-            panic!(
-                r#"
-                    Please please add operator attribute to field {}
+            return Err(
+                syn::Error::new_spanned(
+                    field.attrs[0].clone().into_token_stream(),
+                    format!(r#"
+                    Please please add operator option to filter attribute
                     #[filter(operator=\"...\")
-                "#,
-                get_field_ident(field)
-            )
+                "#)));
         };
 
         let conjunctive = map_cloned.get(CONJUNCTIVE).unwrap().clone();
         let column_name = map_cloned.get(COLUMN_NAME).unwrap().clone();
         let wrapper_fn = map_cloned.get(WRAPPER_FN).unwrap().clone();
 
-        let conjunctive = if let Some(c) = conjunctive {
+        let res_conjunctive = if let Some(c) = conjunctive {
             match c.as_str() {
-                "Or" => Some(Conjunctive::Or),
-                "And" => Some(Conjunctive::And),
-                _ => panic!(
-                    r#"
-                    {} is not a valid filter type.
-                    Only filter types :
-                      - Exists
-                      - Is
-                      - IsNot
-                      - Like
-                      - ILike
-                      - In
-                      - GreaterThan
-                      - GreaterThanOrEqual
-                      - LesserThan
-                      - LesserThanOrEqual
+                "Or" => Ok(Some(Conjunctive::Or)),
+                "And" => Ok(Some(Conjunctive::And)),
+                _ => Err(syn::Error::new_spanned(
+                    field.attrs[0].clone().into_token_stream(),
+                    format!(
+                        r#"
+                    {} is not a valid conjunctive type.
+                    Only conjunctives :
+                      - And
+                      - Or
                     are accepted
                 "#,
-                    c
-                )
+                        c
+                    )
+                ))
             }
         } else {
             if index > 0 {
-                panic!(r#"
-                    Please specify conjunctive attribute to field {}
+                return Err(syn::Error::new_spanned(
+                    field.attrs[0].clone().into_token_stream(),
+                    r#"
+                    Please specify conjunctive option to filter attribute
                     #[filter(operator=\"...\"), conjunctive=\"...\"]
-                "#, get_field_ident(field))
+                "#));
             }
-            None
+            Ok(None)
         };
 
-        Filter { operator, conjunctive, column_name, wrapper_fn }
+        let conjunctive = res_conjunctive?;
+
+        Ok(Filter { operator, conjunctive, column_name, wrapper_fn })
     }
 
-    pub fn build_filter_assignment(table_name: String, field: &Field, index: usize) -> String {
-        let filter = Filter::from_field(field, index);
-        let q = filter.operator.build(table_name, field, filter.column_name, filter.wrapper_fn);
+    pub fn build_filter_assignment(table_name: String, field: &Field, index: usize) -> syn::Result<String> {
+        let filter = Filter::from_field(field, index)?;
+
+        let q = filter.operator.build(table_name, field, filter.column_name, filter.wrapper_fn)?;
         if index == 0 {
-            q
+            Ok(q)
         } else {
             let c = filter.conjunctive.unwrap();
-            format!(" {}{}", c.to_string(), q)
+            Ok(format!(" {}{}", c.to_string(), q))
         }
     }
 }
@@ -821,8 +812,7 @@ impl Options {
 }
 
 impl QueryShape {
-    pub fn from_field(field: &Field) -> Self {
-        let field_name = get_field_ident(field).to_string();
+    pub fn from_field(field: &Field) -> syn::Result<Self> {
 
         let mut map: HashMap<&str, Option<String>> = HashMap::new();
         map.insert(MODULE, None);
@@ -837,53 +827,61 @@ impl QueryShape {
             map <- map
         );
 
-        let module = Self::get_value(&map_cloned, MODULE, field_name.clone());
+        let module = Self::get_value(&map_cloned, MODULE, field)?;
 
-        let source_table = Self::get_value(&map_cloned, SOURCE_TABLE, field_name.clone());
+        let source_table = Self::get_value(&map_cloned, SOURCE_TABLE, field)?;
 
-        let target_table = Self::get_value(&map_cloned, TARGET_TABLE, field_name.clone());
+        let target_table = Self::get_value(&map_cloned, TARGET_TABLE, field)?;
 
-        let target_column = Self::get_value(&map_cloned, TARGET_COLUMN, field_name.clone());
+        let target_column = Self::get_value(&map_cloned, TARGET_COLUMN, field)?;
 
-        let result = Self::get_value(&map_cloned, RESULT, field_name.clone());
+        let result = Self::get_value(&map_cloned, RESULT, field)?;
 
 
-        Self { module, source_table, target_table, target_column, result }
+        Ok(Self { module, source_table, target_table, target_column, result })
     }
 
-    pub fn build_assignment(field: &Field) -> (String, String) {
-        let t = QueryShape::from_field(field);
+    pub fn build_assignment(field: &Field) -> syn::Result<(String, String)> {
+        let t = QueryShape::from_field(field)?;
         let source = t.source_table;
         let column = t.target_column;
         let module = t.module;
         let table = t.target_table;
 
-        (format!("select {module}::{source}.<{column}[is {module}::{table}]"), t.result.clone())
+        Ok((format!("select {module}::{source}.<{column}[is {module}::{table}]"), t.result.clone()))
     }
 
-    fn get_value(map_cloned: &HashMap<&str, Option<String>>, name: &str, field_name: String) -> String {
+    fn get_value(map_cloned: &HashMap<&str, Option<String>>, name: &str, field: &Field) -> syn::Result<String> {
+
+        let field_name = get_field_ident(field).to_string();
+
         let result = if let Some(t) = map_cloned.get(name).unwrap().clone() {
-            Self::required(t, name)
+            Self::required(field, t, name)?
         } else {
-            panic!(r#"
+            return Err(syn::Error::new_spanned(
+                field.into_token_stream(),
+                format!(r#"
                 Please add {} attribute to query_shape macro on field {}
             "#, name, field_name)
+            ));
         };
-        result
+
+        Ok(result)
     }
 
-    fn required(value: String, name: &str) -> String {
+    fn required(field: &Field, value: String, name: &str) -> syn::Result<String> {
         if value.clone().is_empty() {
-            panic!(r#"
-                Non empty value required for {} attribute
-            "#, name)
+            return Err(syn::Error::new_spanned(
+                field.into_token_stream(),
+                format!("Non empty value required for {} attribute", name)
+            ));
         }
-        value
+        Ok(value)
     }
 }
 
 impl ResultField {
-    pub fn from_field(field: &Field) -> Self {
+    pub fn from_field(field: &Field) -> syn::Result<Self> {
         let mut map: HashMap<&str, Option<String>> = HashMap::new();
         map.insert(COLUMN_NAME, None);
         map.insert(WRAPPER_FN, None);
@@ -902,27 +900,33 @@ impl ResultField {
         let all_nones = vec![column_name.clone(), wrapper_fn.clone(), default_value.clone()].iter().all(|o| o.is_none());
 
         if found && all_nones {
-            panic!("#[field] must have at least column_name or wrapper_fn attribute")
+            return Err(syn::Error::new_spanned(
+               field.attrs[0].clone().into_token_stream(),
+               "#[field] must have at least column_name or wrapper_fn attribute"
+            ));
         }
 
         if wrapper_fn.clone().is_none()  && default_value.is_some() {
             if let Some(c) = column_name.clone() {
                 let f_name = get_field_ident(field).to_string();
                 if c == f_name {
-                    panic!("default_value cannot be applied to the field {}", f_name);
+                    return Err(
+                        syn::Error::new_spanned(
+                            field.attrs[0].clone().into_token_stream(),
+                            format!("default_value cannot be applied to the field {}", f_name)));
                 }
             }
         }
 
-        Self {
+        Ok(Self {
             column_name,
             wrapper_fn,
             default_value
-        }
+        })
     }
 
-    pub fn build_statement(field: &Field) -> String {
-        let result_field = Self::from_field(field);
+    pub fn build_statement(field: &Field) -> syn::Result<String> {
+        let result_field = Self::from_field(field)?;
 
         let f_name = get_field_ident(field).to_string();
 
@@ -961,12 +965,12 @@ impl ResultField {
             s = format!("{s} ?? (select {scalar}'{v}')", s = s, scalar = scalar, v = v);
         }
 
-        s
+        Ok(s)
     }
 }
 
 impl SetField {
-    pub fn from_field(field: &Field) -> Self {
+    pub fn from_field(field: &Field) -> syn::Result<Self> {
 
         let mut map: HashMap<&str, Option<String>> = HashMap::new();
         map.insert(COLUMN_NAME, None);
@@ -979,55 +983,65 @@ impl SetField {
         );
 
         let column_name = map_cloned.get(COLUMN_NAME).unwrap().clone();
-        let option = if let Some(assignment)  = map_cloned.get(ASSIGNMENT).unwrap().clone() {
+        let res_option: syn::Result<SetOption> = if let Some(assignment)  = map_cloned.get(ASSIGNMENT).unwrap().clone() {
            match assignment.to_lowercase().as_str() {
-               "concat" => SetOption::Concat,
-               "assign" => SetOption::Assign,
-               "push" => SetOption::Push,
-               _ => panic!("Only 'Concat', 'Assign' or 'Push' are allowed for assignment option")
+               "concat" => Ok(SetOption::Concat),
+               "assign" => Ok(SetOption::Assign),
+               "push" => Ok(SetOption::Push),
+               _ => {
+                   return Err(syn::Error::new_spanned(
+                       field.attrs[0].clone().into_token_stream(),
+                       "Only 'Concat', 'Assign' or 'Push' are allowed for assignment option"
+                   ));
+               }
            }
         } else {
-            SetOption::Assign
+            Ok(SetOption::Assign)
         };
 
-        Self {
+        let option = res_option?;
+
+        Ok(Self {
             column_name,
             option,
-        }
+        })
     }
 
-    pub fn build_field_assignment(field: &Field) -> String {
-        let ty = EdgeDbType::get_type(field);
-        let set_field = SetField::from_field(&field);
+    pub fn build_field_assignment(field: &Field) -> syn::Result<String> {
+        let ty = EdgeDbType::get_type(field)?;
+        let set_field = SetField::from_field(&field)?;
 
         let fname = get_field_ident(field);
 
         match set_field.option {
-            SetOption::Assign => format!(
+            SetOption::Assign => Ok(format!(
                 "{column_name} := ({select} {edge_type}${field_name}), ",
                 column_name = set_field.column_name.unwrap_or(fname.to_string()),
                 select = SELECT,
                 edge_type = ty,
                 field_name = fname
-            ),
-            SetOption::Concat => format!(
+            )),
+            SetOption::Concat => Ok(format!(
                 "{column_name} := .{column_name} ++ ({select} {edge_type}${field_name}), ",
                 column_name = set_field.column_name.unwrap_or(fname.to_string()),
                 select = SELECT,
                 edge_type = ty,
                 field_name = fname
-            ),
+            )),
             SetOption::Push => {
                 if !is_type_name(&field.ty, "vec") {
-                    panic!("Push option is only allowed for vec type")
+                    return Err(syn::Error::new_spanned(
+                        field.attrs[0].clone().into_token_stream(),
+                        "Push option is only allowed for vec type"
+                    ));
                 }
-                format!(
+                Ok(format!(
                     "{column_name} += ({select} {edge_type}${field_name}), ",
                     column_name = set_field.column_name.unwrap_or(fname.to_string()),
                     select = SELECT,
                     edge_type = ty,
                     field_name = fname
-                )
+                ))
             }
         }
 

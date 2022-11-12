@@ -1,4 +1,4 @@
-name: Test edgedb-query-derive libe
+name: Test edgedb-query-derive lib
 
 on:
   push:

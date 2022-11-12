@@ -10,12 +10,12 @@ use crate::utils::attributes_utils::has_attribute;
 use crate::utils::derive_utils::format_scalar;
 use crate::utils::type_utils::is_type_name;
 
-pub fn do_derive(ast_struct: &DeriveInput) -> TokenStream {
+pub fn do_derive(ast_struct: &DeriveInput) -> syn::Result<TokenStream> {
     // Name of struct
     let struct_name = &ast_struct.ident;
 
     // Struct fields
-    let fields = get_struct_fields(ast_struct.clone());
+    let fields = get_struct_fields(ast_struct.clone())?;
 
     let fields_names = fields
         .iter()
@@ -27,7 +27,7 @@ pub fn do_derive(ast_struct: &DeriveInput) -> TokenStream {
             let is_query_shape = has_attribute(field, BACKLINK);
 
             if is_query_shape {
-                let (ql, result_type_name) = QueryShape::build_assignment(field);
+                let (ql, result_type_name) = QueryShape::build_assignment(field)?;
                 let result_type = Ident::new(result_type_name.as_str(), field.span());
                 let is_vec = is_type_name(f_ty, VEC);
 
@@ -37,19 +37,19 @@ pub fn do_derive(ast_struct: &DeriveInput) -> TokenStream {
                     LIMIT_1
                 };
 
-                quote! {
+                Ok(quote! {
                     let rs = #result_type::shape();
                     let s = format!("{} := ({}{}{})", #f_name, #ql, rs, #limit);
                     query.push_str(s.as_str());
                     query.push_str(",");
-                }
+                })
             } else {
 
-                let stmt = ResultField::build_statement(field);
+                let stmt = ResultField::build_statement(field)?;
                 let scalar = SCALAR_TYPE.to_string();
                 let format_scalar = format_scalar();
 
-                quote! {
+                Ok(quote! {
                     let shape = #f_ty::shape();
                     if shape.is_empty() {
                         let mut scalar: String = #f_ty::scalar();
@@ -62,10 +62,10 @@ pub fn do_derive(ast_struct: &DeriveInput) -> TokenStream {
                         query.push_str(s.as_str());
                         query.push_str(",");
                     }
-                }
+                })
             }
 
-        });
+        }).map(|q: syn::Result<_>| q.unwrap_or_else(|e| e.to_compile_error().into()));
 
     let tokens = quote! {
 
@@ -87,5 +87,5 @@ pub fn do_derive(ast_struct: &DeriveInput) -> TokenStream {
 
     };
 
-    tokens.into()
+    Ok(tokens.into())
 }

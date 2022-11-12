@@ -365,7 +365,6 @@ mod select {
 
         #[filters]
         filters: AgeFilter,
-
     }
 
     #[derive(EdgedbFilters)]
