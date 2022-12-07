@@ -103,7 +103,7 @@ pub fn do_derive(ast_struct: &DeriveInput) -> syn::Result<TokenStream> {
         quote! {
             impl edgedb_query::ToEdgeQl for #struct_name {
                 fn to_edgeql(&self) -> String {
-                    let mut query = #query_str.to_owned();1
+                    let mut query = #query_str.to_owned();
 
                     query.push_str(#result_type_name::shape().as_str());
 
