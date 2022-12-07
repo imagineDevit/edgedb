@@ -10,7 +10,7 @@ pub struct BasicResult {
 
 impl ToEdgeShape for BasicResult {
     fn shape() -> String {
-        STRUCT_ID.to_owned()
+        String::default()
     }
 }
 
