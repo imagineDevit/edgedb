@@ -51,6 +51,8 @@ pub fn do_derive(ast_struct: &DeriveInput) -> syn::Result<TokenStream> {
 
                 let mut shapes:  Vec<edgedb_protocol::descriptors::ShapeElement> = vec![];
 
+                let mut element_names: Vec<String> = vec![];
+
                 #(#shapes)*
 
                 let shape_slices: &[edgedb_protocol::descriptors::ShapeElement] = shapes.as_slice();

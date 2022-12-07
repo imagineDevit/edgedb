@@ -7,7 +7,7 @@ use crate::helpers::attributes::{EdgeDbType, SetField};
 use crate::utils::attributes_utils::has_attribute;
 use crate::utils::derive_utils::{edge_value_quote, format_scalar, shape_element_quote};
 use crate::utils::field_utils::{get_field_ident, get_struct_fields};
-use crate::utils::type_utils::{get_wrapped_type, is_type_name};
+use crate::utils::type_utils::{get_type, get_wrapped_type, is_type_name};
 
 pub fn do_derive(ast_struct: &DeriveInput) -> syn::Result<TokenStream> {
 
@@ -34,15 +34,7 @@ pub fn do_derive(ast_struct: &DeriveInput) -> syn::Result<TokenStream> {
 
         let f_ty = &field.ty;
 
-        let tty = if field_is_option {
-            get_wrapped_type(f_ty, OPTION)
-        } else {
-            if field_is_vec {
-                get_wrapped_type(f_ty, VEC)
-            } else {
-                f_ty.clone()
-            }
-        };
+        let tty = get_type(field, f_ty);
 
         let is_nested = has_attribute(field, NESTED);
 
@@ -122,6 +114,7 @@ pub fn do_derive(ast_struct: &DeriveInput) -> syn::Result<TokenStream> {
             fn to_edge_value(&self) -> edgedb_protocol::value::Value {
                 let mut fields: Vec<Option<edgedb_protocol::value::Value>> = vec![];
                 let mut shapes:  Vec<edgedb_protocol::descriptors::ShapeElement> = vec![];
+                let mut element_names: Vec<String> = vec![];
                 #(#shapes)*
                 let shape_slices: &[edgedb_protocol::descriptors::ShapeElement] = shapes.as_slice();
                 #(#field_values)*

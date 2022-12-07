@@ -16,6 +16,8 @@ pub const DELETE: &str = "delete";
 pub const UPDATE: &str = "update";
 
 pub const META: &str = "meta";
+pub const CONFLICT_ON: &str = "conflict_on";
+pub const CONFLICT_ELSE: &str = "conflict_else";
 pub const SCALAR: &str = "scalar";
 pub const TYPE: &str = "type";
 pub const ENUM: &str = "enum";

@@ -25,7 +25,8 @@ serde = { version ="1.0", features = ["derive", "serde_derive"] }
 serde_json = "1.0"
 edgedb = "0.1"
 edgedb-protocol = "0.4"
-edgedb-query = "0.1.2"
+#edgedb-query = "0.1.2"
+edgedb-query = { path = "../edgedb-query"}
 
 [dev-dependencies]
 trybuild = { version = "1.0", features = ["diff"] }

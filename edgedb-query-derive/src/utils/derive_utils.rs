@@ -2,19 +2,20 @@ use proc_macro2::TokenStream;
 use quote::{quote, ToTokens};
 use syn::{DeriveInput, Field};
 
-use crate::constants::{OPTION, RESULT, SCALAR_TYPE, TUPLE, VEC};
-use crate::helpers::attributes::{EdgeDbMeta, Filter, Filters, Options, QueryResult, SetField};
+use crate::constants::{CONFLICT_ELSE, OPTION, RESULT, SCALAR_TYPE, TUPLE, VEC};
+use crate::helpers::attributes::{EdgeDbMeta, Filter, Filters, Options, QueryResult};
 use crate::utils::attributes_utils::has_attribute;
 use crate::utils::field_utils::{get_field_ident, get_struct_fields};
 use crate::utils::type_utils::{get_wrapped_type, is_type_name};
 
 pub struct StartResult {
-    pub table_name: String, 
+    pub table_name: String,
     pub query_result: QueryResult,
     pub result_field: Option<Field>,
     pub options_field: Option<Field>,
     pub filters_field: Option<Field>,
-    pub filtered_fields: Vec<Field>
+    pub filtered_fields: Vec<Field>,
+    pub conflict_else_field: Option<Field>,
 }
 
 pub fn start(ast_struct: &DeriveInput) -> syn::Result<StartResult> {
@@ -38,7 +39,7 @@ pub fn start(ast_struct: &DeriveInput) -> syn::Result<StartResult> {
             #[meta(module = "", table="")]
             __meta__: ()
 
-        "#
+        "#,
         ));
     };
 
@@ -63,29 +64,34 @@ pub fn start(ast_struct: &DeriveInput) -> syn::Result<StartResult> {
         .into_iter()
         .find(|f| Filters::from_field(f).is_some());
 
+    let conflict_else_field = fields
+        .clone()
+        .into_iter()
+        .find(|f| has_attribute(f, CONFLICT_ELSE));
+
     let filtered_fields = fields
         .clone()
         .into_iter()
         .filter(|f| !EdgeDbMeta::from_field(f).is_valid()
             && Options::from_field(f).is_none()
-            && Filters::from_field(f).is_none(),
-       
+            && Filters::from_field(f).is_none()
+            && !has_attribute(f, CONFLICT_ELSE)
         )
         .collect::<Vec<Field>>();
-    
-    
-    Ok(StartResult{
+
+
+    Ok(StartResult {
         table_name,
         query_result: query_attr,
         result_field: result_f,
         options_field,
         filters_field,
-        filtered_fields
+        filtered_fields,
+        conflict_else_field,
     })
 }
 
 pub fn filter_quote(field: &Field, table_name: String, index: &mut usize) -> syn::Result<TokenStream> {
-
     let p = Filter::build_filter_assignment(table_name.clone(), field, index.clone())?;
 
     *index += 1;
@@ -135,7 +141,6 @@ pub fn filter_quote(field: &Field, table_name: String, index: &mut usize) -> syn
 }
 
 pub fn filter_quote_(field: &Field, index: &mut usize) -> syn::Result<TokenStream> {
-
     let table_name: &str = "__table_name__";
 
     let p = Filter::build_filter_assignment(table_name.to_string(), field, index.clone())?;
@@ -190,7 +195,6 @@ pub fn filter_quote_(field: &Field, index: &mut usize) -> syn::Result<TokenStrea
             })
         }
     }
-
 }
 
 pub fn format_scalar() -> TokenStream {
@@ -215,6 +219,7 @@ pub fn shape_element_quote(field: &Field, index: &mut i16) -> TokenStream {
 
     if field_is_option {
         quote! {
+            element_names.push(#f_name.clone().to_owned());
             if let Some(v) = self.#f_ident.clone() {
                 shapes.push(edgedb_protocol::descriptors::ShapeElement {
                     flag_implicit: false,
@@ -228,6 +233,7 @@ pub fn shape_element_quote(field: &Field, index: &mut i16) -> TokenStream {
         }
     } else {
         quote! {
+            element_names.push(#f_name.clone().to_owned());
             shapes.push(edgedb_protocol::descriptors::ShapeElement {
                 flag_implicit: false,
                 flag_link_property: false,
@@ -238,7 +244,6 @@ pub fn shape_element_quote(field: &Field, index: &mut i16) -> TokenStream {
             });
         }
     }
-
 }
 
 pub fn edge_value_quote(field: &Field) -> TokenStream {
@@ -259,7 +264,6 @@ pub fn edge_value_quote(field: &Field) -> TokenStream {
 }
 
 pub fn to_edge_ql_value_impl_empty_quote(struct_name: &syn::Ident, query: String, result_type: Option<syn::Ident>) -> TokenStream {
-
     let push_result_shape = if let Some(result_type_name) = result_type {
         quote! {
             query.push_str(#result_type_name::shape().as_str());
@@ -283,4 +287,63 @@ pub fn to_edge_ql_value_impl_empty_quote(struct_name: &syn::Ident, query: String
                 }
             }
         }
+}
+
+pub fn check_and_duplicate_value(f_name: syn::Ident) -> TokenStream {
+
+    quote! {
+        if let edgedb_protocol::value::Value::Object { shape, fields: f_fields } = self.#f_name.to_edge_value() {
+            f_fields.iter().for_each(|ff| fields.push(ff.clone()));
+
+            shape.elements.iter().for_each(|e| {
+                let n = e.name.clone();
+                let c = e.cardinality.clone();
+                let el = edgedb_protocol::codec::ShapeElement {
+                    flag_implicit: false,
+                    flag_link_property: false,
+                    flag_link: false,
+                    cardinality: c,
+                    name: n
+                };
+
+                if (element_names.contains(&e.name.clone())) {
+                    panic!("Duplicate query parameter name found : {}", e.name.clone())
+                } else {
+                    element_names.push(e.name.clone());
+                }
+
+                shapes.push(el);
+            });
+        }
+    }
+}
+
+pub fn check_and_duplicate_value_2(f_name: syn::Ident) -> TokenStream {
+    quote! {
+        if let edgedb_protocol::value::Value::Object { shape, fields: f_fields } = self.#f_name.to_edge_value() {
+            f_fields.iter().for_each(|ff| fields.push(ff.clone()));
+            let mut i = shapes.len() - 1;
+            shape.elements.iter().for_each(|e| {
+                let n = e.name.clone();
+                let c = e.cardinality.clone();
+
+                let el = edgedb_protocol::descriptors::ShapeElement {
+                    flag_implicit: false,
+                    flag_link_property: false,
+                    flag_link: false,
+                    cardinality: c,
+                    name: n,
+                    type_pos: edgedb_protocol::descriptors::TypePos(i as u16)
+                };
+
+                if (element_names.contains(&e.name.clone())) {
+                    panic!("Duplicate query parameter name found : {}", e.name.clone())
+                } else {
+                    element_names.push(e.name.clone());
+                }
+
+                shapes.push(el);
+            });
+        }
+    }
 }

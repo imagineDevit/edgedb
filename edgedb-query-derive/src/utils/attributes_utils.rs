@@ -1,6 +1,6 @@
 use crate::utils::path_utils::path_ident_equals;
 
-use syn::{Field, MetaNameValue, NestedMeta};
+use syn::{Attribute, Field, MetaNameValue, NestedMeta};
 
 pub fn has_attribute(field: &Field, attribute_derive_name: &str) -> bool {
     let mut result = false;
@@ -46,4 +46,17 @@ pub fn has_attribute_value(
     }
 
     false
+}
+
+
+pub fn get_attr_named(field: &Field, attr_name: &str) -> Option<Attribute> {
+   field.attrs.clone().into_iter().find(|p|{
+        let op = path_ident_equals(&p.path, attr_name);
+
+        if let Some((true, _)) = op {
+            true
+        } else {
+            false
+        }
+    })
 }
