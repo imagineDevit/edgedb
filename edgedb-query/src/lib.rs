@@ -112,7 +112,7 @@ impl<T> ToEdgeShape for Vec<T> {
 
 impl ToEdgeValue for () {
     fn to_edge_value(&self) -> Value {
-        Value::Str("".to_string())
+        Value::Nothing
     }
 }
 
