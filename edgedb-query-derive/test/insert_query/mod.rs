@@ -3,6 +3,7 @@ mod insert {
     use edgedb_protocol::codec::EnumValue;
     use edgedb_protocol::value::Value;
     use edgedb_query::{models::query_result::BasicResult, ToEdgeShape, *};
+    use edgedb_query::queries::conflict::{InsertConflict, Conflict};
     use edgedb_query_derive::{EdgedbEnum, EdgedbResult, InsertQuery, SelectQuery};
 
     #[derive(InsertQuery)]
@@ -29,17 +30,21 @@ mod insert {
         #[result(type = "UserResult")]
         __meta__: (),
 
-        #[conflict_on] pub name: String,
-        #[conflict_on] pub surname: Option<String>,
+        pub name: String,
+        pub surname: Option<String>,
         pub age: i32,
         pub major: bool,
         pub vs: Vec<String>,
-        #[scalar(type = "enum", module = "users", name = "Gender")] pub gender: Sex,
-        #[nested_query] pub wallet: Wallet,
-        #[conflict_else] pub find_user: FindUser
+        #[scalar(type = "enum", module = "users", name = "Gender")]
+        pub gender: Sex,
+        #[nested_query]
+        pub wallet: Wallet,
+
+        #[unless_conflict]
+        pub find_user: InsertConflict<FindUser>
     }
 
-    #[derive(SelectQuery)]
+    #[derive(Clone, SelectQuery)]
     pub struct FindUser {
         #[meta(module = "users", table = "User")]
 
@@ -88,9 +93,12 @@ mod insert {
                 __meta__: (),
                 money: 0,
             },
-            find_user: FindUser {
-                __meta__: (),
-                user_name: "Joe".to_string()
+            find_user: InsertConflict {
+                fields: Some(vec!["name", "surname"]),
+                else_query: Some(FindUser{
+                    __meta__: (),
+                    user_name: "Joe".to_string(),
+                }),
             }
         };
 
@@ -164,7 +172,7 @@ mod insert {
                 let w_elmts = &shape.elements;
                 assert_eq!(w_elmts.len(), 1);
                 assert_eq!(fields, vec![
-                    Some(Value::Str(insert_user.find_user.user_name))
+                    Some(Value::Str(insert_user.find_user.else_query.unwrap().user_name))
                 ])
             }
         } else {

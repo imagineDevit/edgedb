@@ -1,4 +1,4 @@
-use crate::constants::{ TARGET_COLUMN, CONJUNCTIVE, SCALAR_TYPE, META, ENUM, FILTER, INF_SIGN, LIMIT, MODULE, NAME, OPERATOR, OPTIONS, ORDER_BY, ORDER_DIR, RESULT, SELECT, SUP_SIGN, TABLE, BACKLINK, TYPE, VALUE, TARGET_TABLE, SOURCE_TABLE, FILTERS, COLUMN_NAME, WRAPPER_FN, FIELD, DEFAULT_VALUE, SCALAR, ASSIGNMENT};
+use crate::constants::{TARGET_COLUMN, CONJUNCTIVE, SCALAR_TYPE, META, ENUM, FILTER, INF_SIGN, LIMIT, MODULE, NAME, OPERATOR, OPTIONS, ORDER_BY, ORDER_DIR, RESULT, SELECT, SUP_SIGN, TABLE, BACKLINK, TYPE, VALUE, TARGET_TABLE, SOURCE_TABLE, FILTERS, COLUMN_NAME, WRAPPER_FN, FIELD, DEFAULT_VALUE, SCALAR, ASSIGNMENT, UNLESS_CONFLICT};
 use crate::utils::field_utils::get_field_ident;
 use crate::utils::path_utils::path_ident_equals;
 use crate::utils::type_utils::is_type_name;
@@ -92,6 +92,8 @@ pub struct SetField {
     pub column_name: Option<String>,
     pub option: SetOption
 }
+
+pub struct UnlessConflict;
 
 // impls
 macro_rules! explore_field_attrs (
@@ -1045,5 +1047,16 @@ impl SetField {
             }
         }
 
+    }
+}
+
+impl UnlessConflict {
+    pub fn from_field(field: &Field) -> Option<Self> {
+        let found = explore_field_attrs!(
+            field <- field,
+            derive_name <- UNLESS_CONFLICT
+        );
+
+        if found { Some(Self {}) } else { None }
     }
 }

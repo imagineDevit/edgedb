@@ -3,7 +3,7 @@ use quote::{quote, ToTokens};
 use syn::{DeriveInput, Field};
 
 use crate::constants::{CONFLICT_ELSE, OPTION, RESULT, SCALAR_TYPE, TUPLE, VEC};
-use crate::helpers::attributes::{EdgeDbMeta, Filter, Filters, Options, QueryResult};
+use crate::helpers::attributes::{EdgeDbMeta, Filter, Filters, Options, QueryResult, UnlessConflict};
 use crate::utils::attributes_utils::has_attribute;
 use crate::utils::field_utils::{get_field_ident, get_struct_fields};
 use crate::utils::type_utils::{get_wrapped_type, is_type_name};
@@ -15,7 +15,7 @@ pub struct StartResult {
     pub options_field: Option<Field>,
     pub filters_field: Option<Field>,
     pub filtered_fields: Vec<Field>,
-    pub conflict_else_field: Option<Field>,
+    pub unless_conflict_field: Option<Field>
 }
 
 pub fn start(ast_struct: &DeriveInput) -> syn::Result<StartResult> {
@@ -64,10 +64,11 @@ pub fn start(ast_struct: &DeriveInput) -> syn::Result<StartResult> {
         .into_iter()
         .find(|f| Filters::from_field(f).is_some());
 
-    let conflict_else_field = fields
+
+    let unless_conflict_field = fields
         .clone()
         .into_iter()
-        .find(|f| has_attribute(f, CONFLICT_ELSE));
+        .find(|f| UnlessConflict::from_field(f).is_some());
 
     let filtered_fields = fields
         .clone()
@@ -75,7 +76,7 @@ pub fn start(ast_struct: &DeriveInput) -> syn::Result<StartResult> {
         .filter(|f| !EdgeDbMeta::from_field(f).is_valid()
             && Options::from_field(f).is_none()
             && Filters::from_field(f).is_none()
-            && !has_attribute(f, CONFLICT_ELSE)
+            && UnlessConflict::from_field(f).is_none()
         )
         .collect::<Vec<Field>>();
 
@@ -87,7 +88,7 @@ pub fn start(ast_struct: &DeriveInput) -> syn::Result<StartResult> {
         options_field,
         filters_field,
         filtered_fields,
-        conflict_else_field,
+        unless_conflict_field
     })
 }
 
@@ -318,32 +319,34 @@ pub fn check_and_duplicate_value(f_name: syn::Ident) -> TokenStream {
     }
 }
 
-pub fn check_and_duplicate_value_2(f_name: syn::Ident) -> TokenStream {
+pub fn check_and_duplicate_unless_conflict_value(f_name: syn::Ident) -> TokenStream {
     quote! {
-        if let edgedb_protocol::value::Value::Object { shape, fields: f_fields } = self.#f_name.to_edge_value() {
-            f_fields.iter().for_each(|ff| fields.push(ff.clone()));
-            let mut i = shapes.len() - 1;
-            shape.elements.iter().for_each(|e| {
-                let n = e.name.clone();
-                let c = e.cardinality.clone();
+        if let Some(q) = self.#f_name.else_query() {
+             if let edgedb_protocol::value::Value::Object { shape, fields: f_fields } = q.to_edge_value() {
+                f_fields.iter().for_each(|ff| fields.push(ff.clone()));
+                let mut i = shapes.len() - 1;
+                shape.elements.iter().for_each(|e| {
+                    let n = e.name.clone();
+                    let c = e.cardinality.clone();
 
-                let el = edgedb_protocol::descriptors::ShapeElement {
-                    flag_implicit: false,
-                    flag_link_property: false,
-                    flag_link: false,
-                    cardinality: c,
-                    name: n,
-                    type_pos: edgedb_protocol::descriptors::TypePos(i as u16)
-                };
+                    let el = edgedb_protocol::descriptors::ShapeElement {
+                        flag_implicit: false,
+                        flag_link_property: false,
+                        flag_link: false,
+                        cardinality: c,
+                        name: n,
+                        type_pos: edgedb_protocol::descriptors::TypePos(i as u16)
+                    };
 
-                if (element_names.contains(&e.name.clone())) {
-                    panic!("Duplicate query parameter name found : {}", e.name.clone())
-                } else {
-                    element_names.push(e.name.clone());
-                }
+                    if (element_names.contains(&e.name.clone())) {
+                        panic!("Duplicate query parameter name found : {}", e.name.clone())
+                    } else {
+                        element_names.push(e.name.clone());
+                    }
 
-                shapes.push(el);
-            });
+                    shapes.push(el);
+                });
+            }
         }
     }
 }

@@ -3,11 +3,11 @@ use crate::helpers::attributes::EdgeDbType;
 use crate::utils::{field_utils::*, type_utils::is_type_name};
 use proc_macro::TokenStream;
 
-use quote::{quote, ToTokens};
+use quote::quote;
 use syn::DeriveInput;
-use crate::utils::attributes_utils::{get_attr_named, has_attribute};
+use crate::utils::attributes_utils::has_attribute;
 
-use crate::utils::derive_utils::{edge_value_quote, format_scalar, shape_element_quote, start, StartResult, to_edge_ql_value_impl_empty_quote, check_and_duplicate_value, check_and_duplicate_value_2};
+use crate::utils::derive_utils::{edge_value_quote, format_scalar, shape_element_quote, start, StartResult, to_edge_ql_value_impl_empty_quote, check_and_duplicate_unless_conflict_value};
 use crate::utils::type_utils::get_type;
 
 pub fn do_derive(ast_struct: &DeriveInput) -> syn::Result<TokenStream> {
@@ -19,7 +19,7 @@ pub fn do_derive(ast_struct: &DeriveInput) -> syn::Result<TokenStream> {
         query_result,
         result_field,
         filtered_fields,
-        conflict_else_field,
+        unless_conflict_field,
         ..
     } = start(&ast_struct)?;
 
@@ -35,47 +35,35 @@ pub fn do_derive(ast_struct: &DeriveInput) -> syn::Result<TokenStream> {
         if has_result_type {
             query_str = format!("{} ( {}", SELECT, query_str)
         }
+
         let filtered_fields = filtered_fields.iter();
 
-        let conflicts_on_fields = filtered_fields.clone()
-            .filter(|f| has_attribute(f, CONFLICT_ON))
+        let query_fields_name = filtered_fields.clone()
             .map(|f| get_field_ident(f).to_string())
-            .collect::<Vec<String>>();
+            .collect::<Vec<String>>().join(",");
 
-        let has_conflict = conflicts_on_fields.len() > 0;
 
-        let conflict_statment = conflicts_on_fields
-            .iter()
-            .map(|s| format!(".{}", s))
-            .collect::<Vec<String>>().join(", ");
+        let (const_check_impl_conflict, unless_conflict_stmt_quote, unless_conflict_else_query_value)= if let Some(ucf) =  unless_conflict_field {
+            let ucf_name = get_field_ident(&ucf);
 
-        let conflict_prefix = "unless conflict on";
+            let ucf_ty = ucf.ty;
 
-        let conflict = if conflicts_on_fields.len() == 1 {
-            format!(" {} {} ", conflict_prefix, conflict_statment)
+            let c = quote! {
+                const _: () = {
+                    use std::marker::PhantomData;
+                    struct ImplConflict<R: edgedb_query::models::edge_query::ToEdgeQuery + Clone,T: edgedb_query::queries::conflict::Conflict<R>>((PhantomData<T>, Option<R>));
+                    let _ = ImplConflict((PhantomData::<#ucf_ty>, None));
+                };
+            };
+
+
+            (c, quote! {
+                let qn = #query_fields_name.split(",").collect::<Vec<&str>>();
+                let c_q =  edgedb_query::queries::conflict::parse_conflict(&self.#ucf_name, qn);
+                query.push_str(c_q.as_str());
+            }, check_and_duplicate_unless_conflict_value(ucf_name.clone()))
         } else {
-            format!(" {} ( {} )", conflict_prefix, conflict_statment)
-        };
-
-        let (add_else_clause, else_value) = if let Some(f) = conflict_else_field {
-            if !has_conflict {
-                let att = get_attr_named(&f, CONFLICT_ELSE).unwrap();
-                return Err(syn::Error::new_spanned(
-                    att.into_token_stream(),
-                    "#[conflict_on] attribute is missing"
-                ));
-            }
-            let cf = get_field_ident(&f);
-
-            let qv = check_and_duplicate_value_2(cf.clone());
-            (quote! {
-                query.push_str(" else ( ");
-                let es = self.#cf.to_edgeql();
-                query.push_str(es.as_str());
-                query.push_str(" )");
-            }, qv )
-        } else {
-           ( quote!(), quote!())
+            (quote!(), quote!(), quote!())
         };
 
         let add_result_quote = quote! {
@@ -156,6 +144,8 @@ pub fn do_derive(ast_struct: &DeriveInput) -> syn::Result<TokenStream> {
 
         quote! {
 
+            #const_check_impl_conflict
+
             impl edgedb_query::ToEdgeQl for #struct_name {
                 fn to_edgeql(&self) -> String {
                     let mut query = #query_str.to_owned();
@@ -166,11 +156,7 @@ pub fn do_derive(ast_struct: &DeriveInput) -> syn::Result<TokenStream> {
 
                     query.push_str("}");
 
-                    if #has_conflict {
-                        query.push_str(#conflict);
-                    }
-
-                    #add_else_clause;
+                    #unless_conflict_stmt_quote;
 
                     #add_result_quote;
 
@@ -193,7 +179,7 @@ pub fn do_derive(ast_struct: &DeriveInput) -> syn::Result<TokenStream> {
 
                     #(#field_values)*
 
-                    #else_value;
+                    #unless_conflict_else_query_value;
 
                     let shape_slices: &[edgedb_protocol::descriptors::ShapeElement] = shapes.as_slice();
 
