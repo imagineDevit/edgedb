@@ -1,4 +1,4 @@
-use crate::constants::{SCALAR_TYPE, INSERT, OPTION, SELECT, VEC, NESTED, EDGEQL, CONFLICT_ON, CONFLICT_ELSE};
+use crate::constants::{SCALAR_TYPE, INSERT, OPTION, SELECT, VEC, NESTED, EDGEQL};
 use crate::helpers::attributes::EdgeDbType;
 use crate::utils::{field_utils::*, type_utils::is_type_name};
 use proc_macro::TokenStream;

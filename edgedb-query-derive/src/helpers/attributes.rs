@@ -269,9 +269,6 @@ impl EdgeDbMeta {
 }
 
 impl QueryResult {
-    pub fn has_result_type(&self) -> bool {
-        self.result_type.is_some()
-    }
 
     pub fn from_field(field: &Field) -> syn::Result<Self> {
         let mut map: HashMap<&str, Option<String>> = HashMap::new();

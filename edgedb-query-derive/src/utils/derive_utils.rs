@@ -2,7 +2,7 @@ use proc_macro2::TokenStream;
 use quote::{quote, ToTokens};
 use syn::{DeriveInput, Field};
 
-use crate::constants::{CONFLICT_ELSE, OPTION, RESULT, SCALAR_TYPE, TUPLE, VEC};
+use crate::constants::{OPTION, RESULT, SCALAR_TYPE, TUPLE, VEC};
 use crate::helpers::attributes::{EdgeDbMeta, Filter, Filters, Options, QueryResult, UnlessConflict};
 use crate::utils::attributes_utils::has_attribute;
 use crate::utils::field_utils::{get_field_ident, get_struct_fields};
