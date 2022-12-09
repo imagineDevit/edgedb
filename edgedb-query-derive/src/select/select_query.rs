@@ -1,15 +1,19 @@
-use crate::constants::{FILTER, OPTION, SELECT};
+use crate::constants::{FILTER, FILTERS, OPTION, SELECT};
 use crate::utils::derive_utils::{edge_value_quote, filter_quote, shape_element_quote, start, StartResult, to_edge_ql_value_impl_empty_quote};
 use crate::utils::field_utils::get_field_ident;
 use crate::utils::type_utils::is_type_name;
 use proc_macro::TokenStream;
 use quote::{quote, ToTokens};
 use syn::DeriveInput;
+use crate::utils::attributes_utils::get_attr_named;
 
 
 pub fn do_derive(ast_struct: &DeriveInput) -> syn::Result<TokenStream> {
+
+    /* Get the struct name  */
     let struct_name = &ast_struct.ident;
 
+    /* Run start function  */
     let StartResult {
         table_name, 
         query_result, 
@@ -19,15 +23,24 @@ pub fn do_derive(ast_struct: &DeriveInput) -> syn::Result<TokenStream> {
         .. 
     } = start(&ast_struct)?;
 
+    /* Get result type name */
     let result_type_name = query_result.clone().to_ident(struct_name.span());
 
+    /*  Check if  #[options] attribute is declared on a struct field */
     let has_options_attribute = options_field.is_some();
 
+    /* Create Iter<> from the filtered fields */
     let filtered_fields = filtered_fields.iter();
 
+    /* Get filtered fields number */
     let nb_fields: u8 = filtered_fields.len() as u8;
 
-
+    /*
+        if #[options] attribute is found:
+             parse options and add the parsing result to the query
+        else
+             add result statement to the query
+    */
     let (complete_assignment, const_check_impl_to_select_option) = if has_options_attribute {
         let opt_f = options_field.unwrap();
         let opt_f_ident = get_field_ident(&opt_f);
@@ -68,17 +81,19 @@ pub fn do_derive(ast_struct: &DeriveInput) -> syn::Result<TokenStream> {
         )
     };
 
+    /* Initialize the query string */
     let query_str = format!("{} {} ", SELECT, table_name);
+
 
     let mut index: usize = 0;
     let mut i: i16 = -1;
 
     let to_edgeql_value_impls=  if let Some(field) = filters_field {
         if nb_fields > 0 {
-
+            let att = get_attr_named(&field, FILTERS).unwrap();
             return Err(
                 syn::Error::new_spanned(
-                    field.attrs[0].clone().into_token_stream(),
+                    att.into_token_stream(),
                     "#[filters] and #[filter] attributes cannot coexist"
                 )
             );
@@ -156,6 +171,8 @@ pub fn do_derive(ast_struct: &DeriveInput) -> syn::Result<TokenStream> {
                         let mut fields: Vec<Option<edgedb_protocol::value::Value>> = vec![];
 
                         let mut shapes:  Vec<edgedb_protocol::descriptors::ShapeElement> = vec![];
+
+                        let mut element_names: Vec<String> = vec![];
 
                         #(#shapes)*
 

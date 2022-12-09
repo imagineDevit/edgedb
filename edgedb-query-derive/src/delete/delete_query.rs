@@ -2,7 +2,8 @@
 use proc_macro::TokenStream;
 use quote::{quote, ToTokens};
 use syn::DeriveInput;
-use crate::constants::{DELETE, FILTER};
+use crate::constants::{DELETE, FILTER, FILTERS};
+use crate::utils::attributes_utils::get_attr_named;
 use crate::utils::derive_utils::{edge_value_quote, filter_quote, shape_element_quote, start, StartResult, to_edge_ql_value_impl_empty_quote};
 use crate::utils::field_utils::get_field_ident;
 
@@ -29,8 +30,9 @@ pub fn do_derive(ast_struct: &DeriveInput) -> syn::Result<TokenStream> {
     let to_edgeql_value_impls = if let Some(field) = filters_field {
 
         if nb_fields > 0 {
+            let att = get_attr_named(&field, FILTERS).unwrap();
             return Err(syn::Error::new_spanned(
-                field.attrs[0].clone().into_token_stream(),
+                att.into_token_stream(),
                 "#[filters] and #[filter] attributes cannot coexist"
             ));
         }
@@ -101,6 +103,8 @@ pub fn do_derive(ast_struct: &DeriveInput) -> syn::Result<TokenStream> {
                         let mut fields: Vec<Option<edgedb_protocol::value::Value>> = vec![];
 
                         let mut shapes:  Vec<edgedb_protocol::descriptors::ShapeElement> = vec![];
+
+                        let mut element_names: Vec<String> = vec![];
 
                         #(#shapes)*
 

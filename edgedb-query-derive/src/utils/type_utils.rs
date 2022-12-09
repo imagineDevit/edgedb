@@ -1,4 +1,5 @@
-use syn::{Type, TypeTuple};
+use syn::{Field, Type, TypeTuple};
+use crate::constants::{OPTION, VEC};
 
 /// Check if a type name is equal to the  given name
 ///
@@ -55,5 +56,18 @@ pub fn get_wrapped_type(ty: &Type, wrapper: &str) -> Type {
         }
     } else {
         panic!("Only Path types are supported for wrapped type field")
+    }
+}
+
+
+pub fn get_type(field: &Field, ty: &Type) -> Type {
+    if is_type_name(&field.ty, OPTION) {
+        get_wrapped_type(ty, OPTION)
+    } else {
+        if is_type_name(&field.ty, VEC) {
+            get_wrapped_type(ty, VEC)
+        } else {
+            ty.clone()
+        }
     }
 }

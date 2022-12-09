@@ -53,3 +53,5 @@ pub const ASSIGNMENT: &str = "assignment";
 pub const NESTED: &str = "nested_query";
 
 pub const LIMIT_1: &str = " limit 1";
+
+pub const UNLESS_CONFLICT: &str = "unless_conflict";

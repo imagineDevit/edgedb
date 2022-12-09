@@ -7,8 +7,8 @@ use quote::quote;
 use syn::DeriveInput;
 use crate::utils::attributes_utils::has_attribute;
 
-use crate::utils::derive_utils::{edge_value_quote, format_scalar, shape_element_quote, start, StartResult, to_edge_ql_value_impl_empty_quote};
-use crate::utils::type_utils::get_wrapped_type;
+use crate::utils::derive_utils::{edge_value_quote, format_scalar, shape_element_quote, start, StartResult, to_edge_ql_value_impl_empty_quote, check_and_duplicate_unless_conflict_value};
+use crate::utils::type_utils::get_type;
 
 pub fn do_derive(ast_struct: &DeriveInput) -> syn::Result<TokenStream> {
     // Name of struct
@@ -19,6 +19,7 @@ pub fn do_derive(ast_struct: &DeriveInput) -> syn::Result<TokenStream> {
         query_result,
         result_field,
         filtered_fields,
+        unless_conflict_field,
         ..
     } = start(&ast_struct)?;
 
@@ -35,17 +36,46 @@ pub fn do_derive(ast_struct: &DeriveInput) -> syn::Result<TokenStream> {
             query_str = format!("{} ( {}", SELECT, query_str)
         }
 
-        let add_result_quote = quote! {
-        if #has_result_type {
-            let shape = #result_type_name::shape();
-            query.push_str(")");
-            query.push_str(shape.as_str());
-        }
-    };
         let filtered_fields = filtered_fields.iter();
 
-        let assign = filtered_fields.clone().map(|field| {
+        let query_fields_name = filtered_fields.clone()
+            .map(|f| get_field_ident(f).to_string())
+            .collect::<Vec<String>>().join(",");
 
+
+        let (const_check_impl_conflict, unless_conflict_stmt_quote, unless_conflict_else_query_value)= if let Some(ucf) =  unless_conflict_field {
+            let ucf_name = get_field_ident(&ucf);
+
+            let ucf_ty = ucf.ty;
+
+            let c = quote! {
+                const _: () = {
+                    use std::marker::PhantomData;
+                    struct ImplConflict<R: edgedb_query::models::edge_query::ToEdgeQuery + Clone,T: edgedb_query::queries::conflict::Conflict<R>>((PhantomData<T>, Option<R>));
+                    let _ = ImplConflict((PhantomData::<#ucf_ty>, None));
+                };
+            };
+
+
+            (c, quote! {
+                let qn = #query_fields_name.split(",").collect::<Vec<&str>>();
+                let c_q =  edgedb_query::queries::conflict::parse_conflict(&self.#ucf_name, qn);
+                query.push_str(c_q.as_str());
+            }, check_and_duplicate_unless_conflict_value(ucf_name.clone()))
+        } else {
+            (quote!(), quote!(), quote!())
+        };
+
+        let add_result_quote = quote! {
+            if #has_result_type {
+                let shape = #result_type_name::shape();
+                query.push_str(")");
+                query.push_str(shape.as_str());
+            }
+        };
+
+
+        let assign = filtered_fields.clone().map(|field| {
             let field_is_option = is_type_name(&field.ty, OPTION);
 
             let field_is_vec = is_type_name(&field.ty, VEC);
@@ -54,20 +84,12 @@ pub fn do_derive(ast_struct: &DeriveInput) -> syn::Result<TokenStream> {
 
             let f_ty = &field.ty;
 
-            let tty = if field_is_option {
-                get_wrapped_type(f_ty, OPTION)
-            } else {
-                if field_is_vec {
-                    get_wrapped_type(f_ty, VEC)
-                } else {
-                    f_ty.clone()
-                }
-            };
+            let tty = get_type(field, f_ty);
 
             let is_nested = has_attribute(field, NESTED);
 
-            let assignment =  if is_nested {
-                    format!("{} := ({}), ", f_name.to_string(), EDGEQL)
+            let assignment = if is_nested {
+                format!("{} := ({}), ", f_name.to_string(), EDGEQL)
             } else {
                 EdgeDbType::build_field_assignment(field)?
             };
@@ -88,8 +110,8 @@ pub fn do_derive(ast_struct: &DeriveInput) -> syn::Result<TokenStream> {
                         query.push_str(p.as_str());
                     }
                 })
-            } else if  field_is_vec {
-               Ok(quote! {
+            } else if field_is_vec {
+                Ok(quote! {
                     let mut scalar: String = format!("<array{}>", #tty::scalar());
                     #format_scalar;
                     let p = #assignment.to_owned()
@@ -107,7 +129,7 @@ pub fn do_derive(ast_struct: &DeriveInput) -> syn::Result<TokenStream> {
                     query.push_str(p.as_str());
                 })
             }
-        }).map(|r: syn::Result<_>| r.unwrap_or_else(|e|e.to_compile_error().into()));
+        }).map(|r: syn::Result<_>| r.unwrap_or_else(|e| e.to_compile_error().into()));
 
         let mut i: i16 = -1;
 
@@ -119,7 +141,10 @@ pub fn do_derive(ast_struct: &DeriveInput) -> syn::Result<TokenStream> {
             edge_value_quote(field)
         });
 
+
         quote! {
+
+            #const_check_impl_conflict
 
             impl edgedb_query::ToEdgeQl for #struct_name {
                 fn to_edgeql(&self) -> String {
@@ -130,6 +155,8 @@ pub fn do_derive(ast_struct: &DeriveInput) -> syn::Result<TokenStream> {
                     #(#assign)*
 
                     query.push_str("}");
+
+                    #unless_conflict_stmt_quote;
 
                     #add_result_quote;
 
@@ -146,11 +173,15 @@ pub fn do_derive(ast_struct: &DeriveInput) -> syn::Result<TokenStream> {
 
                     let mut shapes:  Vec<edgedb_protocol::descriptors::ShapeElement> = vec![];
 
+                    let mut element_names: Vec<String> = vec![];
+
                     #(#shapes)*
 
-                    let shape_slices: &[edgedb_protocol::descriptors::ShapeElement] = shapes.as_slice();
-
                     #(#field_values)*
+
+                    #unless_conflict_else_query_value;
+
+                    let shape_slices: &[edgedb_protocol::descriptors::ShapeElement] = shapes.as_slice();
 
                     edgedb_protocol::value::Value::Object {
                         shape: edgedb_protocol::codec::ObjectShape::from(shape_slices),
@@ -168,7 +199,7 @@ pub fn do_derive(ast_struct: &DeriveInput) -> syn::Result<TokenStream> {
 
         #to_edgeql_value_impls
 
-         impl edgedb_query::ToEdgeScalar for #struct_name {
+        impl edgedb_query::ToEdgeScalar for #struct_name {
             fn scalar() -> String {
                 String::default()
             }
