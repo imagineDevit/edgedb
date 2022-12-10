@@ -2,7 +2,7 @@
 name = "edgedb-query"
 description = "Crate that provide a bunch of traits and structs used by edgedb-query-derive crate"
 repository = "https://github.com/imagineDevit/edgedb/tree/main/edgedb-query"
-version = "0.1.4"
+version = "0.1.5"
 edition = "2021"
 authors  = ["Henri Joel Sedjame <sedhjodev@gmail.com>"]
 license = "MIT"

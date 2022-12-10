@@ -2,7 +2,7 @@
 #[cfg(test)]
 mod conflict_test {
     use edgedb_protocol::value::Value;
-    use edgedb_query::queries::conflict::{Conflict, InsertConflict, parse_conflict};
+    use edgedb_query::queries::conflict::{Conflict, UnlessConflict, UnlessConflictElse, parse_conflict};
     use edgedb_query::{ToEdgeQl, ToEdgeQuery, ToEdgeValue};
 
     #[derive(Clone)]
@@ -27,7 +27,7 @@ mod conflict_test {
     #[test]
     fn parse_conflict_with_on_and_else_fn() {
 
-        let insert_conflict = InsertConflict {
+        let insert_conflict = UnlessConflictElse {
             fields: Some(vec!["name", "age"]),
             else_query: Some(FindUser{}),
         };
@@ -40,7 +40,7 @@ mod conflict_test {
     #[test]
     fn parse_conflict_with_one_on_and_else_fn() {
 
-        let insert_conflict = InsertConflict {
+        let insert_conflict = UnlessConflictElse {
             fields: Some(vec!["name"]),
             else_query: Some(FindUser{}),
         };
@@ -53,9 +53,8 @@ mod conflict_test {
     #[test]
     fn parse_conflict_with_on() {
 
-        let insert_conflict: InsertConflict<FindUser> = InsertConflict {
+        let insert_conflict = UnlessConflict {
             fields: Some(vec!["name", "age"]),
-            else_query: None,
         };
 
         let stmt = parse_conflict(&insert_conflict, vec!["name", "age", "surname"]);
@@ -67,7 +66,7 @@ mod conflict_test {
     #[test]
     fn parse_conflict_with_else_fn() {
 
-        let insert_conflict = InsertConflict {
+        let insert_conflict = UnlessConflictElse {
             fields: None,
             else_query: Some(FindUser{}),
         };
@@ -79,7 +78,7 @@ mod conflict_test {
     #[test]
     fn parse_conflict_with_no_on_no_else_fn() {
 
-        let insert_conflict: InsertConflict<FindUser> = InsertConflict {
+        let insert_conflict: UnlessConflictElse<FindUser> = UnlessConflictElse {
             fields: None,
             else_query: None,
         };

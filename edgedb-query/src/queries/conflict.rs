@@ -1,4 +1,5 @@
-use crate::ToEdgeQuery;
+use edgedb_protocol::value::Value;
+use crate::{ToEdgeQl, ToEdgeQuery, ToEdgeValue};
 
 
 const UNLESS_CONFLICT: &'static str = " unless conflict ";
@@ -15,12 +16,12 @@ pub trait Conflict<T: ToEdgeQuery + Clone> {
 }
 
 /// InsertConflict struct
-pub struct InsertConflict<T: ToEdgeQuery> {
+pub struct UnlessConflictElse<T: ToEdgeQuery> {
     pub fields: Option<Vec<&'static str>>,
     pub else_query: Option<T>
 }
 
-impl<T: ToEdgeQuery + Clone> Conflict<T> for InsertConflict<T> {
+impl<T: ToEdgeQuery + Clone> Conflict<T> for UnlessConflictElse<T> {
 
     fn fields(&self) -> Option<Vec<&str>> {
         self.fields.clone()
@@ -32,13 +33,47 @@ impl<T: ToEdgeQuery + Clone> Conflict<T> for InsertConflict<T> {
 }
 
 
+/// DefaultInsertConflict struct
+pub struct UnlessConflict {
+    pub fields: Option<Vec<&'static str>>,
+}
+
+#[derive(Clone)]
+pub struct EmptyQuery;
+
+impl ToEdgeQl for EmptyQuery {
+    fn to_edgeql(&self) -> String {
+        String::default()
+    }
+}
+
+impl ToEdgeValue for EmptyQuery {
+    fn to_edge_value(&self) -> Value {
+        Value::Nothing
+    }
+}
+
+impl ToEdgeQuery for EmptyQuery{}
+
+impl Conflict<EmptyQuery> for UnlessConflict {
+
+    fn fields(&self) -> Option<Vec<&str>> {
+        self.fields.clone()
+    }
+
+    fn else_query(&self) -> Option<EmptyQuery> {
+        None
+    }
+}
+
+
 /// parse a conflict into a string statement
 ///
 /// ## Examples
 ///
 /// ```
 ///use edgedb_protocol::value::Value;
-///use edgedb_query::queries::conflict::{InsertConflict, Conflict, parse_conflict};
+///use edgedb_query::queries::conflict::{UnlessConflictElse, Conflict, parse_conflict};
 ///use edgedb_query::{ToEdgeQl, ToEdgeQuery, ToEdgeValue};
 ///
 ///#[derive(Clone)]
@@ -59,7 +94,7 @@ impl<T: ToEdgeQuery + Clone> Conflict<T> for InsertConflict<T> {
 ///impl ToEdgeQuery for FindUser  {}
 ///
 ///fn main() {
-///   let insert_conflict = InsertConflict {
+///   let insert_conflict = UnlessConflictElse {
 ///       fields: Some(vec!["name", "age"]),
 ///       else_query: Some(FindUser{}),
 ///   };
@@ -102,3 +137,4 @@ pub fn parse_conflict<T: ToEdgeQuery + Clone, R: Conflict<T>>(conflict: &R, quer
 
     stmt
 }
+
