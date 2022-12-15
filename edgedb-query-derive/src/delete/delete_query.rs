@@ -64,10 +64,11 @@ pub fn do_derive(ast_struct: &DeriveInput) -> syn::Result<TokenStream> {
         }
 
     } else {
-        let mut filter_q = String::default();
+
 
         if nb_fields > 0 {
-            filter_q = format!(" {}", FILTER);
+
+            let filter_q = format!(" {}", FILTER);
 
             let filtered_fields = filtered_fields.iter();
 

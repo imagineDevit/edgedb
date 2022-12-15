@@ -2,7 +2,7 @@
 #[cfg(test)]
 mod result {
     use edgedb_query_derive::{EdgedbResult};
-    use edgedb_query::{ToEdgeShape, ToEdgeScalar};
+    use edgedb_query::{ToEdgeShape, ToEdgeScalar, EdgeResult};
 
     #[derive(EdgedbResult)]
     pub struct Identity {
@@ -52,21 +52,26 @@ mod result {
     #[test]
     pub fn test_shape() {
         let shape = Identity::shape();
-
-        assert_eq!(shape, "{name,age}")
+        let fields = Identity::returning_fields();
+        assert_eq!(shape, "{name,age}");
+        assert_eq!(fields, vec!["name", "age"]);
     }
 
     #[test]
     pub fn test_nested_shape() {
         let shape = User::shape();
+        let fields = User::returning_fields();
 
-        assert_eq!(shape, "{login,identity : {name,age}}")
+        assert_eq!(shape, "{login,identity : {name,age}}");
+        assert_eq!(fields, vec!["login", "identity"]);
     }
 
     #[test]
     pub fn test_nested_query_shape_vec() {
         let shape = UserWithFriends::shape();
-        assert_eq!(shape, "{login,identity : {name,age},friends := (select users::User.<friend[is users::Friend]{surname})}")
+        let fields = UserWithFriends::returning_fields();
+        assert_eq!(shape, "{login,identity : {name,age},friends := (select users::User.<friend[is users::Friend]{surname})}");
+        assert_eq!(fields, vec!["login", "identity", "friends"]);
     }
 
     #[test]

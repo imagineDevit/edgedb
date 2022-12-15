@@ -1,9 +1,6 @@
 use crate::helpers::attributes::EdgeEnumValue;
 use crate::utils::field_utils::get_enum_variant;
 use proc_macro::TokenStream;
-use std::f64::consts::E;
-use std::sync::{Arc, Mutex};
-use proc_macro2::Span;
 
 use quote::quote;
 use syn::DeriveInput;

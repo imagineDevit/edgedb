@@ -1,3 +1,4 @@
+#![allow(unused)]
 use syn::{Field, Type, TypeTuple};
 use crate::constants::{OPTION, VEC};
 
