@@ -2,7 +2,7 @@
 #[cfg(test)]
 mod conflict_test {
     use edgedb_protocol::value::Value;
-    use edgedb_query::queries::conflict::{Conflict, UnlessConflict, UnlessConflictElse, parse_conflict};
+    use edgedb_query::queries::conflict::{UnlessConflict, UnlessConflictElse, parse_conflict};
     use edgedb_query::{ToEdgeQl, ToEdgeQuery, ToEdgeValue};
 
     #[derive(Clone)]

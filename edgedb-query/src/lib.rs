@@ -62,6 +62,10 @@ pub trait ToEdgeValue {
     fn to_edge_value(&self) -> Value;
 }
 
+pub trait EdgeResult {
+    fn returning_fields() -> Vec<&'static str>;
+}
+
 _to_edgeql_and_to_edge_scalar_impls!(
     String => { scalar: "<str>" },
     i8 => { scalar: "<int16>" },
