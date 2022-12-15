@@ -13,7 +13,7 @@ mod select_tests {
             page_options: None
         };
 
-        let stmt = parse_options(&options);
+        let stmt = parse_options(&options, vec![]);
 
         assert_eq!(String::default(), stmt);
     }
@@ -31,7 +31,7 @@ mod select_tests {
             page_options: None
         };
 
-        let stmt = parse_options(&options);
+        let stmt = parse_options(&options, vec!["name"]);
 
         assert_eq!(String::from(" order by default::User.name asc"), stmt);
     }
@@ -49,7 +49,7 @@ mod select_tests {
             page_options: None
         };
 
-        let stmt = parse_options(&options);
+        let stmt = parse_options(&options, vec!["name"]);
 
         assert_eq!(String::from(" order by default::User.name desc"), stmt);
     }
@@ -67,7 +67,7 @@ mod select_tests {
             page_options: None
         };
 
-        let stmt = parse_options(&options);
+        let stmt = parse_options(&options, vec!["name"]);
 
         assert_eq!(String::from(" order by users::User.name desc"), stmt);
     }
@@ -88,7 +88,7 @@ mod select_tests {
             })
         };
 
-        let stmt = parse_options(&options);
+        let stmt = parse_options(&options, vec!["name"]);
 
         assert_eq!(String::from(" order by users::User.name desc limit 10"), stmt);
     }
@@ -109,7 +109,7 @@ mod select_tests {
             })
         };
 
-        let stmt = parse_options(&options);
+        let stmt = parse_options(&options, vec!["name"]);
 
         assert_eq!(String::from(" order by users::User.name desc limit 10 offset 1"), stmt);
     }

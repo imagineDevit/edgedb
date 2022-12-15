@@ -3,7 +3,7 @@ mod insert {
     use edgedb_protocol::codec::EnumValue;
     use edgedb_protocol::value::Value;
     use edgedb_query::{models::query_result::BasicResult, ToEdgeShape, *};
-    use edgedb_query::queries::conflict::{InsertConflict, Conflict};
+    use edgedb_query::queries::conflict::{UnlessConflictElse, Conflict};
     use edgedb_query_derive::{EdgedbEnum, EdgedbResult, InsertQuery, SelectQuery};
 
     #[derive(InsertQuery)]
@@ -41,7 +41,7 @@ mod insert {
         pub wallet: Wallet,
 
         #[unless_conflict]
-        pub find_user: InsertConflict<FindUser>
+        pub find_user: UnlessConflictElse<FindUser>
     }
 
     #[derive(Clone, SelectQuery)]
@@ -93,7 +93,7 @@ mod insert {
                 __meta__: (),
                 money: 0,
             },
-            find_user: InsertConflict {
+            find_user: UnlessConflictElse {
                 fields: Some(vec!["name", "surname"]),
                 else_query: Some(FindUser{
                     __meta__: (),

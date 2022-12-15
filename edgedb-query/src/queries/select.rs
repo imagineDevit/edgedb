@@ -45,12 +45,12 @@ pub trait Options {
 ///              offset: None
 ///          })
 ///      };
-///  let stmt = parse_options(&options);
+///  let stmt = parse_options(&options, vec!["name"]);
 ///
 ///  assert_eq!(" order by users::User.name desc limit 10".to_owned(), stmt)
 ///
 /// ```
-pub fn parse_options<T: Options>(options: &T) -> String {
+pub fn parse_options<T: Options>(options: &T, result_fields: Vec<&str>) -> String {
     let table_name = options
         .module()
         .or_else(|| Some(DEFAULT))
@@ -64,6 +64,10 @@ pub fn parse_options<T: Options>(options: &T) -> String {
                     order_direction,
                 }) = options.order_options().clone()
     {
+        if !result_fields.contains(&order_by.as_str()) {
+            panic!("'order by' value must be one of {:#?}", result_fields)
+        }
+
         stmt.push_str(format!(" {} {}.{}", ORDER_BY, table_name, order_by).as_str());
 
         if let Some(OrderDir::Desc) = order_direction {

@@ -59,13 +59,13 @@ pub fn do_derive(ast_struct: &DeriveInput) -> syn::Result<TokenStream> {
             if is_option {
                 quote! {
                     if let Some(v) = self.#opt_f_ident {
-                        let c_q = edgedb_query::queries::select::parse_options(&v);
+                        let c_q = edgedb_query::queries::select::parse_options(&v, #result_type_name::returning_fields());
                         query.push_str(c_q.as_str());
                     }
                 }
             } else {
                 quote! {
-                    let c_q =  edgedb_query::queries::select::parse_options(&self.#opt_f_ident);
+                    let c_q =  edgedb_query::queries::select::parse_options(&self.#opt_f_ident, #result_type_name::returning_fields());
                     query.push_str(c_q.as_str());
                 }
             },

@@ -3,11 +3,11 @@ use proc_macro2::Span;
 use quote::quote;
 use syn::DeriveInput;
 use crate::constants::{EDGEQL, NESTED, OPTION, SCALAR_TYPE, VEC};
-use crate::helpers::attributes::{EdgeDbType, SetField};
+use crate::helpers::attributes::SetField;
 use crate::utils::attributes_utils::has_attribute;
 use crate::utils::derive_utils::{edge_value_quote, format_scalar, shape_element_quote};
 use crate::utils::field_utils::{get_field_ident, get_struct_fields};
-use crate::utils::type_utils::{get_type, get_wrapped_type, is_type_name};
+use crate::utils::type_utils::{get_type, is_type_name};
 
 pub fn do_derive(ast_struct: &DeriveInput) -> syn::Result<TokenStream> {
 

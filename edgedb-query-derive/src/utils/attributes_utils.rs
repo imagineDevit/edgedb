@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use crate::utils::path_utils::path_ident_equals;
 
 use syn::{Attribute, Field, MetaNameValue, NestedMeta};

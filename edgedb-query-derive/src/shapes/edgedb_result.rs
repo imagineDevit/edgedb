@@ -17,8 +17,9 @@ pub fn do_derive(ast_struct: &DeriveInput) -> syn::Result<TokenStream> {
     // Struct fields
     let fields = get_struct_fields(ast_struct.clone())?;
 
-    let fields_names = fields
-        .iter()
+    let fields_iter = fields.iter();
+
+    let fields_shapes = fields_iter.clone()
         .map(|field| {
             let f_ident = get_field_ident(field);
             let f_ty = &field.ty;
@@ -67,12 +68,19 @@ pub fn do_derive(ast_struct: &DeriveInput) -> syn::Result<TokenStream> {
 
         }).map(|q: syn::Result<_>| q.unwrap_or_else(|e| e.to_compile_error().into()));
 
+    let add_field  = fields_iter.map(|field| {
+        let f_name = format!("{}", get_field_ident(field).to_string());
+        quote! {
+            fields.push(#f_name);
+        }
+    });
+
     let tokens = quote! {
 
         impl edgedb_query::ToEdgeShape for #struct_name {
             fn shape() -> String {
                 let mut query = "{".to_string();
-                #(#fields_names)*
+                #(#fields_shapes)*
                 query.pop();
                 query.push_str("}");
                 query
@@ -82,6 +90,14 @@ pub fn do_derive(ast_struct: &DeriveInput) -> syn::Result<TokenStream> {
         impl edgedb_query::ToEdgeScalar for #struct_name {
             fn scalar() -> String {
                 String::default()
+            }
+        }
+
+        impl edgedb_query::EdgeResult for #struct_name {
+            fn returning_fields() -> Vec<&'static str> {
+                let mut fields = vec![];
+                #(#add_field)*
+                fields
             }
         }
 
