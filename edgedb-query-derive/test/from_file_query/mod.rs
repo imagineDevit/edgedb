@@ -13,7 +13,6 @@ pub mod from_file {
         #[param("user_name")]
         pub name: String,
         pub age: i8,
-
     }
 
     #[test]
