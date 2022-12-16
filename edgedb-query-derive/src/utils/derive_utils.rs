@@ -221,7 +221,7 @@ pub fn shape_element_quote(field: &Field, index: &mut i16) -> TokenStream {
     if field_is_option {
         quote! {
             element_names.push(#f_name.clone().to_owned());
-            if let Some(v) = self.#f_ident.clone() {
+            if let Some(_) = self.#f_ident.clone() {
                 shapes.push(edgedb_protocol::descriptors::ShapeElement {
                     flag_implicit: false,
                     flag_link_property: false,

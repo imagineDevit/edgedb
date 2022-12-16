@@ -14,6 +14,7 @@ mod select;
 mod utils;
 mod delete;
 mod update;
+mod custom;
 
 /// InsertQuery creates implementations of following traits for the annotated struct :
 ///  * edgedb_query::ToEdgeValue
@@ -138,6 +139,70 @@ mod update;
 pub fn insert_query(input: TokenStream) -> TokenStream {
     let ast_struct = parse_macro_input!(input as DeriveInput);
     let result = insert::insert_query::do_derive(&ast_struct);
+    result.unwrap_or_else(|e| e.to_compile_error().into())
+}
+
+/// FromFileQuery creates implementations of following traits for the annotated struct :
+///  * edgedb_query::ToEdgeValue
+///  * edgedb_query::ToEdgeQl
+///  * edgedb_query::ToEdgeScalar
+///  * edgedb_query::models::edge_query::ToEdgeQuery
+///  * ToString
+///
+/// ## Usage
+/// ```rust
+///     use edgedb_protocol::value::Value;
+///     use edgedb_query_derive::FromFileQuery;
+///     use edgedb_query::{ToEdgeQl, ToEdgeQuery, EdgeQuery};
+///
+///
+///     #[derive(FromFileQuery)]
+///     pub struct AddUser {
+///         #[src("edgedb-query-derive/test/from_file_query/add_user.edgeql")]
+///         pub __meta__: (),
+///         #[param("user_name")]
+///         pub name: String,
+///         pub age: i8,
+///     }
+///
+///     fn main() {
+///         let user = AddUser {
+///             __meta__: (),
+///             name: "Joe".to_string(),
+///             age: 35
+///         };
+///
+///         let ql = include_str!("add_user.edgeql");
+///
+///         let query: EdgeQuery = user.to_edge_query();
+///
+///         assert_eq!(ql, query.query.as_str());
+///
+///         if let Some(Value::Object { shape, fields }) = query.args {
+///             crate::test_utils::check_shape(
+///                 &shape,
+///                 vec!["user_name", "age"],
+///             );
+///
+///             assert_eq!(
+///                 fields,
+///                 vec![
+///                     Some(Value::Str(user.name)),
+///                     Some(Value::Int16(user.age as i16)),
+///                 ]
+///             );
+///
+///         } else {
+///             assert!(false)
+///         }
+///     }
+///
+/// ```
+///
+#[proc_macro_derive(FromFileQuery, attributes(src, param))]
+pub fn from_file_query(input: TokenStream) -> TokenStream {
+    let ast_struct = parse_macro_input!(input as DeriveInput);
+    let result = custom::from_file_query::do_derive(&ast_struct);
     result.unwrap_or_else(|e| e.to_compile_error().into())
 }
 
