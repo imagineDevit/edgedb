@@ -1,9 +1,10 @@
-use crate::constants::{TARGET_COLUMN, CONJUNCTIVE, SCALAR_TYPE, META, ENUM, FILTER, INF_SIGN, LIMIT, MODULE, NAME, OPERATOR, OPTIONS, ORDER_BY, ORDER_DIR, RESULT, SELECT, SUP_SIGN, TABLE, BACKLINK, TYPE, VALUE, TARGET_TABLE, SOURCE_TABLE, FILTERS, COLUMN_NAME, WRAPPER_FN, FIELD, DEFAULT_VALUE, SCALAR, ASSIGNMENT, UNLESS_CONFLICT};
+use crate::constants::{TARGET_COLUMN, CONJUNCTIVE, SCALAR_TYPE, META, ENUM, FILTER, INF_SIGN, LIMIT, MODULE, NAME, OPERATOR, OPTIONS, ORDER_BY, ORDER_DIR, RESULT, SELECT, SUP_SIGN, TABLE, BACKLINK, TYPE, VALUE, TARGET_TABLE, SOURCE_TABLE, FILTERS, COLUMN_NAME, WRAPPER_FN, FIELD, DEFAULT_VALUE, SCALAR, ASSIGNMENT, UNLESS_CONFLICT, SRC, PARAM};
 use crate::utils::field_utils::get_field_ident;
 use crate::utils::path_utils::path_ident_equals;
 use crate::utils::type_utils::is_type_name;
 use proc_macro2::{Ident, Span};
 use std::collections::HashMap;
+use std::io::{Error, ErrorKind, Read};
 use quote::ToTokens;
 
 use syn::{Attribute, Field, Meta, MetaNameValue, NestedMeta, Type, Variant};
@@ -94,6 +95,14 @@ pub struct SetField {
 }
 
 pub struct UnlessConflict;
+
+pub struct SrcValue {
+    pub value: Option<String>
+}
+
+pub struct Param {
+    pub value: String
+}
 
 // impls
 macro_rules! explore_field_attrs (
@@ -217,6 +226,95 @@ macro_rules! explore_field_attrs (
             }
         }
         found
+    }}
+);
+
+macro_rules! attr_value_str(
+    (variant <- $variant: expr, attribute <- $att: expr) => {{
+        let variant: &Variant = $variant;
+        let att_name: &str = $att;
+
+        let mut exist = false;
+        let mut value = None;
+
+        for att in &variant.attrs {
+            match att.parse_meta() {
+                Ok(ref mut m) => match m {
+                    Meta::Path(path) => {
+                        if let Some((true, _)) = path_ident_equals(path, att_name) {
+                            exist = true;
+                        }
+                    }
+                    Meta::List(syn::MetaList {
+                                   ref path,
+                                   ref mut nested,
+                                   ..
+                               }) => {
+                        if let Some((true, _)) = path_ident_equals(path, att_name) {
+                            exist = true;
+                            for ne in nested.iter() {
+                                if let NestedMeta::Lit(syn::Lit::Str(s)) = ne {
+                                    let val = s.value();
+                                    if !val.is_empty() {
+                                        value = Some(val);
+                                    }
+                                    break;
+                                }
+                            }
+                            break;
+                        }
+                    }
+                    Meta::NameValue(_) => {}
+                },
+                Err(_) => {}
+            }
+        }
+
+        (exist, value)
+
+    }};
+    (field <- $field: expr, attribute <- $att: expr) => {{
+        let field: &Field = $field;
+        let att_name: &str = $att;
+
+        let mut exist = false;
+        let mut value = None;
+
+        for att in &field.attrs {
+            match att.parse_meta() {
+                Ok(ref mut m) => match m {
+                    Meta::Path(path) => {
+                        if let Some((true, _)) = path_ident_equals(path, att_name) {
+                            exist = true;
+                        }
+                    }
+                    Meta::List(syn::MetaList {
+                                   ref path,
+                                   ref mut nested,
+                                   ..
+                               }) => {
+                        if let Some((true, _)) = path_ident_equals(path, att_name) {
+                            exist = true;
+                            for ne in nested.iter() {
+                                if let NestedMeta::Lit(syn::Lit::Str(s)) = ne {
+                                    let val = s.value();
+                                    if !val.is_empty() {
+                                        value = Some(val);
+                                    }
+                                    break;
+                                }
+                            }
+                            break;
+                        }
+                    }
+                    Meta::NameValue(_) => {}
+                },
+                Err(_) => {}
+            }
+        }
+
+        (exist, value)
+
     }}
 );
 
@@ -489,42 +587,11 @@ impl EdgeDbType {
 
 impl EdgeEnumValue {
     pub fn from_variant(variant: &Variant) -> syn::Result<Self> {
-        let mut exist = false;
-        let mut value: Option<String> = None;
 
-        for att in &variant.attrs {
-            match att.parse_meta() {
-                Ok(ref mut m) => match m {
-                    Meta::Path(path) => {
-                        if let Some((true, _)) = path_ident_equals(path, VALUE) {
-                            exist = true;
-                        }
-                    }
-                    Meta::List(syn::MetaList {
-                                   ref path,
-                                   ref mut nested,
-                                   ..
-                               }) => {
-                        if let Some((true, _)) = path_ident_equals(path, VALUE) {
-                            exist = true;
-                            for ne in nested.iter() {
-                                if let NestedMeta::Lit(syn::Lit::Str(s)) = ne {
-                                    let val = s.value();
-                                    if !val.is_empty() {
-                                        value = Some(val);
-                                    }
-                                    break;
-                                }
-                            }
-                            break;
-                        }
-                    }
-                    Meta::NameValue(_) => {}
-                },
-                Err(_) => {}
-            }
-        }
-
+        let (exist, value) = attr_value_str!(
+            variant <- variant,
+            attribute <- VALUE
+        );
         if exist && value.is_none()  {
             return Err(
                 syn::Error::new_spanned(
@@ -1056,4 +1123,66 @@ impl UnlessConflict {
 
         if found { Some(Self {}) } else { None }
     }
+}
+
+impl SrcValue {
+
+    pub fn from_field(field: &Field) -> Self {
+        let (_, value) = attr_value_str!(
+            field <- field,
+            attribute <- SRC
+        );
+
+        Self{ value }
+    }
+
+    pub fn get_content(&self) -> Result<String, String> {
+        let mut s = String::default();
+
+        match std::env::current_dir() {
+            Ok(mut dir) => {
+                match self.value {
+                    None => Err(String::from("Source file in not specified")),
+                    Some(ref v) => {
+                        dir.push(v);
+                        let path = dir.as_path();
+                        match std::fs::File::open(path) {
+                            Ok(mut file) => {
+                                match file
+                                    .read_to_string(&mut s) {
+                                    Ok(_) => Ok(s),
+                                    Err(_) => Err(String::default())
+                                }
+                            }
+                            Err(e) => {
+                                if e.kind() == ErrorKind::NotFound {
+                                    Err(format!("Source file '{}' is not found", path.to_str().unwrap()))
+                                } else {
+                                    Err(e.to_string())
+                                }
+
+                            }
+                        }
+
+                    }
+                }
+            }
+            Err(_) => Err(String::from("Failed to retrieve current project dir "))
+        }
+    }
+
+}
+
+
+impl Param {
+
+    pub fn from_field(field: &Field) -> Self {
+        let (_, value) = attr_value_str!(
+            field <- field,
+            attribute <- PARAM
+        );
+
+        Self{ value : value.unwrap_or(get_field_ident(field).to_string()) }
+    }
+
 }
