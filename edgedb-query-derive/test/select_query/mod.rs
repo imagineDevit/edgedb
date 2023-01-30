@@ -2,14 +2,8 @@
 mod select {
     use edgedb_protocol::value::Value;
     use edgedb_query_derive::{SelectQuery, EdgedbResult, EdgedbFilters};
-    use edgedb_query::{
-        *,
-        ToEdgeShape,
-        models::edge_query::ToEdgeQuery
-
-    };
-    use edgedb_query::models::edge_query::EdgeQuery;
-    use edgedb_query::queries::{select::{OrderDir, OrderOptions, SelectOptions} , filter::Filter};
+    use edgedb_query::models::edge_query::{ToEdgeQuery, EdgeQuery};
+    use edgedb_query::queries::select::{OrderDir, OrderOptions, SelectOptions};
 
     #[derive(Default, EdgedbResult)]
     pub struct UserResult {
@@ -21,7 +15,7 @@ mod select {
     #[derive(SelectQuery)]
     pub struct FindUsers {
         #[meta(module = "users", table = "User")]
-        #[result(type = "UserResult")]
+        #[result("UserResult")]
         __meta__: (),
     }
 
@@ -48,7 +42,7 @@ mod select {
     #[derive(SelectQuery)]
     pub struct FindUsersByNameExists {
         #[meta(module = "users", table = "User")]
-        #[result(type = "UserResult")]
+        #[result("UserResult")]
         __meta__: (),
 
         #[filter(operator = "Exists")]
@@ -73,7 +67,7 @@ mod select {
     #[derive(SelectQuery)]
     pub struct FindUsersByNameNotExists {
         #[meta(module = "users", table = "User")]
-        #[result(type = "UserResult")]
+        #[result("UserResult")]
         __meta__: (),
 
         #[filter(operator = "NotExists")]
@@ -98,7 +92,7 @@ mod select {
     #[derive(SelectQuery)]
     pub struct FindUsersByNameIs {
         #[meta(module = "users", table = "User")]
-        #[result(type = "UserResult")]
+        #[result("UserResult")]
         __meta__: (),
 
         #[filter(operator = "Is")]
@@ -123,7 +117,7 @@ mod select {
     #[derive(SelectQuery)]
     pub struct FindUsersByNameIsNot {
         #[meta(module = "users", table = "User")]
-        #[result(type = "UserResult")]
+        #[result("UserResult")]
         __meta__: (),
 
         #[filter(operator = "IsNot")]
@@ -148,7 +142,7 @@ mod select {
     #[derive(SelectQuery)]
     pub struct FindUsersByNameLike {
         #[meta(module = "users", table = "User")]
-        #[result(type = "UserResult")]
+        #[result("UserResult")]
         __meta__: (),
 
         #[filter(operator = "Like")]
@@ -173,7 +167,7 @@ mod select {
     #[derive(SelectQuery)]
     pub struct FindUsersByNameILike {
         #[meta(module = "users", table = "User")]
-        #[result(type = "UserResult")]
+        #[result("UserResult")]
         __meta__: (),
 
         #[filter(operator = "ILike")]
@@ -198,7 +192,7 @@ mod select {
     #[derive(SelectQuery)]
     pub struct FindUsersByNameIn {
         #[meta(module = "users", table = "User")]
-        #[result(type = "UserResult")]
+        #[result("UserResult")]
         __meta__: (),
 
         #[filter(operator = "In")]
@@ -238,7 +232,7 @@ mod select {
     #[derive(SelectQuery)]
     pub struct FindUsersByNameAndAgeGreaterThan {
         #[meta(module = "users", table = "User")]
-        #[result(type = "UserResult")]
+        #[result("UserResult")]
         __meta__: (),
 
         #[filter(operator = "Is")]
@@ -274,44 +268,11 @@ mod select {
         }
     }
 
-    #[derive(SelectQuery)]
-    pub struct FindMajorUsers {
-        #[meta(module = "users", table = "User")]
-        #[result(type = "UserResult", order_by="name", order_dir="desc" )]
-        __meta__: (),
-
-        #[filter(operator = "GreaterThanOrEqual")]
-        pub age: i8,
-    }
-
-    #[test]
-    pub fn filter_options_attributes_test() {
-
-        let q = FindMajorUsers {
-            __meta__ : (),
-            age: 18
-        };
-
-        let edge_query : EdgeQuery = q.to_edge_query();
-
-        let expected = "select users::User {id,name,age} filter users::User.age >= (select <int16>$age) order by users::User.name desc";
-
-        assert_eq!(edge_query.query, expected);
-
-        if let Some(Value::Object { shape, fields }) = edge_query.args {
-            crate::test_utils::check_shape(&shape, vec!["age"]);
-            assert_eq!(fields, vec![
-                Some(Value::Int16(q.age as i16))
-            ])
-        } else {
-            assert!(false)
-        }
-    }
 
     #[derive(SelectQuery)]
     pub struct FindMajorUsersWithOptions {
         #[meta(module = "users", table = "User")]
-        #[result(type = "UserResult")]
+        #[result("UserResult")]
         __meta__: (),
 
         #[options]
@@ -357,7 +318,7 @@ mod select {
     #[derive(SelectQuery)]
     pub struct FindMajorUsersWithFilters {
         #[meta(module = "users", table = "User")]
-        #[result(type = "UserResult")]
+        #[result("UserResult")]
         __meta__: (),
 
         #[options]

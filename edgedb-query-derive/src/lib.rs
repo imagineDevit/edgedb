@@ -48,7 +48,7 @@ mod custom;
 ///  #[derive(InsertQuery)]
 ///  pub struct InsertUser {
 ///      #[meta(module = "users", table = "User")]
-///      #[result(type = "UserResult")]
+///      #[result("UserResult")]
 ///      __meta__: (),
 ///
 ///      pub name: String,
@@ -110,9 +110,7 @@ mod custom;
 ///
 ///         if let Some(Value::Object { shape, mut fields}) = query.args {
 ///
-///             crate::test_utils::check_shape(&shape, vec!["name", "surname", "age", "major", "vs", "gender", "wallet"]);
-///
-///             let wallet_field = fields.pop();
+///             crate::test_utils::check_shape(&shape, vec!["name", "surname", "age", "major", "vs", "gender", "money"]);
 ///
 ///             let vs_val = &insert_user.vs[0];
 ///
@@ -122,20 +120,16 @@ mod custom;
 ///                 Some(Value::Int32(insert_user.age as i32)),
 ///                 Some(Value::Bool(insert_user.major)),
 ///                 Some(Value::Array(vec![Value::Str(vs_val.clone())])),
-///                 Some(Value::Enum(EnumValue::from("male")))
+///                 Some(Value::Enum(EnumValue::from("male"))),
+///                 Some(Value::Int16(insert_user.wallet.money as i16)),
 ///             ]);
 ///
-///             if let Some(Some(Value::Object { shape, fields})) = wallet_field {
-///                 let w_elmts = &shape.elements;
-///                 assert_eq!(w_elmts.len(), 1);
-///                 assert_eq!(fields, vec![Some(Value::Int16(insert_user.wallet.money as i16))])
-///             }
 ///         } else {
 ///             assert!(false)
 ///         }
 ///  }
 /// ```
-#[proc_macro_derive(InsertQuery, attributes(meta, result, conflict_on, conflict_else,  scalar, nested_query, unless_conflict))]
+#[proc_macro_derive(InsertQuery, attributes(meta, result, scalar, param, nested_query, unless_conflict))]
 pub fn insert_query(input: TokenStream) -> TokenStream {
     let ast_struct = parse_macro_input!(input as DeriveInput);
     let result = insert::insert_query::do_derive(&ast_struct);
@@ -224,7 +218,7 @@ pub fn from_file_query(input: TokenStream) -> TokenStream {
 ///  #[derive(SelectQuery)]
 ///  pub struct FindMajorUsersWithOptions {
 ///      #[meta(module = "users", table = "User")]
-///      #[result(type = "UserResult")]
+///      #[result("UserResult")]
 ///      __meta__: (),
 ///
 ///      #[options]
@@ -354,7 +348,7 @@ pub fn select_query(input: TokenStream) -> TokenStream {
 ///
 ///     }
 /// ```
-#[proc_macro_derive(UpdateQuery, attributes(meta, result, set, filters))]
+#[proc_macro_derive(UpdateQuery, attributes(meta, set, filters))]
 pub fn update_query(input: TokenStream) -> TokenStream {
     let ast_struct = parse_macro_input!(input as DeriveInput);
     let result = update::update_query::do_derive(&ast_struct);
@@ -451,7 +445,8 @@ pub fn edgedb_enum(input: TokenStream) -> TokenStream {
 /// ## Usage
 ///
 /// ``` rust
-///  #[derive(Default, EdgedbResult)]
+///  use edgedb_query_derive::EdgedbResult;
+/// #[derive(Default, EdgedbResult)]
 ///  pub struct UserResult {
 ///     pub id: String,
 ///     pub name: String,
@@ -470,13 +465,14 @@ pub fn edgedb_result(input: TokenStream) -> TokenStream {
 /// ## Usage
 ///
 /// ```rust
+/// use edgedb_query_derive::EdgedbFilters;
 /// #[derive(EdgedbFilters)]
 /// pub struct NameFilter {
 ///     #[filter(Is)]
 ///     pub name: String,
 /// }
 /// ```
-#[proc_macro_derive(EdgedbFilters, attributes(filter))]
+#[proc_macro_derive(EdgedbFilters, attributes(filter, param))]
 pub fn edgedb_filters(input: TokenStream) -> TokenStream {
     let ast_struct = parse_macro_input!(input as DeriveInput);
     let result = shapes::edgedb_filter::do_derive(&ast_struct);
@@ -491,7 +487,8 @@ pub fn edgedb_filters(input: TokenStream) -> TokenStream {
 /// ## Usage
 ///
 /// ```rust
-///  #[derive(EdgedbSet)]
+///  use edgedb_query_derive::{EdgedbEnum, EdgedbSet};
+/// #[derive(EdgedbSet)]
 ///  pub struct MySet {
 ///      #[field(column_name="first_name", assignment = "Concat")]
 ///      #[scalar(type="str")]
@@ -505,7 +502,7 @@ pub fn edgedb_filters(input: TokenStream) -> TokenStream {
 ///      Open, _Closed
 ///  }
 /// ```
-#[proc_macro_derive(EdgedbSet, attributes(scalar, field))]
+#[proc_macro_derive(EdgedbSet, attributes(scalar, field, param, nested_query))]
 pub fn edgedb_set(input: TokenStream) -> TokenStream {
     let ast_struct = parse_macro_input!(input as DeriveInput);
     let result = shapes::edgedb_set::do_derive(&ast_struct);

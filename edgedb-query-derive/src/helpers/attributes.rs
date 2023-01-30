@@ -1,4 +1,4 @@
-use crate::constants::{TARGET_COLUMN, CONJUNCTIVE, SCALAR_TYPE, META, ENUM, FILTER, INF_SIGN, LIMIT, MODULE, NAME, OPERATOR, OPTIONS, ORDER_BY, ORDER_DIR, RESULT, SELECT, SUP_SIGN, TABLE, BACKLINK, TYPE, VALUE, TARGET_TABLE, SOURCE_TABLE, FILTERS, COLUMN_NAME, WRAPPER_FN, FIELD, DEFAULT_VALUE, SCALAR, ASSIGNMENT, UNLESS_CONFLICT, SRC, PARAM};
+use crate::constants::{TARGET_COLUMN, CONJUNCTIVE, SCALAR_TYPE, META, ENUM, FILTER, INF_SIGN, LIMIT, MODULE, NAME, OPERATOR, OPTIONS, ORDER_BY, ORDER_DIR, RESULT, SELECT, SUP_SIGN, TABLE, BACKLINK, TYPE, VALUE, TARGET_TABLE, SOURCE_TABLE, FILTERS, COLUMN_NAME, WRAPPER_FN, FIELD, DEFAULT_VALUE, SCALAR, ASSIGNMENT, UNLESS_CONFLICT, SRC, PARAM, NESTED};
 use crate::utils::field_utils::get_field_ident;
 use crate::utils::path_utils::path_ident_equals;
 use crate::utils::type_utils::is_type_name;
@@ -8,6 +8,7 @@ use std::io::{Error, ErrorKind, Read};
 use quote::ToTokens;
 
 use syn::{Attribute, Field, Meta, MetaNameValue, NestedMeta, Type, Variant};
+use crate::utils::attributes_utils::get_attr_named;
 
 pub struct EdgeDbMeta {
     pub module: Option<String>,
@@ -33,9 +34,7 @@ pub struct OrderOption {
 
 #[derive(Clone, Default)]
 pub struct QueryResult {
-    pub result_type: Option<String>,
-    pub order: Option<OrderOption>,
-    pub limit: Option<u32>,
+    pub result_type: Option<String>
 }
 
 pub enum Operator {
@@ -102,6 +101,10 @@ pub struct SrcValue {
 
 pub struct Param {
     pub value: String
+}
+
+pub struct NestedParams {
+    pub params: Vec<String>
 }
 
 // impls
@@ -369,80 +372,23 @@ impl EdgeDbMeta {
 impl QueryResult {
 
     pub fn from_field(field: &Field) -> syn::Result<Self> {
-        let mut map: HashMap<&str, Option<String>> = HashMap::new();
-        map.insert(TYPE, None);
-        map.insert(ORDER_BY, None);
-        map.insert(ORDER_DIR, None);
+       
 
-        let (map_cloned, _) = explore_field_attrs!(
+        let (exist, value) = attr_value_str!(
             field <- field,
-            derive_name <- RESULT,
-            map <- map
+            attribute <- RESULT
         );
 
-        let result = map_cloned.get(TYPE).unwrap().clone();
-        let order_by = map_cloned.get(ORDER_BY).unwrap().clone();
-        let order_dir = map_cloned.get(ORDER_DIR).unwrap().clone();
-
-        let mut map: HashMap<&str, Option<String>> = HashMap::new();
-        map.insert(LIMIT, None);
-        let (map_cloned, _) = explore_field_attrs!(
-            field <- field,
-            derive_name <- RESULT,
-            map <- map,
-            number <- ()
-        );
-
-        let limit = map_cloned.get(LIMIT).unwrap().clone();
-
-        let attrs = field.attrs.iter().filter(|att| att.path.is_ident(RESULT)).collect::<Vec<&Attribute>>();
-
-        let order = if let Some(o) = order_by {
-            if let Some(dir) = order_dir.clone() {
-                if dir != "asc".to_owned() && dir != "desc".to_owned() {
-                    return Err(
-                        syn::Error::new_spanned(
-                            attrs[0].clone().tokens,
-                            "Only value 'asc' or 'desc' are accepted for attribute order_dir"
-                        )
-                    );
-                }
-            }
-            Some(OrderOption {
-                order_by: o,
-                order_dir,
-            })
-        } else {
-            if order_dir.is_some() {
-                return Err(
-                    syn::Error::new_spanned(
-                        attrs[0].clone().tokens,
-                        "order_by is required when order_dir is specified."
-                    )
-                );
-            }
-            None
-        };
-
-        let limit = if let Some(l) = limit {
-            if let Ok(ll) = l.parse::<u32>() {
-                Some(ll)
-            } else {
-                return Err(
-                    syn::Error::new_spanned(
-                        attrs[0].clone().tokens,
-                        "Limit attribute must be a number"
-                    )
-                );
-            }
-        } else {
-            None
-        };
-        Ok(Self {
-            result_type: result,
-            order,
-            limit,
-        })
+        if exist && value.is_none()  {
+            return Err(
+                syn::Error::new_spanned(
+                    get_attr_named(field, RESULT).unwrap(),
+                    format!(r#"Please specify result type #[result("...")]"#, )
+                )
+            );
+        }
+        
+        Ok(Self { result_type: value })
     }
 
     pub fn to_ident(&self, span: Span) -> Ident {
@@ -451,24 +397,6 @@ impl QueryResult {
             .or_else(|| Some("BasicResult".to_string()))
             .map(|s| Ident::new(s.as_str(), span))
             .unwrap()
-    }
-
-    pub fn complete_select_query(&self, table_name: String) -> String {
-        let mut ql = String::default();
-
-        if let Some(order) = self.order.clone() {
-            ql.push_str(format!(" order by {}.{}", table_name, order.order_by).as_str());
-
-            if let Some(dir) = order.order_dir {
-                ql.push_str(format!(" {}", dir).as_str());
-            }
-        }
-
-        if let Some(limit) = self.limit.clone() {
-            ql.push_str(format!(" limit {}", limit).as_str());
-        }
-
-        ql
     }
 }
 
@@ -545,12 +473,13 @@ impl EdgeDbType {
 
     pub fn build_field_assignment(field: &Field) -> syn::Result<String> {
         let ty = EdgeDbType::get_type(field)?;
-
+        let f = Param::from_field(field).value;
         Ok(format!(
-            "{field_name} := ({select} {edge_type}${field_name}), ",
+            "{field_name} := ({select} {edge_type}${param}), ",
             select = SELECT,
             edge_type = ty,
-            field_name = get_field_ident(field)
+            field_name = get_field_ident(field),
+            param = f
         ))
     }
 
@@ -736,6 +665,8 @@ impl Operator {
             }
         };
 
+        let param = Param::from_field(field).value;
+        
         let field_name = get_field_ident(field).to_string();
 
         let column_name = column_name.or_else(|| Some(field_name.clone())).unwrap();
@@ -760,7 +691,7 @@ impl Operator {
                 select = SELECT,
                 edge_type = ty,
                 wrapped_field_name = wrapped_field_name,
-                field_name = field_name
+                field_name = param
             ))
         }
     }
@@ -1079,20 +1010,22 @@ impl SetField {
 
         let fname = get_field_ident(field);
 
+        let param = Param::from_field(field).value;
+        
         match set_field.option {
             SetOption::Assign => Ok(format!(
                 "{column_name} := ({select} {edge_type}${field_name}), ",
                 column_name = set_field.column_name.unwrap_or(fname.to_string()),
                 select = SELECT,
                 edge_type = ty,
-                field_name = fname
+                field_name = param
             )),
             SetOption::Concat => Ok(format!(
                 "{column_name} := .{column_name} ++ ({select} {edge_type}${field_name}), ",
                 column_name = set_field.column_name.unwrap_or(fname.to_string()),
                 select = SELECT,
                 edge_type = ty,
-                field_name = fname
+                field_name = param
             )),
             SetOption::Push => {
                 if !is_type_name(&field.ty, "vec") {
@@ -1106,7 +1039,7 @@ impl SetField {
                     column_name = set_field.column_name.unwrap_or(fname.to_string()),
                     select = SELECT,
                     edge_type = ty,
-                    field_name = fname
+                    field_name = param
                 ))
             }
         }
@@ -1174,6 +1107,7 @@ impl SrcValue {
 }
 
 
+
 impl Param {
 
     pub fn from_field(field: &Field) -> Self {
@@ -1183,6 +1117,21 @@ impl Param {
         );
 
         Self{ value : value.unwrap_or(get_field_ident(field).to_string()) }
+    }
+
+}
+
+impl NestedParams {
+
+    pub fn from_field(field: &Field) -> Self {
+        let (_, value) = attr_value_str!(
+            field <- field,
+            attribute <- NESTED
+        );
+
+        Self{
+            params : value.unwrap_or(String::new()).split(',').map(|s| s.trim().to_string()).collect()
+         }
     }
 
 }

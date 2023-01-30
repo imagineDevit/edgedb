@@ -24,7 +24,7 @@
             <td><i style="color: yellow">operator</i></td>
             <td>No</td>
             <td>
-                The ofilter operator that can takes following values :
+                The <i>operator</i> option that can takes following values :
                 <ul>
                     <li>Exists</li>
                     <li>NotExists</li>
@@ -45,7 +45,7 @@
             <td><i style="color: yellow">conjunctive</i></td>
             <td>No (if it's not the first filter) </td>
             <td>
-                Conjunctive operator that can be:
+                The <i>conjunctive</i> option can be:
                 <ul>
                     <li>And</li>
                     <li>Or</li>
@@ -62,12 +62,18 @@
             <td>Yes</td>
             <td>The edgedb function to apply to the column value while filtering.</td>
         </tr>
+        <tr>
+            <td> <strong style="color: #008200">param</strong> </td>
+            <td> Yes </td>
+            <td colspan="4"> 
+            The <strong style="color: #91b362">param</strong> attribute represents the query parameter label associated to the annotated field. </td>
+        </tr>
     </tbody>
 </table>
 <br><br>
 
 
-When applying **EdgedbFilters** derive to a struct, the **_edgedb_query::queries::filter::Filter_** trait implementation are generated for this one.
+When applying **EdgedbFilters** derive to a struct, the **_edgedb_query::queries::filter::Filter_** trait implementation is generated for this one.
 
 ```rust
     pub trait Filter {
@@ -85,6 +91,7 @@ Consider the following struct 👇
     #[derive(EdgedbFilters)]
     pub struct UserFilter {
         #[filter(operator="=", column_name="identity.first_name", wrapper_fn="str_lower")]
+        #[param("username")]
         pub name: String,
         #[filter(operator=">=",  conjunctive="And")]
         pub age: i8,
@@ -109,7 +116,7 @@ Consider the following struct 👇
 
 #### output :
 ```
-⌲ QUERY -> "filter str_lower(users::User.identity.first_name) = (select <str>$name) and users::User.age >= (select <int16>$age)"
+⌲ QUERY -> "filter str_lower(users::User.identity.first_name) = (select <str>$username) and users::User.age >= (select <int16>$age)"
 ```
 ```
 ⌲ VALUE -> Object {
@@ -123,7 +130,7 @@ Consider the following struct 👇
                     cardinality: Some(
                         One,
                     ),
-                    name: "name",
+                    name: "username",
                 },
                 ShapeElement {
                     flag_implicit: false,

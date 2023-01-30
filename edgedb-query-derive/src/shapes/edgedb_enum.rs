@@ -58,12 +58,14 @@ pub fn do_derive(ast_struct: &DeriveInput) -> syn::Result<TokenStream> {
 
          impl edgedb_query::ToEdgeValue for #enum_name {
             fn to_edge_value(&self) -> edgedb_protocol::value::Value {
+                use edgedb_query::ToEdgeQl;
                 edgedb_protocol::value::Value::Enum(edgedb_protocol::codec::EnumValue::from(self.to_edgeql().as_str()))
             }
         }
 
         impl ToString for #enum_name {
             fn to_string(&self) -> String {
+                use edgedb_query::ToEdgeQl;
                 self.to_edgeql()
             }
         }

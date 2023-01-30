@@ -2,7 +2,7 @@
 #[cfg(test)]
 mod result {
     use edgedb_query_derive::{EdgedbResult};
-    use edgedb_query::{ToEdgeShape, ToEdgeScalar, EdgeResult};
+    use edgedb_query::{EdgeResult, ToEdgeShape};
 
     #[derive(EdgedbResult)]
     pub struct Identity {

@@ -11,7 +11,6 @@ pub fn do_derive(ast_struct: &DeriveInput) -> syn::Result<TokenStream> {
 
     let struct_name = &ast_struct.ident;
 
-
     let StartResult {
         table_name,
         filters_field,
@@ -41,7 +40,11 @@ pub fn do_derive(ast_struct: &DeriveInput) -> syn::Result<TokenStream> {
 
         quote! {
             impl edgedb_query::ToEdgeQl for #struct_name {
+
                 fn to_edgeql(&self) -> String {
+
+                    use edgedb_query::queries::filter::Filter;
+
                     let mut query = #query_str.to_owned();
 
                     let filter_q = self.#f_name.to_edgeql(#table_name);
@@ -58,6 +61,7 @@ pub fn do_derive(ast_struct: &DeriveInput) -> syn::Result<TokenStream> {
 
             impl edgedb_query::ToEdgeValue for #struct_name {
                 fn to_edge_value(&self) -> edgedb_protocol::value::Value {
+                    use edgedb_query::queries::filter::Filter;
                      self.#f_name.to_edge_value()
                 }
             }
@@ -77,7 +81,7 @@ pub fn do_derive(ast_struct: &DeriveInput) -> syn::Result<TokenStream> {
             }).map(|r: syn::Result<_>| r.unwrap_or_else(|e|e.to_compile_error().into()));
 
             let shapes = filtered_fields.clone().map(|field| {
-                shape_element_quote(field, &mut i)
+                shape_element_quote(field)
             });
 
             let field_values = filtered_fields.clone().map(|field| {
@@ -87,6 +91,9 @@ pub fn do_derive(ast_struct: &DeriveInput) -> syn::Result<TokenStream> {
             quote! {
                 impl edgedb_query::ToEdgeQl for #struct_name {
                     fn to_edgeql(&self) -> String {
+
+                        use edgedb_query::{ToEdgeScalar};
+
                         let mut query = #query_str.to_owned();
 
                         query.push_str(#filter_q);
@@ -101,11 +108,15 @@ pub fn do_derive(ast_struct: &DeriveInput) -> syn::Result<TokenStream> {
 
                    fn to_edge_value(&self) -> edgedb_protocol::value::Value {
 
+                        use edgedb_query::queries::filter::Filter;
+
                         let mut fields: Vec<Option<edgedb_protocol::value::Value>> = vec![];
 
                         let mut shapes:  Vec<edgedb_protocol::descriptors::ShapeElement> = vec![];
 
                         let mut element_names: Vec<String> = vec![];
+
+                         let mut elmt_nb: i16 = -1;
 
                         #(#shapes)*
 
@@ -139,6 +150,7 @@ pub fn do_derive(ast_struct: &DeriveInput) -> syn::Result<TokenStream> {
 
         impl ToString for #struct_name {
             fn to_string(&self) -> String {
+                use edgedb_query::ToEdgeQl;
                 self.to_edgeql()
             }
         }

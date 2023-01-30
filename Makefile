@@ -13,3 +13,10 @@ eqd_tests:
 eq_tests:
 	cd edgedb-query \
 	&& cargo test --test lib_tests
+
+expand:
+	cd edgedb-query-derive \
+	&& cargo expand --test lib_tests
+
+doc :
+	cargo doc --lib --open

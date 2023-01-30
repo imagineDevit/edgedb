@@ -1,10 +1,9 @@
-
 #[cfg(test)]
 pub mod from_file {
     use edgedb_protocol::value::Value;
-    use edgedb_query_derive::FromFileQuery;
-    use edgedb_query::{ToEdgeQl, ToEdgeQuery, EdgeQuery};
-
+    use edgedb_query::EdgeQuery;
+    use edgedb_query_derive::{FromFileQuery};
+    use edgedb_query::models::edge_query::ToEdgeQuery;
 
     #[derive(FromFileQuery)]
     pub struct AddUser {
@@ -13,6 +12,8 @@ pub mod from_file {
         #[param("user_name")]
         pub name: String,
         pub age: i8,
+        #[param("friend_name")]
+        pub friend: String,
     }
 
     #[test]
@@ -20,8 +21,10 @@ pub mod from_file {
         let user = AddUser {
             __meta__: (),
             name: "Joe".to_string(),
-            age: 35
+            age: 35,
+            friend: "John".to_string(),
         };
+
 
         let ql = include_str!("add_user.edgeql");
 
@@ -32,7 +35,7 @@ pub mod from_file {
         if let Some(Value::Object { shape, fields }) = query.args {
             crate::test_utils::check_shape(
                 &shape,
-                vec!["user_name", "age"],
+                vec!["user_name", "age", "friend_name"],
             );
 
             assert_eq!(
@@ -40,12 +43,11 @@ pub mod from_file {
                 vec![
                     Some(Value::Str(user.name)),
                     Some(Value::Int16(user.age as i16)),
+                    Some(Value::Str(user.friend)),
                 ]
             );
-
         } else {
             assert!(false)
         }
-
     }
 }

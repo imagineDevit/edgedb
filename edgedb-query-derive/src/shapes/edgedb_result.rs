@@ -79,6 +79,7 @@ pub fn do_derive(ast_struct: &DeriveInput) -> syn::Result<TokenStream> {
 
         impl edgedb_query::ToEdgeShape for #struct_name {
             fn shape() -> String {
+                use edgedb_query::ToEdgeScalar;
                 let mut query = "{".to_string();
                 #(#fields_shapes)*
                 query.pop();

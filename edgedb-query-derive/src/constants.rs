@@ -50,7 +50,7 @@ pub const COLUMN_NAME: &str = "column_name";
 pub const DEFAULT_VALUE: &str = "default_value";
 pub const ASSIGNMENT: &str = "assignment";
 
-pub const NESTED: &str = "nested_query";
+pub const NESTED_QUERY: &str = "nested_query";
 
 pub const LIMIT_1: &str = " limit 1";
 
@@ -58,6 +58,6 @@ pub const UNLESS_CONFLICT: &str = "unless_conflict";
 
 pub const SRC : &str = "src";
 pub const PARAM: &str = "param";
-
+pub const NESTED: &str = "nested";
 
 pub const PARAM_PATTERN: &str = "\\B(\\$\\w+)\\b";

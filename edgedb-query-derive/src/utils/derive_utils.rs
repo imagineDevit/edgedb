@@ -3,7 +3,7 @@ use quote::{quote, ToTokens};
 use syn::{DeriveInput, Field};
 
 use crate::constants::{OPTION, RESULT, SCALAR_TYPE, TUPLE, VEC};
-use crate::helpers::attributes::{EdgeDbMeta, Filter, Filters, Options, QueryResult, UnlessConflict};
+use crate::helpers::attributes::{EdgeDbMeta, Filter, Filters, Options, Param, QueryResult, UnlessConflict};
 use crate::utils::attributes_utils::has_attribute;
 use crate::utils::field_utils::{get_field_ident, get_struct_fields};
 use crate::utils::type_utils::{get_wrapped_type, is_type_name};
@@ -15,7 +15,7 @@ pub struct StartResult {
     pub options_field: Option<Field>,
     pub filters_field: Option<Field>,
     pub filtered_fields: Vec<Field>,
-    pub unless_conflict_field: Option<Field>
+    pub unless_conflict_field: Option<Field>,
 }
 
 pub fn start(ast_struct: &DeriveInput) -> syn::Result<StartResult> {
@@ -88,7 +88,7 @@ pub fn start(ast_struct: &DeriveInput) -> syn::Result<StartResult> {
         options_field,
         filters_field,
         filtered_fields,
-        unless_conflict_field
+        unless_conflict_field,
     })
 }
 
@@ -211,15 +211,14 @@ pub fn format_scalar() -> TokenStream {
         }
 }
 
-pub fn shape_element_quote(field: &Field, index: &mut i16) -> TokenStream {
+pub fn shape_element_quote(field: &Field) -> TokenStream {
     let f_ident = get_field_ident(field);
-    let f_name = format!("{}", f_ident);
+    let f_name = Param::from_field(field).value;
     let field_is_option = is_type_name(&field.ty, OPTION);
-
-    *index += 1;
 
     if field_is_option {
         quote! {
+            elmt_nb += 1;
             element_names.push(#f_name.clone().to_owned());
             if let Some(_) = self.#f_ident.clone() {
                 shapes.push(edgedb_protocol::descriptors::ShapeElement {
@@ -228,7 +227,7 @@ pub fn shape_element_quote(field: &Field, index: &mut i16) -> TokenStream {
                     flag_link: false,
                     cardinality: Some(edgedb_protocol::client_message::Cardinality::One),
                     name: #f_name.to_string(),
-                    type_pos: edgedb_protocol::descriptors::TypePos(#index as u16),
+                    type_pos: edgedb_protocol::descriptors::TypePos(elmt_nb as u16),
                 });
             }
         }
@@ -241,7 +240,7 @@ pub fn shape_element_quote(field: &Field, index: &mut i16) -> TokenStream {
                 flag_link: false,
                 cardinality: Some(edgedb_protocol::client_message::Cardinality::One),
                 name: #f_name.to_string(),
-                type_pos: edgedb_protocol::descriptors::TypePos(#index as u16),
+                type_pos: edgedb_protocol::descriptors::TypePos(elmt_nb as u16),
             });
         }
     }
@@ -276,6 +275,10 @@ pub fn to_edge_ql_value_impl_empty_quote(struct_name: &syn::Ident, query: String
     quote! {
             impl edgedb_query::ToEdgeQl for #struct_name {
                 fn to_edgeql(&self) -> String {
+                    use edgedb_query::ToEdgeScalar;
+                    use edgedb_query::ToEdgeShape;
+                     use edgedb_query::models::query_result::BasicResult;
+                    
                     let mut query = #query.to_owned();
                     #push_result_shape
                     query
@@ -291,7 +294,6 @@ pub fn to_edge_ql_value_impl_empty_quote(struct_name: &syn::Ident, query: String
 }
 
 pub fn check_and_duplicate_value(f_name: syn::Ident) -> TokenStream {
-
     quote! {
         if let edgedb_protocol::value::Value::Object { shape, fields: f_fields } = self.#f_name.to_edge_value() {
             f_fields.iter().for_each(|ff| fields.push(ff.clone()));
@@ -347,6 +349,41 @@ pub fn check_and_duplicate_unless_conflict_value(f_name: syn::Ident) -> TokenStr
                     shapes.push(el);
                 });
             }
+        }
+    }
+}
+
+pub fn add_nested_query_shape(field: &Field) -> TokenStream {
+    let f_ident = get_field_ident(field);
+    quote! {
+        match self.#f_ident.to_edge_value() {
+            edgedb_protocol::value::Value::Object { shape, fields } => {
+                let elements = &shape.elements;
+                elements.iter().for_each(|e| {
+                    elmt_nb += 1;
+                    shapes.push(edgedb_protocol::descriptors::ShapeElement {
+                        flag_implicit: false,
+                        flag_link_property: false,
+                        flag_link: false,
+                        cardinality: e.cardinality,
+                        name: e.name.clone(),
+                        type_pos: edgedb_protocol::descriptors::TypePos(elmt_nb as u16),
+                    });
+                });
+            }
+            _ => {}
+        }
+    }
+}
+
+pub fn add_nested_query_value(field: &Field) -> TokenStream {
+    let f_ident = get_field_ident(field);
+    quote! {
+        match self.#f_ident.to_edge_value() {
+            edgedb_protocol::value::Value::Object { shape, fields: fs } => {
+                fs.iter().for_each(|f| fields.push(f.clone()));
+            }
+            _ => {}
         }
     }
 }

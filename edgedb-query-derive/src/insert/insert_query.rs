@@ -1,4 +1,4 @@
-use crate::constants::{SCALAR_TYPE, INSERT, OPTION, SELECT, VEC, NESTED, EDGEQL};
+use crate::constants::{SCALAR_TYPE, INSERT, OPTION, SELECT, VEC, NESTED_QUERY, EDGEQL};
 use crate::helpers::attributes::EdgeDbType;
 use crate::utils::{field_utils::*, type_utils::is_type_name};
 use proc_macro::TokenStream;
@@ -7,7 +7,7 @@ use quote::quote;
 use syn::DeriveInput;
 use crate::utils::attributes_utils::has_attribute;
 
-use crate::utils::derive_utils::{edge_value_quote, format_scalar, shape_element_quote, start, StartResult, to_edge_ql_value_impl_empty_quote, check_and_duplicate_unless_conflict_value};
+use crate::utils::derive_utils::{edge_value_quote, format_scalar, shape_element_quote, start, StartResult, to_edge_ql_value_impl_empty_quote, check_and_duplicate_unless_conflict_value, add_nested_query_shape, add_nested_query_value};
 use crate::utils::type_utils::get_type;
 
 pub fn do_derive(ast_struct: &DeriveInput) -> syn::Result<TokenStream> {
@@ -86,7 +86,7 @@ pub fn do_derive(ast_struct: &DeriveInput) -> syn::Result<TokenStream> {
 
             let tty = get_type(field, f_ty);
 
-            let is_nested = has_attribute(field, NESTED);
+            let is_nested = has_attribute(field, NESTED_QUERY);
 
             let assignment = if is_nested {
                 format!("{} := ({}), ", f_name.to_string(), EDGEQL)
@@ -131,16 +131,25 @@ pub fn do_derive(ast_struct: &DeriveInput) -> syn::Result<TokenStream> {
             }
         }).map(|r: syn::Result<_>| r.unwrap_or_else(|e| e.to_compile_error().into()));
 
-        let mut i: i16 = -1;
-
-        let shapes = filtered_fields.clone().map(|field| {
-            shape_element_quote(field, &mut i)
+        let shapes = filtered_fields.clone()
+            .filter(|f| !has_attribute(f, NESTED_QUERY))
+            .map(|field| {
+            shape_element_quote(field)
         });
 
-        let field_values = filtered_fields.map(|field| {
+        let nested_query_shapes = filtered_fields.clone()
+            .filter(|f| has_attribute(f, NESTED_QUERY))
+            .map(|field| { add_nested_query_shape(field) });
+
+        let field_values = filtered_fields.clone()
+            .filter(|f| !has_attribute(f, NESTED_QUERY))
+            .map(|field| {
             edge_value_quote(field)
         });
 
+        let nested_query_values = filtered_fields.clone()
+            .filter(|f| has_attribute(f, NESTED_QUERY))
+            .map(|field|{ add_nested_query_value(field) });
 
         quote! {
 
@@ -148,6 +157,12 @@ pub fn do_derive(ast_struct: &DeriveInput) -> syn::Result<TokenStream> {
 
             impl edgedb_query::ToEdgeQl for #struct_name {
                 fn to_edgeql(&self) -> String {
+                    
+                    use edgedb_query::ToEdgeScalar;
+                    use edgedb_query::models::query_result::BasicResult;
+                    
+                    use edgedb_query::ToEdgeShape;
+                    
                     let mut query = #query_str.to_owned();
 
                     query.push_str(" {");
@@ -169,15 +184,23 @@ pub fn do_derive(ast_struct: &DeriveInput) -> syn::Result<TokenStream> {
 
                 fn to_edge_value(&self) -> edgedb_protocol::value::Value {
 
+                    use edgedb_query::ToEdgeScalar;
+                    
                     let mut fields: Vec<Option<edgedb_protocol::value::Value>> = vec![];
 
                     let mut shapes:  Vec<edgedb_protocol::descriptors::ShapeElement> = vec![];
 
                     let mut element_names: Vec<String> = vec![];
 
+                    let mut elmt_nb: i16 = -1;
+
                     #(#shapes)*
 
+                    #(#nested_query_shapes)*
+
                     #(#field_values)*
+
+                    #(#nested_query_values)*
 
                     #unless_conflict_else_query_value;
 
@@ -209,6 +232,7 @@ pub fn do_derive(ast_struct: &DeriveInput) -> syn::Result<TokenStream> {
 
         impl ToString for #struct_name {
             fn to_string(&self) -> String {
+                use edgedb_query::ToEdgeQl;
                 self.to_edgeql()
             }
         }

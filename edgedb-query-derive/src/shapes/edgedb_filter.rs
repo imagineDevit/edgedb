@@ -25,11 +25,9 @@ pub fn do_derive(ast_struct: &DeriveInput) -> syn::Result<TokenStream> {
     let filters = fields_iter.clone().map(|field| {
         filter_quote_(field, &mut i)
     }).map(|r : syn::Result<_>| r.unwrap_or_else(|e| e.to_compile_error().into()));
-
-    let mut i: i16 = -1;
-
+    
     let shapes = fields_iter.clone().map(|field| {
-        shape_element_quote(field, &mut i)
+        shape_element_quote(field)
     });
 
     let field_values = fields_iter.clone().map(|field| {
@@ -39,6 +37,9 @@ pub fn do_derive(ast_struct: &DeriveInput) -> syn::Result<TokenStream> {
     let tokens = quote! {
           impl edgedb_query::queries::filter::Filter for #struct_name {
             fn to_edgeql(&self, table_name: &str) -> String {
+                use edgedb_query::{ToEdgeValue, ToEdgeScalar};
+                use edgedb_query::queries::filter::Filter;
+
                 let mut query = "filter".to_owned();
                 #(#filters)*
                 query
@@ -47,11 +48,16 @@ pub fn do_derive(ast_struct: &DeriveInput) -> syn::Result<TokenStream> {
 
             fn to_edge_value(&self) -> edgedb_protocol::value::Value {
 
+                use edgedb_query::ToEdgeValue;
+                use edgedb_query::queries::filter::Filter;
+
                 let mut fields: Vec<Option<edgedb_protocol::value::Value>> = vec![];
 
                 let mut shapes:  Vec<edgedb_protocol::descriptors::ShapeElement> = vec![];
 
                 let mut element_names: Vec<String> = vec![];
+
+                 let mut elmt_nb: i16 = -1;
 
                 #(#shapes)*
 

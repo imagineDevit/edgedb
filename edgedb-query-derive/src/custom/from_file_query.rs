@@ -3,10 +3,12 @@ use proc_macro::{TokenStream};
 use quote::{quote, ToTokens};
 use regex::Regex;
 use syn::{DeriveInput, Field};
-use crate::constants::PARAM_PATTERN;
+use crate::constants::{PARAM_PATTERN, SRC};
 use crate::helpers::attributes::{Param, SrcValue};
-use crate::utils::derive_utils::{edge_value_quote, shape_element_quote};
+use crate::utils::attributes_utils::has_attribute;
+use crate::utils::derive_utils::edge_value_quote;
 use crate::utils::field_utils::{get_field_ident, get_struct_fields};
+use crate::utils::type_utils::get_scalar_type;
 
 pub fn do_derive(ast_struct: &DeriveInput) -> syn::Result<TokenStream> {
     let struct_name = &ast_struct.ident;
@@ -29,12 +31,12 @@ pub fn do_derive(ast_struct: &DeriveInput) -> syn::Result<TokenStream> {
 
     let src = match srcs.len() {
         n if n < 1 =>
-        return Err(
-            syn::Error::new_spanned(
-                struct_name.into_token_stream(),
-                "FromFileQuery must have one field annotated #[src()]",
-            )
-        ),
+            return Err(
+                syn::Error::new_spanned(
+                    struct_name.into_token_stream(),
+                    "FromFileQuery must have one field annotated #[src()]",
+                )
+            ),
         n if n > 1 =>
             return Err(
                 syn::Error::new_spanned(
@@ -62,18 +64,29 @@ pub fn do_derive(ast_struct: &DeriveInput) -> syn::Result<TokenStream> {
         .map(|mat| mat.as_str().to_string())
         .collect::<Vec<String>>();
 
+
     let params = fields.iter()
         .filter(|f| SrcValue::from_field(f).value.is_none())
         .collect::<Vec<&Field>>();
 
     let params = params.iter();
 
+
     let params_values = params.clone()
-        .map(|f| Param::from_field(f).value)
+        .filter_map(|f| {
+            if has_attribute(f, SRC) {
+                return None;
+            }
+            Some(Param::from_field(f).value)
+        })
+        .collect::<Vec<String>>();
+
+    let param_matches = param_matches.iter()
+        .map(|s| s.replace("$", ""))
         .collect::<Vec<String>>();
 
     let struct_params_not_query = params_values.clone().into_iter()
-        .filter(|s| !param_matches.contains(& format!("${}", s)))
+        .filter(|s| !param_matches.contains(s))
         .collect::<Vec<String>>();
 
     let query_params_not_struct = param_matches.clone().into_iter()
@@ -98,13 +111,41 @@ pub fn do_derive(ast_struct: &DeriveInput) -> syn::Result<TokenStream> {
                 ",query_params_not_struct),
             )
         )
+    } else if param_matches != params_values {
+        return Err(
+            syn::Error::new_spanned(
+                struct_name.into_token_stream(),
+                "Query parameters must be in the same order as struct attributes",
+            )
+        )
     }
 
+    let bad_types = params.clone()
+        .filter_map(|f| {
+            let ty = &f.ty.clone();
+            let param = Param::from_field(f).value;
+            let expected = format!("{}${}", get_scalar_type(ty), param);
+
+            if content.contains(&expected) {
+                return None;
+            }
+            return Some(param)
+        }).collect::<Vec<String>>();
+
+    if bad_types.len() > 0 {
+        return Err(
+            syn::Error::new_spanned(
+                struct_name.into_token_stream(),
+                format!(r"
+                    Following struct attributes do not have the correct type : {:#?}
+                ",bad_types),
+            )
+        )
+    }
 
     let mut i: i16 = -1;
 
-    let shapes = params.clone().map(|field| {
-        let param_value = Param::from_field(field).value;
+    let shapes = params_values.iter().map(|param_value| {
         i += 1;
         quote! {
             element_names.push(#param_value.clone().to_owned());
@@ -118,6 +159,7 @@ pub fn do_derive(ast_struct: &DeriveInput) -> syn::Result<TokenStream> {
                 });
         }
     });
+
 
     let field_values = params.map(|field| {
         edge_value_quote(field)
@@ -159,7 +201,9 @@ pub fn do_derive(ast_struct: &DeriveInput) -> syn::Result<TokenStream> {
         impl edgedb_query::models::edge_query::ToEdgeQuery for #struct_name {}
 
         impl ToString for #struct_name {
+
             fn to_string(&self) -> String {
+                use edgedb_query::ToEdgeQl;
                 self.to_edgeql()
             }
         }

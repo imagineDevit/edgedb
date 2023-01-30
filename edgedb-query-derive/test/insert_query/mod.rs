@@ -2,14 +2,14 @@
 mod insert {
     use edgedb_protocol::codec::EnumValue;
     use edgedb_protocol::value::Value;
-    use edgedb_query::{models::query_result::BasicResult, ToEdgeShape, *};
+    use edgedb_query::{ToEdgeQuery, EdgeQuery};
     use edgedb_query::queries::conflict::{UnlessConflictElse, Conflict};
     use edgedb_query_derive::{EdgedbEnum, EdgedbResult, InsertQuery, SelectQuery};
 
     #[derive(InsertQuery)]
     pub struct InsertEmptyUser {
         #[meta(module = "users", table = "User")]
-        #[result(type = "UserResult")]
+        #[result("UserResult")]
         __meta__: (),
     }
 
@@ -27,9 +27,9 @@ mod insert {
     #[derive(InsertQuery)]
     pub struct InsertUser {
         #[meta(module = "users", table = "User")]
-        #[result(type = "UserResult")]
+        #[result("UserResult")]
         __meta__: (),
-
+        #[param("first_name")]
         pub name: String,
         pub surname: Option<String>,
         pub age: i32,
@@ -47,8 +47,8 @@ mod insert {
     #[derive(Clone, SelectQuery)]
     pub struct FindUser {
         #[meta(module = "users", table = "User")]
-
         __meta__: (),
+        
         #[filter(operator="Is", column_name="name")]
         pub user_name: String
     }
@@ -102,6 +102,7 @@ mod insert {
             }
         };
 
+        
         let query: EdgeQuery = insert_user.to_edge_query();
 
         println!("{:#?}", query.query);
@@ -109,7 +110,7 @@ mod insert {
         let expected = r#"
            select (
               insert users::User {
-                name := (select <str>$name),
+                name := (select <str>$first_name),
                 surname := (select <str>$surname),
                 age := (select <int32>$age),
                 major := (select <bool>$major),
@@ -124,7 +125,7 @@ mod insert {
              } unless conflict on (.name, .surname) else (
                 select users::User filter users::User.name = (select<str>$user_name)
              )
-         )  {
+         ) {
             id,
             name : { name }
         }
@@ -134,16 +135,15 @@ mod insert {
 
         assert_eq!(query.query.replace(" ", ""), expected.replace(" ", ""));
 
-        if let Some(Value::Object { shape, mut fields }) = query.args {
+        println!("{:#?}", query.args);
+
+        if let Some(Value::Object { shape, fields }) = query.args {
             crate::test_utils::check_shape(
                 &shape,
                 vec![
-                    "name", "surname", "age", "major", "vs", "gender", "wallet", "user_name"
+                    "first_name", "surname", "age", "major", "vs", "gender", "money", "user_name"
                 ],
             );
-
-            let find_user_field = fields.pop();
-            let wallet_field = fields.pop();
 
             let vs_val = &insert_user.vs[0];
 
@@ -155,26 +155,12 @@ mod insert {
                     Some(Value::Int32(insert_user.age as i32)),
                     Some(Value::Bool(insert_user.major)),
                     Some(Value::Array(vec![Value::Str(vs_val.clone())])),
-                    Some(Value::Enum(EnumValue::from("male")))
+                    Some(Value::Enum(EnumValue::from("male"))),
+                    Some(Value::Int16(insert_user.wallet.money as i16)),
+                    Some(Value::Str(insert_user.find_user.else_query.unwrap().user_name))
                 ]
             );
 
-            if let Some(Some(Value::Object { shape, fields })) = wallet_field {
-                let w_elmts = &shape.elements;
-                assert_eq!(w_elmts.len(), 1);
-                assert_eq!(
-                    fields,
-                    vec![Some(Value::Int16(insert_user.wallet.money as i16))]
-                )
-            }
-
-            if let Some(Some(Value::Object { shape, fields })) = find_user_field {
-                let w_elmts = &shape.elements;
-                assert_eq!(w_elmts.len(), 1);
-                assert_eq!(fields, vec![
-                    Some(Value::Str(insert_user.find_user.else_query.unwrap().user_name))
-                ])
-            }
         } else {
             assert!(false)
         }

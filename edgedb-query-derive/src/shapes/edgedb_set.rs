@@ -2,10 +2,10 @@ use proc_macro::TokenStream;
 use proc_macro2::Span;
 use quote::quote;
 use syn::DeriveInput;
-use crate::constants::{EDGEQL, NESTED, OPTION, SCALAR_TYPE, VEC};
+use crate::constants::{EDGEQL, NESTED_QUERY, OPTION, SCALAR_TYPE, VEC};
 use crate::helpers::attributes::SetField;
 use crate::utils::attributes_utils::has_attribute;
-use crate::utils::derive_utils::{edge_value_quote, format_scalar, shape_element_quote};
+use crate::utils::derive_utils::{add_nested_query_shape, add_nested_query_value, edge_value_quote, format_scalar, shape_element_quote};
 use crate::utils::field_utils::{get_field_ident, get_struct_fields};
 use crate::utils::type_utils::{get_type, is_type_name};
 
@@ -36,7 +36,7 @@ pub fn do_derive(ast_struct: &DeriveInput) -> syn::Result<TokenStream> {
 
         let tty = get_type(field, f_ty);
 
-        let is_nested = has_attribute(field, NESTED);
+        let is_nested = has_attribute(field, NESTED_QUERY);
 
         let assignment =  if is_nested {
             format!("{} := ({}), ", f_name.to_string(), EDGEQL)
@@ -81,21 +81,34 @@ pub fn do_derive(ast_struct: &DeriveInput) -> syn::Result<TokenStream> {
                 })
         }
     }).map(|r: syn::Result<_>| r.unwrap_or_else(|e| e.to_compile_error().into()));
+    
 
-
-    let mut i: i16 = -1;
-
-    let shapes = field_iter.clone().map(|field| {
-        shape_element_quote(field, &mut i)
+    let shapes = field_iter.clone()
+        .filter(|f| !has_attribute(f, NESTED_QUERY))
+        .map(|field| {
+        shape_element_quote(field)
     });
 
-    let field_values = field_iter.map(|field| {
+    let nested_query_shapes = field_iter.clone()
+        .filter(|f| has_attribute(f, NESTED_QUERY))
+        .map(|field| { add_nested_query_shape(field) });
+
+    let field_values = field_iter.clone()
+        .filter(|f| !has_attribute(f, NESTED_QUERY))
+        .map(|field| {
         edge_value_quote(field)
     });
+
+    let nested_query_values = field_iter.clone()
+        .filter(|f| has_attribute(f, NESTED_QUERY))
+        .map(|field|{ add_nested_query_value(field) });
 
     let tokens = quote!{
         impl edgedb_query::ToEdgeQl for #struct_name {
             fn to_edgeql(&self) -> String {
+                
+                use edgedb_query::ToEdgeScalar;
+                
                 let mut query = "set { ".to_owned();
 
                 #(#assign_result)*
@@ -115,9 +128,12 @@ pub fn do_derive(ast_struct: &DeriveInput) -> syn::Result<TokenStream> {
                 let mut fields: Vec<Option<edgedb_protocol::value::Value>> = vec![];
                 let mut shapes:  Vec<edgedb_protocol::descriptors::ShapeElement> = vec![];
                 let mut element_names: Vec<String> = vec![];
+                let mut elmt_nb: i16 = -1;
                 #(#shapes)*
+                #(#nested_query_shapes)*
                 let shape_slices: &[edgedb_protocol::descriptors::ShapeElement] = shapes.as_slice();
                 #(#field_values)*
+                #(#nested_query_values)*
                 edgedb_protocol::value::Value::Object {
                     shape: edgedb_protocol::codec::ObjectShape::from(shape_slices),
                     fields,

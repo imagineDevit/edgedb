@@ -3,9 +3,7 @@
 mod delete {
     use edgedb_protocol::value::Value;
     use edgedb_query_derive::{DeleteQuery, EdgedbFilters};
-    use edgedb_query::{*,
-                       queries::filter::Filter,
-                       models::{edge_query::{ToEdgeQuery, EdgeQuery}}};
+    use edgedb_query::models::{edge_query::{ToEdgeQuery, EdgeQuery}};
 
     #[derive(DeleteQuery)]
     pub struct DeleteUsers {

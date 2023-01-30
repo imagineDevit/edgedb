@@ -21,7 +21,7 @@
             <td rowspan=2> <strong style="color: #008200">meta</strong> </td>
             <td rowspan=2>No</td>
             <td rowspan=2>
-                The field annotated <i style="color: #91b362">#[meta]</i> represents the query metadata 
+                The field decorated <i style="color: #91b362">#[meta]</i> represents the query metadata 
                 and is used just to declare module and table names.
                 This field must be (called __meta__, of type () ) : <br>
                 <strong style="color: #c82829">__meta__ : ()</strong>
@@ -38,10 +38,8 @@
         <tr>
             <td> <strong style="color: #008200">result</strong> </td>
             <td>yes</td>
-            <td>This attribute must also decorate the field called  <strong style="color: #c82829">__meta__</strong>. It's used to declare the query result properties</td>
-            <td><i style="color: yellow">type</i></td>
-            <td>Yes ("BasicResult") </td>
-            <td>The struct representing the expected result shape and must be annotated <strong><a href="../shape-macros/edgedb-result.html">#[derive(EdgedbResult)]</a></strong> </td>
+            <td colspan="4">This attribute must also decorate the field called  <strong style="color: #c82829">__meta__ : () </strong>. <br> It's used to declare the query result type.
+            The struct representing the expected result shape and must be decorated with <strong><a href="../shape-macros/edgedb-result.html">#[derive(EdgedbResult)]</a></strong> </td>
         </tr>
         <tr>
             <td rowspan=3> <strong style="color: #008200">scalar</strong> </td>
@@ -62,9 +60,23 @@
             <td>The enum name </td>
         </tr>
         <tr>
+            <td> <strong style="color: #008200">param</strong> </td>
+            <td> Yes </td>
+            <td colspan="4"> 
+            The <strong style="color: #91b362">param</strong> attribute represents the query parameter label associated to the decorated field. </td>
+        </tr>
+        <tr>
             <td> <strong style="color: #008200">nested_query</strong> </td>
             <td>yes</td>
             <td colspan="4">This attribute indicates that the field references an edgedb <strong>select</strong> or <strong>insert</strong> query</td>
+        </tr>
+        <tr>
+            <td> <strong style="color: #008200">unless_conflict</strong> </td>
+            <td>yes</td>
+            <td colspan="4">
+                This attribute is used to declare the <strong style="color: #b21e00">unless conflict on ... else</strong> clause of the query.
+                This attribute must be used on field of type <strong style="color: #2b79a2">edgedb_query::queries::Conflict::UnlessConflictElse </strong>
+            </td>
         </tr>
     </tbody>
 </table>
@@ -112,7 +124,7 @@ pub enum Sex {
 #[derive(InsertQuery)]
 pub struct InsertPerson {
     #[meta(module = "models", table = "Person")]
-    #[result(type = "Person")]
+    #[result("Person")]
     __meta__: (),
 
     pub user_name: String,

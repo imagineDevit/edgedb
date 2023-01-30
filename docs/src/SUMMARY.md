@@ -20,7 +20,7 @@
 - [Query macros](./query-macros/query-macros.md)
     - [InsertQuery](./query-macros/insert-query.md)
     - [SelectQuery](./query-macros/select-query.md)
-    - [UpdateQuery]()
+    - [UpdateQuery](./query-macros/update-query.md)
     - [DeleteQuery]()
     - [CustomQuery]()
 

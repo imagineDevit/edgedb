@@ -3,7 +3,7 @@
 mod update {
     use edgedb_protocol::value::Value;
     use edgedb_query_derive::{EdgedbSet, UpdateQuery, EdgedbFilters};
-    use edgedb_query::{ToEdgeScalar, ToEdgeQl, ToEdgeValue, queries::filter::Filter, models::edge_query::{ToEdgeQuery}};
+    use edgedb_query:: models::edge_query::ToEdgeQuery;
     use crate::test_utils::check_shape;
 
     #[derive(EdgedbSet)]
@@ -51,9 +51,9 @@ mod update {
             set {
                 name := (select <str>$name)
             }
-        "#.to_owned().replace("\n", "");
+        "#.to_owned().replace('\n', "");
 
-        assert_eq!(eq.query.replace(" ", ""), expected_query.replace(" ", ""));
+        assert_eq!(eq.query.replace(' ', ""), expected_query.replace(' ', ""));
 
         if let Some(Value::Object { shape, fields}) = eq.args {
             check_shape(&shape, vec!["first_name", "age", "name"]);

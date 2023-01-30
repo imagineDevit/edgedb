@@ -1,5 +1,7 @@
 #![allow(unused)]
 use syn::{Field, Type, TypeTuple};
+use syn::__private::bool;
+use edgedb_query::ToEdgeScalar;
 use crate::constants::{OPTION, VEC};
 
 /// Check if a type name is equal to the  given name
@@ -70,5 +72,28 @@ pub fn get_type(field: &Field, ty: &Type) -> Type {
         } else {
             ty.clone()
         }
+    }
+}
+
+pub fn get_scalar_type(ty: &Type) -> String {
+
+    match get_type_name(ty).as_str() {
+        "String" => "<str>".to_string(),
+        "i8" | "i16" => "<int16>".to_string(),
+        "i32" => "<int32>".to_string(),
+        "i64" => "<int64>".to_string(),
+        "f32" => "<float32>".to_string(),
+        "f64" => "<float64>".to_string(),
+        "bool" => "<bool>".to_string(),
+        "uuid::Uuid" => "<uuid>".to_string(),
+        "serde_json::Value" => "<json>".to_string(),
+        "chrono::DateTime<chrono::Utc>" => "<datetime>".to_string(),
+        "chrono::DateTime<chrono::Local>" => "<cal::local_datetime>".to_string(),
+        "chrono::Duration" => "<duration>".to_string(),
+        "chrono::Date<chrono::Local>" => "<cal::local_date>".to_string(),
+        "chrono::NaiveTime" => "<cal::local_time>".to_string(),
+        "chrono::NaiveDate" => "<cal::local_date>".to_string(),
+
+        tty @ _ => panic!("Unsupported type: {}", tty),
     }
 }

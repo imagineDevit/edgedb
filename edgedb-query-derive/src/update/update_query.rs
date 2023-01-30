@@ -11,22 +11,11 @@ pub fn do_derive(ast_struct: &DeriveInput) -> syn::Result<TokenStream> {
 
     let StartResult {
         table_name,
-        result_field,
         filters_field,
         filtered_fields,
         ..
     } = start(&ast_struct)?;
-
-    if let Some(f) = result_field {
-        let att = get_attr_named(&f, RESULT).unwrap();
-        return Err(
-            syn::Error::new_spanned(
-                att.into_token_stream(),
-                "Result type is not allowed for update query"
-            )
-        );
-    }
-
+    
 
     if filtered_fields.len() != 1 {
         return Err(
@@ -90,6 +79,9 @@ pub fn do_derive(ast_struct: &DeriveInput) -> syn::Result<TokenStream> {
 
          impl edgedb_query::ToEdgeQl for #struct_name {
             fn to_edgeql(&self) -> String {
+
+                use edgedb_query::queries::filter::Filter;
+
                 let mut query = #query_str.to_owned();
                 #filter_quote
                 #set_quote
@@ -98,6 +90,8 @@ pub fn do_derive(ast_struct: &DeriveInput) -> syn::Result<TokenStream> {
         }
         impl edgedb_query::ToEdgeValue for #struct_name {
             fn to_edge_value(&self) -> edgedb_protocol::value::Value {
+
+                use edgedb_query::queries::filter::Filter;
 
                 let mut fields: Vec<Option<edgedb_protocol::value::Value>> = vec![];
 
@@ -118,6 +112,7 @@ pub fn do_derive(ast_struct: &DeriveInput) -> syn::Result<TokenStream> {
 
         impl ToString for #struct_name {
             fn to_string(&self) -> String {
+                use edgedb_query::ToEdgeQl;
                 self.to_edgeql()
             }
         }

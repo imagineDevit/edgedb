@@ -38,10 +38,8 @@
         <tr>
             <td> <strong style="color: #008200">result</strong> </td>
             <td>yes</td>
-            <td>This attribute must also decorate the field called  <strong style="color: #c82829">__meta__</strong>. It's used to declare the query result properties</td>
-            <td><i style="color: yellow">type</i></td>
-            <td>Yes ("BasicResult") </td>
-            <td>The struct representing the expected result shape and must be annotated <strong><a href="../shape-macros/edgedb-result.html">#[derive(EdgedbResult)]</a></strong> </td>
+            <td colspan="4">This attribute must also decorate the field called  <strong style="color: #c82829">__meta__ : () </strong>. <br> It's used to declare the query result type.
+            The struct representing the expected result shape and must be decorated with <strong><a href="../shape-macros/edgedb-result.html">#[derive(EdgedbResult)]</a></strong> </td>
         </tr>
         <tr>
             <td rowspan="4"> <strong style="color: #008200">filter</strong> </td>
@@ -50,7 +48,7 @@
             <td><i style="color: yellow">operator</i></td>
             <td>No</td>
             <td>
-                The ofilter operator that can takes following values :
+                The filter operator that can takes following values :
                 <ul>
                     <li>Exists</li>
                     <li>NotExists</li>
@@ -101,7 +99,7 @@
                     <li>order options</li>
                     <li>pagination options.</li>
                 </ul> 
-            <i style="color: #91b362">options</i> attribute must annotate a field of type <i style="color:#ff7733"> edgedb_query::queries::select::SelectOptions</i>
+            Only a field of type <i style="color:#ff7733"> edgedb_query::queries::select::SelectOptions</i> can be decorated  <i style="color: #91b362">#[options]</i>
             </td>
         </tr>
     </tbody>
@@ -138,17 +136,23 @@ pub enum Sex {
     Female,
 }
 
-#[derive(SelectQuery)]
-pub struct SelectPerson {
-    #[meta(module = "models", table = "Person")]
-    #[result(type = "Person")]
-    __meta__: (),
-
+#[derive(EdgedbFilters)]
+pub struct SelectPersonFilters {
     #[filter(operator = "Like", column_name="user_name")]
     pub name: String,
 
     #[filter(operator = "<=", conjunctive="And")]
     pub age: u16,
+}
+
+#[derive(SelectQuery)]
+pub struct SelectPerson {
+    #[meta(module = "models", table = "Person")]
+    #[result("Person")]
+    __meta__: (),
+
+    #[filters]
+    filters: SelectPersonFilters,
 
     #[options]
     options: SelectOptions<'static>
@@ -166,9 +170,10 @@ async fn main() -> Result<()> {
 
     let select_person = SelectPerson {
         __meta__: (),
-        
-        name: "%oe".to_owned(),
-        age: 18,
+        filters: SelectPersonFilters {
+            name: "%oe".to_owned(),
+            age: 18,
+        },
         options: SelectOptions {
             table_name: "Person",
             module: Some("models"),

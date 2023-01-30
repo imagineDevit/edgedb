@@ -4,7 +4,7 @@
 
 - [**_InsertQuery_**](./insert-query.md)
 - [**_SelectQuery_**](./select-query.md)
-- [**_UpdateQuery_**]()
+- [**_UpdateQuery_**](./update-query.md)
 - [**_DeleteQuery_**]()
 - [**_CustomQuery_**]()
 
