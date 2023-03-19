@@ -1,25 +1,19 @@
 
 #[cfg(test)]
-mod select_cities {
-    use edgedb_query_derive::{SelectQuery, EdgedbResult};
-    use edgedb_query::*;
+mod tests {
+    use edgedb_query_derive::{query_result, select_query};
     use rstest::*;
     use serde::Deserialize;
-
     use edgedb_query::models::edge_query::{EdgeQuery, ToEdgeQuery};
 
-    #[derive(EdgedbResult, Deserialize)]
+    #[derive(Deserialize)]
+    #[query_result]
     pub struct City {
         pub name: String
     }
 
-
-    #[derive(SelectQuery)]
-    pub struct SelectCity {
-        #[meta(table="City")]
-        #[result(type="City")]
-        __meta__: ()
-    }
+    #[select_query(table="City", result="City")]
+    pub struct SelectCity {}
 
 
     #[fixture]
@@ -34,9 +28,7 @@ mod select_cities {
     ) {
         let client: edgedb_tokio::Client = edgedb_client.await;
 
-        let select_query: EdgeQuery = SelectCity {
-            __meta__: (),
-        }.to_edge_query();
+        let select_query: EdgeQuery = SelectCity {}.to_edge_query();
 
 
         let query_str = select_query.query.as_str();

@@ -1,40 +1,29 @@
 
 #[cfg(test)]
-mod insert_person {
-    use edgedb_query_derive::{EdgeValue, FromFileQuery, InsertQuery};
+mod tests {
+    use edgedb_query_derive::{file_query, insert_query};
     use edgedb_query::{*, models::query_result::BasicResult};
     use rstest::*;
 
 
-    #[derive(FromFileQuery)]
+    #[file_query(src="example/src/add_person.edgeql")]
     pub struct InsertPerson {
-        #[src("example/src/add_person.edgeql")]
-        __meta__: (),
         name: String,
         #[param("city_name")]
         city: String
     }
 
-    #[derive(EdgeValue)]
-    pub struct City {
-        #[param("city_name")]
-        pub name: String,
-    }
 
-    #[derive(InsertQuery)]
+    #[insert_query(table="Person")]
     pub struct InsertPerson2 {
-        #[meta(table="Person")]
-        __meta__: (),
         name: String,
         #[nested_query]
         places_visited: InsertCity
     }
 
-    #[derive(InsertQuery)]
+    #[insert_query(table="City")]
     pub struct InsertCity {
-        #[meta(table="City")]
-        __meta__: (),
-        #[param("city_name")]
+        #[field(param="city_name")]
         pub name: String,
         pub modern_name: Option<String>
     }
@@ -52,10 +41,8 @@ mod insert_person {
         let client: edgedb_tokio::Client = edgedb_client.await;
 
         let q: EdgeQuery = InsertPerson2 {
-            __meta__: (),
             name: "Karl".to_owned(),
             places_visited: InsertCity {
-                __meta__: (),
                 name: "Amsterdam".to_owned(),
                 modern_name: None
             }

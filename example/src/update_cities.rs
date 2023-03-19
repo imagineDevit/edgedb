@@ -1,47 +1,43 @@
 
 #[cfg(test)]
-mod update_cities {
-    use edgedb_query_derive::{UpdateQuery, EdgedbSet, EdgedbFilters, EdgedbResult, SelectQuery};
+mod tests {
+    use edgedb_query_derive::{query_result, edgedb_sets, edgedb_filters, update_query, select_query};
     use edgedb_query::{*, queries::filter::Filter, models::query_result::BasicResult};
     use rstest::*;
     use edgedb_query::models::edge_query::{EdgeQuery, ToEdgeQuery};
     use serde::Deserialize;
 
-    #[derive(EdgedbResult, Deserialize)]
+    #[derive(Deserialize)]
+    #[query_result]
     pub struct City {
         pub name: String
     }
 
-    #[derive(EdgedbSet)]
+    #[edgedb_sets]
     pub struct MySet {
         pub name: String,
     }
 
-    #[derive(EdgedbFilters)]
+    #[edgedb_filters]
     pub struct MyFilter {
-        #[filter(operator="=", column_name="modern_name", wrapper_fn="str_lower")]
+        #[field( column_name="modern_name",)]
+        #[filter(operator="=", wrapper_fn="str_lower")]
         pub city_name: String,
     }
 
 
-    #[derive(UpdateQuery)]
+    #[update_query(table="City")]
     pub struct UpdateCity {
-        #[meta(table="City")]
-        __meta__: (),
 
-        #[set]
+        #[sets]
         pub set: MySet,
 
         #[filters]
         pub filter: MyFilter,
     }
 
-    #[derive(SelectQuery)]
+    #[select_query(table="City", result="City")]
     pub struct SelectCity {
-        #[meta(table="City")]
-        #[result(type="City")]
-        __meta__: (),
-
         #[filters]
         name_filter: MyFilter,
     }
@@ -61,7 +57,6 @@ mod update_cities {
         let new_name = "BUDA-PESTH";
 
         let update_query: EdgeQuery = UpdateCity {
-            __meta__: (),
             set: MySet {
                 name: new_name.to_owned()
             },
@@ -78,7 +73,6 @@ mod update_cities {
         let result = client.query_json(query_str, args).await;
 
         let select_city: EdgeQuery = SelectCity {
-            __meta__: (),
             name_filter: MyFilter {
                 city_name: "budapest".to_owned()
             }

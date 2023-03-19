@@ -1,16 +1,13 @@
 
 #[cfg(test)]
-mod delete_cities {
+mod tests {
 
-    use edgedb_query_derive::{ DeleteQuery};
+    use edgedb_query_derive::{delete_query};
     use rstest::*;
     use edgedb_query::models::edge_query::{EdgeQuery, ToEdgeQuery};
 
-    #[derive(DeleteQuery)]
-    pub struct DeleteCities {
-        #[meta(table="City")]
-        __meta__: (),
-    }
+    #[delete_query(table="City")]
+    pub struct DeleteCities {}
 
     #[fixture]
     async fn edgedb_client() -> edgedb_tokio::Client {
@@ -25,16 +22,12 @@ mod delete_cities {
 
         let client: edgedb_tokio::Client = edgedb_client.await;
 
-        let del_query: EdgeQuery = DeleteCities {
-            __meta__: ()
-
-        }.to_edge_query();
+        let del_query: EdgeQuery = DeleteCities {}.to_edge_query();
 
         let _ = client.query_json(
             del_query.query.as_str(),
             &del_query.args.unwrap()
         ).await.unwrap();
-
 
         let count = client.query_required_single_json("select count((select City))", &()).await.unwrap();
 

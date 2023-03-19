@@ -1,26 +1,21 @@
 
 #[cfg(test)]
-mod insert_cities {
+mod tests {
 
-    use edgedb_query_derive::{InsertQuery, DeleteQuery};
-    //use edgedb_query::;
     use rstest::*;
+    use edgedb_query::BasicResult;
+    use edgedb_query_derive::{delete_query, insert_query};
     use edgedb_query::models::edge_query::{EdgeQuery, ToEdgeQuery};
 
-    #[derive(InsertQuery)]
-    pub struct InsertCity {
-        #[meta(table="City")]
-        __meta__: (),
 
+    #[insert_query(table="City")]
+    pub struct InsertCity {
         pub name: String,
         pub modern_name: Option<String>
     }
 
-    #[derive(DeleteQuery)]
-    pub struct DeleteCities {
-        #[meta(table="City")]
-        __meta__: (),
-    }
+    #[delete_query(table="City")]
+    pub struct DeleteCities {}
 
     #[fixture]
     async fn edgedb_client() -> edgedb_tokio::Client {
@@ -35,10 +30,7 @@ mod insert_cities {
 
         let client: edgedb_tokio::Client = edgedb_client.await;
 
-        let del_query: EdgeQuery = DeleteCities {
-            __meta__: ()
-
-        }.to_edge_query();
+        let del_query: EdgeQuery = DeleteCities {}.to_edge_query();
 
 
         let _ = client.query_json(
@@ -48,17 +40,14 @@ mod insert_cities {
 
         let cities = vec![
             InsertCity {
-                __meta__: (),
                 name: "Munich".to_owned(),
                 modern_name: None
             },
             InsertCity {
-                __meta__: (),
                 name: "Buda-Pesth".to_owned(),
                 modern_name: Some("Budapest".to_owned())
             },
             InsertCity {
-                __meta__: (),
                 name: "Bistritz".to_owned(),
                 modern_name: Some("Bistrița".to_owned())
             },
@@ -68,7 +57,6 @@ mod insert_cities {
             let edge_query: EdgeQuery = city.to_edge_query();
 
             let args = &edge_query.args.unwrap();
-            println!("{:#?}", args);
 
             let query = edge_query.query.as_str();
 
@@ -77,10 +65,10 @@ mod insert_cities {
                 if let Ok(b_result) = result {
                     assert_ne!(b_result.id, String::default());
                 } else {
-                    assert!(false);
+                    unreachable!()
                 }
             } else {
-                assert!(false);
+                unreachable!()
             }
         }
 
@@ -92,7 +80,7 @@ mod insert_cities {
         if let Ok(c) = result_count {
             assert_eq!(c, 3);
         } else {
-            assert!(false);
+            unreachable!()
         }
 
     }
