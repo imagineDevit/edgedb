@@ -195,58 +195,55 @@ async fn main() -> anyhow::Result<()> {
 ````
 to this 👇
 
-````rust
-    use edgedb_query_derive::{InsertQuery, EdgedbEnum, EdgedbResult};
+```rust
+    use edgedb_query_derive::{insert_query, EdgedbEnum, EdgedbResult};
     use edgedb_query::{*, ToEdgeShape, models::{ edge_query::EdgeQuery, query_result::BasicResult}};
 
-    #[derive(InsertQuery)]
+    #[insert_query(module ="users", table="User", result="UserResult")]
     pub struct InsertUser {
-        #[meta(module = "users", table = "User")]
-        #[result(type = "UserResult")]
-        __meta__: (),
-
+        #[field(param="first_name")]
         pub name: String,
         pub surname: Option<String>,
         pub age: i32,
         pub major: bool,
         pub vs: Vec<String>,
-        #[scalar(type = "enum", module = "users", name = "Gender")]
+        #[field(scalar = "<users::Gender>")]
         pub gender: Sex,
         #[nested_query]
         pub wallet: Wallet,
+        #[unless_conflict]
+        pub find_user: UnlessConflictElse<FindUser>
     }
 
-    #[derive(Default, EdgedbResult)]
+    #[query_result]
     pub struct UserResult {
         pub id: String,
         pub name: NameResult,
     }
 
-    #[derive(Default, EdgedbResult)]
+    #[query_result]
     pub struct NameResult {
-        pub name: String
+        pub name: String,
     }
 
-    #[derive(EdgedbEnum)]
+    #[edgedb_enum]
     pub enum Sex {
         #[value("male")]
         Male,
         #[value("female")]
-        Female,
+        _Female,
     }
 
-    #[derive(InsertQuery)]
+    #[insert_query(module = "users", table = "Wallet")]
     pub struct Wallet {
-        #[meta(module = "users", table = "Wallet")]
-        __meta__: (),
         pub money: i16,
     }
+
 
     #[tokio::main]
     async fn main() -> anyhow::Result<()> {
         let client = edgedb_tokio::create_client().await?;
         let insert_user: EdgeQuery = InsertUser {
-            __meta__: (),
             name: "Joe".to_string(),
             surname: Some("sj".to_string()),
             age: 35,
@@ -262,4 +259,4 @@ to this 👇
         
         OK(())
     }
-````
+```
