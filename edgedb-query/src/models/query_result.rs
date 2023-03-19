@@ -1,6 +1,6 @@
 use crate::{EdgeResult, ToEdgeQl, ToEdgeShape};
 use serde::Deserialize;
-const STRUCT_ID: &'static str = "{ id }";
+const STRUCT_ID: &str = "{ id }";
 
 /// BasicResult represents the default edgeDB query result
 #[derive(Default, Deserialize)]

@@ -14,7 +14,7 @@
         <tr>
             <td> <strong style="color: #008200">value</strong> </td>
             <td>Yes</td>
-            <td>The edgedb enum corresponding value. If the attribute is absent, the rust enum value is considered to be the same as the edgedb scalar type one.</td>
+            <td>The EdgeDB enum's corresponding value. If the attribute is missing, the Rust enum value is considered to be the same as the EdgeDB scalar type.</td>
         </tr>
     </tbody>
 </table>

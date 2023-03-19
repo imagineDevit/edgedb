@@ -2,8 +2,7 @@
 #[cfg(test)]
 mod delete_cities {
 
-    use edgedb_query_derive::{InsertQuery, DeleteQuery};
-    use edgedb_query::{*, models::query_result::BasicResult};
+    use edgedb_query_derive::{ DeleteQuery};
     use rstest::*;
     use edgedb_query::models::edge_query::{EdgeQuery, ToEdgeQuery};
 

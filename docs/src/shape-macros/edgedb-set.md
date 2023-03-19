@@ -51,16 +51,27 @@
             <td>Yes ("default")</td>
             <td>The scalar type module </td>
         </tr>
-         <tr>
+        <tr>
             <td><i style="color: yellow">name</i></td>
             <td>No when type = "enum"</td>
             <td>The enum name </td>
+        </tr>
+        <tr>
+            <td> <strong style="color: #008200">param</strong> </td>
+            <td> Yes </td>
+            <td colspan="4"> 
+            The <strong style="color: #91b362">param</strong> attribute represents the query parameter label associated to the annotated field. </td>
+        </tr>
+        <tr>
+            <td> <strong style="color: #008200">nested_query</strong> </td>
+            <td>yes</td>
+            <td colspan="4">This attribute indicates that the field references an edgedb <strong>select</strong> or <strong>insert</strong> query</td>
         </tr>
     </tbody>
 </table>
 <br><br>
 
-This is a usage example  👇
+This is an usage example  👇
 
 ```rust
       #[derive(EdgedbSet)]

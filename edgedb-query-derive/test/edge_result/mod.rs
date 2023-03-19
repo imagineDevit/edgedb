@@ -1,27 +1,28 @@
 
 #[cfg(test)]
 mod result {
-    use edgedb_query_derive::{EdgedbResult};
-    use edgedb_query::{ToEdgeShape, ToEdgeScalar, EdgeResult};
+    use edgedb_query_derive::query_result;
+    use edgedb_query::{EdgeResult, ToEdgeShape};
 
-    #[derive(EdgedbResult)]
+
+    #[query_result]
     pub struct Identity {
         pub name: String,
         pub age: i8
     }
 
-    #[derive(EdgedbResult)]
+    #[query_result]
     pub struct Friend {
         pub surname: String
     }
 
-    #[derive(EdgedbResult)]
+    #[query_result]
     pub struct User {
         pub login: String,
         pub identity: Identity,
     }
 
-    #[derive(EdgedbResult)]
+    #[query_result]
     pub struct UserWithFriends {
         pub login: String,
         pub identity: Identity,
@@ -35,7 +36,7 @@ mod result {
         pub friends: Vec<Friend>,
     }
 
-    #[derive(EdgedbResult)]
+    #[query_result]
     pub struct UserWithFriend {
         pub login: String,
         pub identity: Identity,
@@ -81,7 +82,7 @@ mod result {
     }
 
 
-    #[derive(EdgedbResult)]
+    #[query_result]
     pub struct UserWithFriendAndWrapperFn {
         #[field(wrapper_fn="str_upper")]
         pub login: String,
@@ -102,7 +103,7 @@ mod result {
         assert_eq!(shape, "{login := (select <str>str_upper(.login)),identity : {name,age},friend := (select users::User.<friend[is users::Friend]{surname} limit 1)}")
     }
 
-    #[derive(EdgedbResult)]
+    #[query_result]
     pub struct UserWithFriendAndField {
         #[field(column_name="pseudo")]
         pub login: String,
@@ -123,7 +124,7 @@ mod result {
         assert_eq!(shape, "{login := .pseudo,identity : {name,age},friend := (select users::User.<friend[is users::Friend]{surname} limit 1)}")
     }
 
-    #[derive(EdgedbResult)]
+    #[query_result]
     pub struct UserWithFriendAndFieldAndWrapperFn {
         #[field(column_name="pseudo", wrapper_fn="str_upper")]
         pub login: String,
@@ -144,7 +145,7 @@ mod result {
         assert_eq!(shape, "{login := (select <str>str_upper(.pseudo)),identity : {name,age},friend := (select users::User.<friend[is users::Friend]{surname} limit 1)}")
     }
 
-    #[derive(EdgedbResult)]
+    #[query_result]
     pub struct UserWithDefault {
         #[field(column_name="pseudo", wrapper_fn="str_upper", default_value="john")]
         pub login: String,

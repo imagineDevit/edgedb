@@ -1,6 +1,10 @@
 #![allow(unused)]
+
 use syn::{Field, Type, TypeTuple};
+use syn::__private::bool;
+use edgedb_query::ToEdgeScalar;
 use crate::constants::{OPTION, VEC};
+
 
 /// Check if a type name is equal to the  given name
 ///
@@ -30,8 +34,7 @@ pub fn get_type_name(ty: &Type) -> String {
             p.path.segments[0].ident.to_string()
         }
         Type::Tuple(TypeTuple { elems: _e, .. }) => {
-            // if e.len() == 0 {}
-            panic!("Tuple types are not supported yet")
+            "()".to_string()
         }
         _ => panic!("Only Path and Tuple types are supported yet."),
     }
@@ -60,15 +63,82 @@ pub fn get_wrapped_type(ty: &Type, wrapper: &str) -> Type {
     }
 }
 
-
-pub fn get_type(field: &Field, ty: &Type) -> Type {
-    if is_type_name(&field.ty, OPTION) {
+pub fn get_type( ty: &Type) -> Type {
+    if is_type_name(ty, OPTION) {
         get_wrapped_type(ty, OPTION)
+    } else if is_type_name(ty, VEC) {
+        get_wrapped_type(ty, VEC)
     } else {
-        if is_type_name(&field.ty, VEC) {
-            get_wrapped_type(ty, VEC)
-        } else {
-            ty.clone()
-        }
+        ty.clone()
     }
+}
+
+pub fn get_scalar(ty: &Type) -> syn::Result<String> {
+    scalar_types()
+        .into_iter()
+        .find(|(t, _)| get_type_name(&get_type(ty)) == *t)
+        .map(|(_, s)| {
+            if is_type_name(ty, VEC){
+                Ok(format!("<array<{s}>>"))
+            }  else if s.is_empty() {
+                Ok(s.to_string())
+            } else {
+                Ok(format!("<{s}>"))
+            }
+        })
+        .unwrap_or_else(|| {
+            Err(syn::Error::new_spanned(
+                ty,
+                format!("Unsupported typo: {}", get_type_name(ty)),
+            ))
+        })
+}
+
+pub fn match_scalar(ty: &Type, scalar: impl Into<String> ) -> syn::Result<()> {
+
+    let sc =scalar.into().replace(['<', '>'], "") ;
+
+    let x = scalar_types().iter().map(|t| t.1).any(|s| s == sc.as_str());
+
+    if !x { return Ok(()) }
+
+    let scalar_found = get_scalar(ty).map_err(|e|
+        syn::Error::new_spanned(
+            ty,
+            format!("Rust type {} does not match with scalar  type: {}", get_type_name(ty), sc),
+        )
+    )?;
+
+    let scalar = if is_type_name(ty, VEC) { format!("<array<{sc}>>") } else { sc };
+
+    if scalar_found.replace(['<', '>'], "") == scalar.replace(['<', '>'], "") {
+        Ok(())
+    } else {
+        Err(syn::Error::new_spanned(
+            ty,
+            format!("Rust type {} does not match with scalar  type: {}",  get_type_name(ty), scalar),
+        ))
+    }
+}
+
+pub fn scalar_types() -> Vec<(&'static str, &'static str)>{
+    vec![
+        ("String", "str"),
+        ("i8", "int16"),
+        ("i16", "int16"),
+        ("i32", "int32"),
+        ("i64", "int64"),
+        ("f32", "float32"),
+        ("f64", "float64"),
+        ("bool", "bool"),
+        ("uuid::Uuid", "uuid"),
+        ("serde_json::Value", "json"),
+        ("chrono::DateTime<chrono::Utc>", "datetime"),
+        ("chrono::DateTime<chrono::Local>", "cal::local_datetime"),
+        ("chrono::Duration", "<duration>"),
+        ("chrono::Date<chrono::Local>", "cal::local_date"),
+        ("chrono::NaiveTime", "cal::local_time"),
+        ("chrono::NaiveDate", "cal::local_date"),
+        ("()", ""),
+    ]
 }

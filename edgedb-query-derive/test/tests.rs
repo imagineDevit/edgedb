@@ -7,4 +7,3 @@ mod delete_query;
 mod edge_set;
 mod update_query;
 mod from_file_query;
-
