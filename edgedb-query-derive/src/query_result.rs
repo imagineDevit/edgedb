@@ -9,7 +9,7 @@ use crate::queries::QueryField;
 use crate::tags::backlink_field_tag::{BackLinkFieldTag, BackLinkFieldTagBuilder};
 use crate::tags::{build_tags_from_field, Tagged};
 use crate::tags::result_field_tag::{ResultFieldTag, ResultFieldTagBuilder};
-use crate::tags::TagBuilders::{BackLinkField, ResultField};
+use crate::tags::TagBuilders::{BackLinkFieldBuilder, ResultFieldBuilder};
 use crate::utils::attributes_utils::has_attribute;
 use crate::utils::derive_utils::format_scalar;
 use crate::utils::type_utils::is_type_name;
@@ -182,7 +182,7 @@ impl TryFrom<&Field> for ResultField {
                 tag: ResultTags::NoTag,
             })
         } else if has_attribute(field, FIELD) {
-            let mut builders = ResultField(ResultFieldTagBuilder::default());
+            let mut builders = ResultFieldBuilder(ResultFieldTagBuilder::default());
 
             build_tags_from_field(&Tagged::StructField(field.clone()), vec![&mut builders])?;
 
@@ -193,7 +193,7 @@ impl TryFrom<&Field> for ResultField {
                 tag: ResultTags::FieldTag(tag_builder.build(field)?),
             })
         } else if has_attribute(field, BACKLINK) {
-            let mut builders = BackLinkField(BackLinkFieldTagBuilder::default());
+            let mut builders = BackLinkFieldBuilder(BackLinkFieldTagBuilder::default());
 
             build_tags_from_field(&Tagged::StructField(field.clone()), vec![&mut builders])?;
 

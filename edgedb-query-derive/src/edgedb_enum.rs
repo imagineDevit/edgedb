@@ -5,7 +5,7 @@ use syn::{ ItemEnum};
 use syn::parse::{Parse, ParseStream};
 use crate::constants::{INVALID_ENUM_VARIANT_TAG, VALUE};
 use crate::tags::{build_tags_from_field, Tagged};
-use crate::tags::TagBuilders::EnumValue;
+use crate::tags::TagBuilders::EnumValueBuilder;
 use crate::tags::value_tag::{EnumValueTagBuilder, ValueTag};
 
 pub struct EdgedbEnum {
@@ -97,7 +97,7 @@ impl Parse for EdgedbEnum {
             }
 
 
-            let mut builders = EnumValue(EnumValueTagBuilder::default());
+            let mut builders = EnumValueBuilder(EnumValueTagBuilder::default());
 
             build_tags_from_field(&Tagged::EnumVariant(variant.clone()), vec![&mut builders])?;
 

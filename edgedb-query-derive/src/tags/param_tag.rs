@@ -20,7 +20,7 @@ impl ParamTagBuilder {
 
 impl From<TagBuilders> for ParamTagBuilder {
     fn from(builders: TagBuilders) -> Self {
-        if let TagBuilders::Param(builder) = builders {
+        if let TagBuilders::ParamBuilder(builder) = builders {
             builder
         } else {
             unreachable!()

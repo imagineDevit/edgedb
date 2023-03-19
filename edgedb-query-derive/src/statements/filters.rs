@@ -10,7 +10,7 @@ use crate::queries::{check_duplicate_parameter_labels, QueryField};
 use crate::tags::{build_tags_from_field, Tagged};
 use crate::tags::field_tag::{FieldTag, FieldTagBuilder};
 use crate::tags::filter_tag::{FilterTagBuilder, FilterTags};
-use crate::tags::TagBuilders::{Field, Filter};
+use crate::tags::TagBuilders::{FieldBuilder, FilterBuilder};
 use crate::utils::attributes_utils::{has_any_attribute, has_attribute, has_none_attribute};
 use crate::utils::derive_utils::{nested_element_shape, nested_element_value};
 use crate::utils::type_utils::get_scalar;
@@ -66,8 +66,8 @@ impl TryFrom<(&Field, bool)> for QueryFilter {
     type Error = syn::Error;
 
     fn try_from((field, first): (&Field, bool)) -> Result<Self, Self::Error> {
-        let mut field_tag_builder = Field(FieldTagBuilder::default());
-        let mut filter_tag_builder = Filter(FilterTagBuilder::default());
+        let mut field_tag_builder = FieldBuilder(FieldTagBuilder::default());
+        let mut filter_tag_builder = FilterBuilder(FilterTagBuilder::default());
 
         build_tags_from_field(&Tagged::StructField(field.clone()), vec![&mut field_tag_builder, &mut filter_tag_builder])?;
 

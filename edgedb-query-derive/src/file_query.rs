@@ -8,7 +8,7 @@ use crate::meta_data::{SrcFile, try_get_meta};
 use crate::queries::{Query, QueryField};
 use crate::tags::{build_tags_from_field, Tagged};
 use crate::tags::param_tag::{ParamTag, ParamTagBuilder};
-use crate::tags::TagBuilders::Param;
+use crate::tags::TagBuilders::ParamBuilder;
 
 #[derive(Debug, Clone)]
 pub struct FileQuery {
@@ -148,7 +148,7 @@ impl TryFrom<&Field> for ParamField {
 
     fn try_from(field: &Field) -> Result<Self, Self::Error> {
 
-        let mut builders = Param(ParamTagBuilder::default());
+        let mut builders = ParamBuilder(ParamTagBuilder::default());
 
         build_tags_from_field(&Tagged::StructField(field.clone()), vec![&mut builders])?;
 

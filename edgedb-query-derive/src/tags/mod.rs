@@ -31,13 +31,13 @@ pub trait ValueTagBuilder {
 
 // region TagBuilders
 pub enum TagBuilders {
-    Field(FieldTagBuilder),
-    Filter(FilterTagBuilder),
-    Set(SetTagBuilder),
-    Param(ParamTagBuilder),
-    ResultField(ResultFieldTagBuilder),
-    BackLinkField(BackLinkFieldTagBuilder),
-    EnumValue(value_tag::EnumValueTagBuilder),
+    FieldBuilder(FieldTagBuilder),
+    FilterBuilder(FilterTagBuilder),
+    SetBuilder(SetTagBuilder),
+    ParamBuilder(ParamTagBuilder),
+    ResultFieldBuilder(ResultFieldTagBuilder),
+    BackLinkFieldBuilder(BackLinkFieldTagBuilder),
+    EnumValueBuilder(value_tag::EnumValueTagBuilder),
 }
 
 
@@ -46,18 +46,18 @@ impl TagBuilders {
         match nested {
             Lit(syn::Lit::Str(lit)) => {
                 match self {
-                    TagBuilders::Param(builder) => builder.arg(lit),
-                    TagBuilders::EnumValue(builder) => builder.arg(lit),
+                    TagBuilders::ParamBuilder(builder) => builder.arg(lit),
+                    TagBuilders::EnumValueBuilder(builder) => builder.arg(lit),
                     _ => Err(syn::Error::new_spanned(nested, EXPECT_NAMED_LIT))
                 }
             }
             Meta(NameValue(ref meta_value)) => {
                 match self {
-                    TagBuilders::Field(builder) => builder.arg(meta_value),
-                    TagBuilders::Filter(builder) => builder.arg(meta_value),
-                    TagBuilders::Set(builder) => builder.arg(meta_value),
-                    TagBuilders::ResultField(builder) => builder.arg(meta_value),
-                    TagBuilders::BackLinkField(builder) => builder.arg(meta_value),
+                    TagBuilders::FieldBuilder(builder) => builder.arg(meta_value),
+                    TagBuilders::FilterBuilder(builder) => builder.arg(meta_value),
+                    TagBuilders::SetBuilder(builder) => builder.arg(meta_value),
+                    TagBuilders::ResultFieldBuilder(builder) => builder.arg(meta_value),
+                    TagBuilders::BackLinkFieldBuilder(builder) => builder.arg(meta_value),
                     _ => Err(syn::Error::new_spanned(nested, EXPECT_LIT_STR))
                 }
             }
@@ -67,13 +67,13 @@ impl TagBuilders {
 
     pub fn tag_names(&self) -> Vec<&str> {
         match self {
-            TagBuilders::Field(builder) => builder.tag_names(),
-            TagBuilders::Filter(builder) => builder.tag_names(),
-            TagBuilders::Set(builder) => builder.tag_names(),
-            TagBuilders::Param(builder) => builder.tag_names(),
-            TagBuilders::ResultField(builder) => builder.tag_names(),
-            TagBuilders::BackLinkField(builder) => builder.tag_names(),
-            TagBuilders::EnumValue(builder) => builder.tag_names()
+            TagBuilders::FieldBuilder(builder) => builder.tag_names(),
+            TagBuilders::FilterBuilder(builder) => builder.tag_names(),
+            TagBuilders::SetBuilder(builder) => builder.tag_names(),
+            TagBuilders::ParamBuilder(builder) => builder.tag_names(),
+            TagBuilders::ResultFieldBuilder(builder) => builder.tag_names(),
+            TagBuilders::BackLinkFieldBuilder(builder) => builder.tag_names(),
+            TagBuilders::EnumValueBuilder(builder) => builder.tag_names()
         }
     }
 }

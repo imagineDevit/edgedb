@@ -4,7 +4,7 @@ use syn::{Field, LitStr, MetaNameValue, Type};
 use syn::Lit::Str;
 use crate::constants::*;
 use crate::tags::{NamedValueTagBuilder, TagBuilders};
-use crate::tags::TagBuilders::Set;
+use crate::tags::TagBuilders::SetBuilder;
 use crate::utils::type_utils::is_type_name;
 
 // region SetTag
@@ -108,7 +108,7 @@ impl SetTagBuilder {
 impl From<TagBuilders> for SetTagBuilder {
     fn from(value: TagBuilders) -> Self {
         match value {
-            Set(builder) => builder,
+            SetBuilder(builder) => builder,
             _ => unreachable!()
         }
     }
