@@ -110,8 +110,8 @@ impl TryFrom<&Field> for UpdateSet {
     type Error = syn::Error;
 
     fn try_from(field: &Field) -> Result<Self, Self::Error> {
-        let mut field_tag_builder = TagBuilders::FieldBuilder(FieldTagBuilder::default());
-        let mut set_tag_builder = TagBuilders::SetBuilder(SetTagBuilder::default());
+        let mut field_tag_builder = TagBuilders::Field(FieldTagBuilder::default());
+        let mut set_tag_builder = TagBuilders::Set(SetTagBuilder::default());
 
         build_tags_from_field(&Tagged::StructField(field.clone()), vec![&mut field_tag_builder, &mut set_tag_builder])?;
 

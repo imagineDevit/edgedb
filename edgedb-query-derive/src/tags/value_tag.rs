@@ -20,7 +20,7 @@ impl EnumValueTagBuilder {
 
 impl From<TagBuilders> for EnumValueTagBuilder {
     fn from(builders: TagBuilders) -> Self {
-        if let TagBuilders::EnumValueBuilder(builder) = builders {
+        if let TagBuilders::EnumValue(builder) = builders {
             builder
         } else {
             unreachable!()

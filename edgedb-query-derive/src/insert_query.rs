@@ -11,7 +11,7 @@ use crate::builders::impl_builder::{FieldCat, QueryImplBuilder, ImplBuilderField
 use crate::statements::nested_query::NestedQueryField;
 use crate::tags::{build_tags_from_field, Tagged};
 use crate::tags::field_tag::{FieldTag, FieldTagBuilder};
-use crate::tags::TagBuilders::FieldBuilder;
+use crate::tags::TagBuilders::Field;
 use crate::utils::attributes_utils::has_attribute;
 use crate::utils::derive_utils::format_scalar;
 use crate::utils::type_utils::{get_type, is_type_name};
@@ -266,7 +266,7 @@ impl TryFrom<&Field> for InsertField {
     type Error = syn::Error;
 
     fn try_from(field: &Field) -> Result<Self, Self::Error> {
-        let mut builders = FieldBuilder(FieldTagBuilder::default());
+        let mut builders = Field(FieldTagBuilder::default());
 
         build_tags_from_field(&Tagged::StructField(field.clone()), vec![&mut builders])?;
 

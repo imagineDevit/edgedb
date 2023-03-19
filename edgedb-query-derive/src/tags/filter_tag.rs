@@ -3,7 +3,7 @@ use syn::Lit::Str;
 use syn::{Field, LitStr, MetaNameValue, Type};
 use crate::constants::*;
 use crate::tags::{NamedValueTagBuilder, TagBuilders};
-use crate::tags::TagBuilders::FilterBuilder;
+use crate::tags::TagBuilders::Filter;
 use crate::utils::attributes_utils::has_attribute;
 use crate::utils::type_utils::is_type_name;
 
@@ -104,7 +104,7 @@ pub struct FilterTagBuilder {
 impl From<TagBuilders> for FilterTagBuilder {
     fn from(value: TagBuilders) -> Self {
         match value {
-            FilterBuilder(builder) => builder,
+            Filter(builder) => builder,
             _ => unreachable!()
         }
     }

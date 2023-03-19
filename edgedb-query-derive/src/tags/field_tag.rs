@@ -3,7 +3,7 @@ use syn::{Field, MetaNameValue};
 use syn::Lit::Str;
 use crate::constants::{COLUMN_NAME, EXPECT_NAMED_LIT, EXPECT_NON_EMPTY_LIT, FIELD, INVALID_FIELD_TAG, PARAM, SCALAR};
 use crate::tags::{NamedValueTagBuilder, TagBuilders};
-use crate::tags::TagBuilders::FieldBuilder;
+use crate::tags::TagBuilders::Field;
 use crate::utils::type_utils::{get_scalar, match_scalar};
 
 // region FieldTag
@@ -58,7 +58,7 @@ pub struct FieldTagBuilder {
 impl From<TagBuilders> for FieldTagBuilder {
     fn from(value: TagBuilders) -> Self {
         match value {
-            FieldBuilder(builder) => builder,
+            Field(builder) => builder,
             _ => unreachable!()
         }
     }

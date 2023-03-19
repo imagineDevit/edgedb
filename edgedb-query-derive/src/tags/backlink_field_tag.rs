@@ -4,7 +4,7 @@ use syn::{Field, MetaNameValue};
 use syn::Lit::Str;
 use crate::constants::{BACKLINK,  DEFAULT_MODULE, EXPECT_NAMED_LIT, EXPECT_NON_EMPTY_LIT, INVALID_BACKLINK_TAG,  MODULE,  RESULT, SOURCE_TABLE, TARGET_COLUMN, TARGET_TABLE};
 use crate::tags::{NamedValueTagBuilder, TagBuilders};
-use crate::tags::TagBuilders::BackLinkFieldBuilder;
+use crate::tags::TagBuilders::BackLinkField;
 
 
 // region ResultFieldTag
@@ -77,7 +77,7 @@ pub struct BackLinkFieldTagBuilder {
 impl From<TagBuilders> for BackLinkFieldTagBuilder {
     fn from(value: TagBuilders) -> Self {
         match value {
-            BackLinkFieldBuilder(builder) => builder,
+            BackLinkField(builder) => builder,
             _ => unreachable!()
         }
     }
