@@ -16,6 +16,7 @@ pub trait Conflict<T: ToEdgeQuery + Clone> {
 }
 
 /// InsertConflict struct
+#[derive(Debug, Clone)]
 pub struct UnlessConflictElse<T: ToEdgeQuery> {
     pub fields: Option<Vec<&'static str>>,
     pub else_query: Option<T>
@@ -34,6 +35,7 @@ impl<T: ToEdgeQuery + Clone> Conflict<T> for UnlessConflictElse<T> {
 
 
 /// DefaultInsertConflict struct
+#[derive(Debug, Clone)]
 pub struct UnlessConflict {
     pub fields: Option<Vec<&'static str>>,
 }

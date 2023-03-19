@@ -1,21 +1,15 @@
-const DEFAULT: &'static str = "default";
-const ORDER_BY: &'static str = "order by";
-const LIMIT: &'static str = "limit";
-const OFFSET: &'static str = "offset";
-const ASC: &'static str = " asc";
-const DESC: &'static str = " desc";
+
+const ORDER_BY: &str = "order by";
+const LIMIT: &str = "limit";
+const OFFSET: &str = "offset";
+const ASC: &str = " asc";
+const DESC: &str = " desc";
 
 /// Options Trait represents an EdgeDB select query options :
 /// * order options
 /// * pagination options
 
 pub trait Options {
-
-    /// returns the edgedb module targeted by the query
-    fn module(&self) -> Option<&str>;
-
-    /// returns the edgedb table targeted by the query
-    fn table_name(&self) -> &str;
 
     /// returns the query's order options
     fn order_options(&self) -> Option<OrderOptions>;
@@ -34,8 +28,6 @@ pub trait Options {
 /// use edgedb_query::queries::select::{OrderOptions, parse_options, SelectOptions, OrderDir, PageOptions};
 ///
 /// let options = SelectOptions {
-///          table_name: "User",
-///          module: Some("users"),
 ///          order_options: Some(OrderOptions {
 ///              order_by: String::from("name"),
 ///              order_direction: Some(OrderDir::Desc),
@@ -45,19 +37,16 @@ pub trait Options {
 ///              offset: None
 ///          })
 ///      };
-///  let stmt = parse_options(&options, vec!["name"]);
+///  let stmt = parse_options(&options, "users::User", vec!["name"]);
 ///
 ///  assert_eq!(" order by users::User.name desc limit 10".to_owned(), stmt)
 ///
 /// ```
-pub fn parse_options<T: Options>(options: &T, result_fields: Vec<&str>) -> String {
-    let table_name = options
-        .module()
-        .or_else(|| Some(DEFAULT))
-        .map(|module| format!("{}::{}", module, options.table_name()))
-        .unwrap();
+pub fn parse_options<T: Options>(options: &T, table_name: impl Into<String>, result_fields: Vec<&str>) -> String {
 
     let mut stmt = String::default();
+
+    let table_name = table_name.into();
 
     if let Some(OrderOptions {
                     order_by,
@@ -89,42 +78,34 @@ pub fn parse_options<T: Options>(options: &T, result_fields: Vec<&str>) -> Strin
 }
 
 /// Select query Order direction
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub enum OrderDir {
     Asc,
     Desc,
 }
 
 /// Select query Order options
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct OrderOptions {
     pub order_by: String,
     pub order_direction: Option<OrderDir>,
 }
 
 /// Select query Page Options
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct PageOptions {
     pub limit: u32,
     pub offset: Option<u32>,
 }
 
 /// Select Options struct
-pub struct SelectOptions<'a> {
-    pub table_name: &'a str,
-    pub module: Option<&'a str>,
+#[derive(Debug, Clone)]
+pub struct SelectOptions {
     pub order_options: Option<OrderOptions>,
     pub page_options: Option<PageOptions>,
 }
 
-impl<'a> Options for SelectOptions<'a> {
-    fn module(&self) -> Option<&str> {
-        self.module
-    }
-
-    fn table_name(&self) -> &str {
-        self.table_name
-    }
+impl Options for SelectOptions {
 
     fn order_options(&self) -> Option<OrderOptions> {
         self.order_options.clone()

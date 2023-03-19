@@ -7,13 +7,11 @@ mod select_tests {
     fn parse_with_no_options() {
 
         let options = SelectOptions {
-            table_name: "User",
-            module: None,
             order_options: None,
             page_options: None
         };
 
-        let stmt = parse_options(&options, vec![]);
+        let stmt = parse_options(&options, "default::User",vec![]);
 
         assert_eq!(String::default(), stmt);
     }
@@ -22,8 +20,6 @@ mod select_tests {
     fn parse_with_no_module_specified_and_order_by_options() {
 
         let options = SelectOptions {
-            table_name: "User",
-            module: None,
             order_options: Some(OrderOptions {
                 order_by: "name".to_string(),
                 order_direction: None
@@ -31,7 +27,7 @@ mod select_tests {
             page_options: None
         };
 
-        let stmt = parse_options(&options, vec!["name"]);
+        let stmt = parse_options(&options, "default::User",vec!["name"]);
 
         assert_eq!(String::from(" order by default::User.name asc"), stmt);
     }
@@ -40,8 +36,6 @@ mod select_tests {
     fn parse_with_no_module_specified_and_order_options() {
 
         let options = SelectOptions {
-            table_name: "User",
-            module: None,
             order_options: Some(OrderOptions {
                 order_by: "name".to_string(),
                 order_direction: Some(OrderDir::Desc)
@@ -49,7 +43,7 @@ mod select_tests {
             page_options: None
         };
 
-        let stmt = parse_options(&options, vec!["name"]);
+        let stmt = parse_options(&options, "default::User", vec!["name"]);
 
         assert_eq!(String::from(" order by default::User.name desc"), stmt);
     }
@@ -58,8 +52,6 @@ mod select_tests {
     fn parse_with_module_specified_and_order_options() {
 
         let options = SelectOptions {
-            table_name: "User",
-            module: Some("users"),
             order_options: Some(OrderOptions {
                 order_by: "name".to_string(),
                 order_direction: Some(OrderDir::Desc)
@@ -67,7 +59,7 @@ mod select_tests {
             page_options: None
         };
 
-        let stmt = parse_options(&options, vec!["name"]);
+        let stmt = parse_options(&options, "users::User",vec!["name"]);
 
         assert_eq!(String::from(" order by users::User.name desc"), stmt);
     }
@@ -76,8 +68,6 @@ mod select_tests {
     fn parse_with_module_specified_and_order_options_and_limit_options() {
 
         let options = SelectOptions {
-            table_name: "User",
-            module: Some("users"),
             order_options: Some(OrderOptions {
                 order_by: "name".to_string(),
                 order_direction: Some(OrderDir::Desc)
@@ -88,7 +78,7 @@ mod select_tests {
             })
         };
 
-        let stmt = parse_options(&options, vec!["name"]);
+        let stmt = parse_options(&options, "users::User", vec!["name"]);
 
         assert_eq!(String::from(" order by users::User.name desc limit 10"), stmt);
     }
@@ -97,8 +87,6 @@ mod select_tests {
     fn parse_with_module_specified_and_order_options_and_page_options() {
 
         let options = SelectOptions {
-            table_name: "User",
-            module: Some("users"),
             order_options: Some(OrderOptions {
                 order_by: "name".to_string(),
                 order_direction: Some(OrderDir::Desc)
@@ -109,7 +97,7 @@ mod select_tests {
             })
         };
 
-        let stmt = parse_options(&options, vec!["name"]);
+        let stmt = parse_options(&options, "users::User", vec!["name"]);
 
         assert_eq!(String::from(" order by users::User.name desc limit 10 offset 1"), stmt);
     }
