@@ -2,13 +2,11 @@
 pub mod from_file {
     use edgedb_protocol::value::Value;
     use edgedb_query::EdgeQuery;
-    use edgedb_query_derive::{FromFileQuery};
+    use edgedb_query_derive::file_query;
     use edgedb_query::models::edge_query::ToEdgeQuery;
 
-    #[derive(FromFileQuery)]
+    #[file_query(src="edgedb-query-derive/test/from_file_query/add_user.edgeql")]
     pub struct AddUser {
-        #[src("edgedb-query-derive/test/from_file_query/add_user.edgeql")]
-        pub __meta__: (),
         #[param("user_name")]
         pub name: String,
         pub age: i8,
@@ -19,7 +17,6 @@ pub mod from_file {
     #[test]
     fn test() {
         let user = AddUser {
-            __meta__: (),
             name: "Joe".to_string(),
             age: 35,
             friend: "John".to_string(),

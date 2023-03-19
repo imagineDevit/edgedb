@@ -4,507 +4,423 @@ extern crate core;
 extern crate proc_macro;
 
 use proc_macro::TokenStream;
-use syn::{parse_macro_input, DeriveInput};
+use syn::parse_macro_input;
+use crate::insert_query::InsertQuery;
+use crate::{meta_data::{TableInfo, QueryMetaData, }, queries::Query};
+use crate::delete_query::DeleteQuery;
+use crate::edgedb_enum::EdgedbEnum;
+use crate::edgedb_filters::EdgedbFilters;
+use crate::edgedb_sets::EdgedbSets;
+use crate::file_query::FileQuery;
+use crate::meta_data::SrcFile;
+use crate::query_result::QueryResult;
+use crate::select_query::SelectQuery;
+use crate::update_query::UpdateQuery;
 
 mod constants;
-mod shapes;
-mod helpers;
-mod insert;
-mod select;
 mod utils;
-mod delete;
-mod update;
-mod custom;
+mod queries;
+mod tags;
+mod statements;
+mod insert_query;
+mod select_query;
+mod update_query;
+mod delete_query;
+mod builders;
+mod meta_data;
+mod file_query;
+mod query_result;
+mod edgedb_enum;
+mod edgedb_filters;
+mod edgedb_sets;
 
-/// InsertQuery creates implementations of following traits for the annotated struct :
-///  * edgedb_query::ToEdgeValue
-///  * edgedb_query::ToEdgeQl
-///  * edgedb_query::ToEdgeScalar
-///  * edgedb_query::models::edge_query::ToEdgeQuery
-///  * ToString
-///
+/// Create an insert edgeDB query
 ///
 /// ## Usage
 ///
 /// ```rust
-///  use edgedb_protocol::value::Value;
-///  use edgedb_protocol::codec::EnumValue;
-///  use edgedb_query::{*, ToEdgeShape, models::{ edge_query::*, query_result::BasicResult}};
+///     use edgedb_query::{ToEdgeQuery, EdgeQuery};
+///     use edgedb_query::queries::conflict::{UnlessConflictElse, Conflict};
+///     use edgedb_query_derive::{
+///             insert_query,
+///             select_query,
+///             query_result,
+///             edgedb_enum
+///     };
 ///
-///  #[derive(Default, EdgedbResult)]
-///  pub struct UserResult {
-///      pub id: String,
-///      pub name: NameResult,
-///  }
+///     #[insert_query(module ="users", table="User", result="UserResult")]
+///     pub struct InsertUser {
+///         #[field(param="first_name")]
+///         pub name: String,
+///         pub surname: Option<String>,
+///         pub age: i32,
+///         pub major: bool,
+///         pub vs: Vec<String>,
+///         #[field(scalar = "<users::Gender>")]
+///         pub gender: Sex,
+///         #[nested_query]
+///         pub wallet: Wallet,
+///         #[unless_conflict]
+///         pub find_user: UnlessConflictElse<FindUser>
+///     }
 ///
-///  #[derive(EdgedbEnum)]
-///  pub enum Sex {
-///      #[value("male")]
-///      Male,
-///      #[value("female")]
-///      Female,
-///  }
+///     #[edgedb_enum]
+///     pub enum Sex {
+///         #[value("male")]
+///         Male,
+///         #[value("female")]
+///         _Female,
+///     }
 ///
-///  #[derive(InsertQuery)]
-///  pub struct InsertUser {
-///      #[meta(module = "users", table = "User")]
-///      #[result("UserResult")]
-///      __meta__: (),
+///     #[insert_query(module = "users", table = "Wallet")]
+///     pub struct Wallet {
+///         pub money: i16,
+///     }
 ///
-///      pub name: String,
-///      pub surname: Option<String>,
-///      pub age: i32,
-///      pub major: bool,
-///      pub vs: Vec<String>,
-///      #[scalar(type = "enum", module = "users", name = "Gender")]
-///      pub gender: Sex,
-///      #[nested_query]
-///      pub wallet: Wallet,
-///  }
-///  #[derive(InsertQuery)]
-///  pub struct Wallet {
-///      #[meta(module = "users", table = "Wallet")]
-///      __meta__: (),
-///      pub money: i16,
-///  }
+///     #[select_query(module = "users", table = "User")]
+///     pub struct FindUser {
+///         #[filter(operator="Is")]
+///         #[field(column_name="name")]
+///         pub user_name: String
+///     }
 ///
-///  fn main() {
-///     let insert_user = InsertUser {
-///             __meta__: (),
+///     #[query_result]
+///     pub struct UserResult {
+///         pub id: String,
+///         pub name: String,
+///     }
+///
+///     async fn main() {
+///         let insert_user = InsertUser {
 ///             name: "Joe".to_string(),
-///             surname: Some("sj".to_string()),
+///             surname: Some("Henri".to_string()),
 ///             age: 35,
 ///             major: true,
 ///             vs: vec!["vs1".to_string()],
 ///             gender: Sex::Male,
 ///             wallet: Wallet {
-///                 __meta__: (),
-///                 money: 0 }
+///                 money: 0,
+///             },
+///             find_user: UnlessConflictElse {
+///                 fields: Some(vec!["name", "surname"]),
+///                 else_query: Some(FindUser{
+///                     user_name: "Joe".to_string(),
+///                 }),
+///             }
 ///         };
 ///
-///         let query: EdgeQuery = insert_user.to_edge_query();
+///         let query  = insert_user.to_edge_query();
 ///
-///         println!("{:#?}", query.query);
+///         let client = edgedb_tokio::create_client().await.unwrap();
 ///
-///         let expected = r#"
-///            select (
-///               insert users::User {
-///                 name := (select <str>$name),
-///                 surname := (select <str>$surname),
-///                 age := (select <int32>$age),
-///                 major := (select <bool>$major),
-///                 vs := (select <array<str>>$vs),
-///                 gender := (select <users::Gender>$gender),
-///                 wallet := (
-///                     insert users::Wallet{
-///                         money := (select <int16>$money),
-///                     }),
-///                 })
-///                 {
-///                     id,
-///                     name : { name }
-///                 }
-///         "#.to_owned().replace("\n", "");
+///         let _ = client
+///                     .query_single_json(query.query.as_str(), &query.args.unwrap())
+///                     .await
+///                     .unwrap();
 ///
-///         assert_eq!(query.query.replace(" ", ""), expected.replace(" ", ""));
-///
-///         if let Some(Value::Object { shape, mut fields}) = query.args {
-///
-///             crate::test_utils::check_shape(&shape, vec!["name", "surname", "age", "major", "vs", "gender", "money"]);
-///
-///             let vs_val = &insert_user.vs[0];
-///
-///             assert_eq!(fields, vec![
-///                 Some(Value::Str(insert_user.name)),
-///                 Some(Value::Str(insert_user.surname.unwrap())),
-///                 Some(Value::Int32(insert_user.age as i32)),
-///                 Some(Value::Bool(insert_user.major)),
-///                 Some(Value::Array(vec![Value::Str(vs_val.clone())])),
-///                 Some(Value::Enum(EnumValue::from("male"))),
-///                 Some(Value::Int16(insert_user.wallet.money as i16)),
-///             ]);
-///
-///         } else {
-///             assert!(false)
-///         }
-///  }
+///     }
 /// ```
-#[proc_macro_derive(InsertQuery, attributes(meta, result, scalar, param, nested_query, unless_conflict))]
-pub fn insert_query(input: TokenStream) -> TokenStream {
-    let ast_struct = parse_macro_input!(input as DeriveInput);
-    let result = insert::insert_query::do_derive(&ast_struct);
-    result.unwrap_or_else(|e| e.to_compile_error().into())
+#[proc_macro_attribute]
+pub fn insert_query(attr: TokenStream, item: TokenStream) -> TokenStream {
+
+    let meta = parse_macro_input!(attr as QueryMetaData);
+
+    parse_macro_input!(item as InsertQuery)
+        .with_meta(meta)
+        .to_token_stream()
+        .unwrap_or_else(|e| e.to_compile_error().into())
 }
 
-/// FromFileQuery creates implementations of following traits for the annotated struct :
-///  * edgedb_query::ToEdgeValue
-///  * edgedb_query::ToEdgeQl
-///  * edgedb_query::ToEdgeScalar
-///  * edgedb_query::models::edge_query::ToEdgeQuery
-///  * ToString
+/// Create a select edgeDB query
 ///
 /// ## Usage
+///
 /// ```rust
-///     use edgedb_protocol::value::Value;
-///     use edgedb_query_derive::FromFileQuery;
-///     use edgedb_query::{ToEdgeQl, ToEdgeQuery, EdgeQuery};
+///     use edgedb_query_derive::{edgedb_filters, query_result, select_query};
+///     use edgedb_query::models::edge_query::{ToEdgeQuery, EdgeQuery};
+///     use edgedb_query::queries::select::{OrderDir, OrderOptions, SelectOptions};
 ///
+///     #[select_query(module = "users", table = "User", result = "UserResult")]
+///     pub struct SelectQuery {
+///         #[filter(operator = "Is")]
+///         pub name: String,
 ///
-///     #[derive(FromFileQuery)]
-///     pub struct AddUser {
-///         #[src("edgedb-query-derive/test/from_file_query/add_user.edgeql")]
-///         pub __meta__: (),
-///         #[param("user_name")]
+///         #[and_filter(operator = "GreaterThan")]
+///         pub age: i8,
+///
+///         #[options]
+///         options: SelectOptions
+///     }
+///
+///     #[query_result]
+///     pub struct UserResult {
+///         pub id: String,
 ///         pub name: String,
 ///         pub age: i8,
 ///     }
 ///
-///     fn main() {
-///         let user = AddUser {
-///             __meta__: (),
-///             name: "Joe".to_string(),
-///             age: 35
-///         };
+///     async fn main() {
+///          let client = edgedb_tokio::create_client().await.unwrap();
 ///
-///         let ql = include_str!("add_user.edgeql");
-///
-///         let query: EdgeQuery = user.to_edge_query();
-///
-///         assert_eq!(ql, query.query.as_str());
-///
-///         if let Some(Value::Object { shape, fields }) = query.args {
-///             crate::test_utils::check_shape(
-///                 &shape,
-///                 vec!["user_name", "age"],
-///             );
-///
-///             assert_eq!(
-///                 fields,
-///                 vec![
-///                     Some(Value::Str(user.name)),
-///                     Some(Value::Int16(user.age as i16)),
-///                 ]
-///             );
-///
-///         } else {
-///             assert!(false)
-///         }
-///     }
-///
-/// ```
-///
-#[proc_macro_derive(FromFileQuery, attributes(src, param))]
-pub fn from_file_query(input: TokenStream) -> TokenStream {
-    let ast_struct = parse_macro_input!(input as DeriveInput);
-    let result = custom::from_file_query::do_derive(&ast_struct);
-    result.unwrap_or_else(|e| e.to_compile_error().into())
-}
-
-/// SelectQuery creates implementations of following traits for the annotated struct :
-///  * edgedb_query::ToEdgeValue
-///  * edgedb_query::ToEdgeQl
-///  * edgedb_query::ToEdgeScalar
-///  * edgedb_query::models::edge_query::ToEdgeQuery
-///  * ToString
-///
-/// ## Usage
-///
-/// ```rust
-/// use edgedb_protocol::value::Value;
-///  use edgedb_protocol::codec::EnumValue;
-///  use edgedb_query::{*, ToEdgeShape, models::{ edge_query::*, query_result::BasicResult}};
-///  use edgedb_query::queries::{select::{OrderDir, OrderOptions, SelectOptions} , filter::Filter};
-///
-///  #[derive(SelectQuery)]
-///  pub struct FindMajorUsersWithOptions {
-///      #[meta(module = "users", table = "User")]
-///      #[result("UserResult")]
-///      __meta__: (),
-///
-///      #[options]
-///      options: SelectOptions<'static>,
-///
-///      #[filter(operator = "GreaterThanOrEqual")]
-///      pub age: i8,
-///  }
-///
-///  #[derive(Default, EdgedbResult)]
-///  pub struct UserResult {
-///      pub id: String,
-///      pub name: String,
-///  }
-///
-///  fn main() {
-///     let q = FindMajorUsersWithOptions {
-///             __meta__ : (),
+///          let select_query =  SelectQuery {
 ///             options: SelectOptions {
-///                 table_name: "User",
-///                 module: Some("users"),
 ///                 order_options: Some(OrderOptions {
 ///                     order_by: "name".to_string(),
 ///                     order_direction: Some(OrderDir::Desc)
 ///                 }),
 ///                 page_options: None
 ///             },
+///             name:  "Joe".to_string(),
 ///             age: 18
 ///         };
 ///
-///         let edge_query : EdgeQuery = q.to_edge_query();
+///         let query = select_query.to_edge_query();
 ///
-///         let expected = "select users::User {id,name,age} filter users::User.age >= (select <int16>$age) order by users::User.name desc";
-///
-///         assert_eq!(edge_query.query, expected);
-///
-///         if let Some(Value::Object { shape, fields }) = edge_query.args {
-///             crate::test_utils::check_shape(&shape, vec!["age"]);
-///             assert_eq!(fields, vec![
-///                 Some(Value::Int16(q.age as i16))
-///             ])
-///         } else {
-///             assert!(false)
-///         }
-///  }
-/// ```
-#[proc_macro_derive(SelectQuery, attributes(meta, result, filter, filters, options))]
-pub fn select_query(input: TokenStream) -> TokenStream {
-    let ast_struct = parse_macro_input!(input as DeriveInput);
-
-    let result = select::select_query::do_derive(&ast_struct);
-    result.unwrap_or_else(|e| e.to_compile_error().into())
-}
-
-/// UpdateQuery creates implementations of following traits for the annotated struct :
-///  * edgedb_query::ToEdgeValue
-///  * edgedb_query::ToEdgeQl
-///  * edgedb_query::ToEdgeScalar
-///  * edgedb_query::models::edge_query::ToEdgeQuery
-///  * ToString
-///
-/// ## Usage
-///
-/// ```rust
-///  use edgedb_protocol::value::Value;
-///  use edgedb_query_derive::{EdgedbSet, UpdateQuery, EdgedbFilters};
-///  use edgedb_query::{ToEdgeScalar, ToEdgeQl, ToEdgeValue, queries::filter::Filter, models::edge_query::{ToEdgeQuery}};
-///  use crate::test_utils::check_shape;
-///
-///  #[derive(EdgedbSet)]
-///  pub struct MySet {
-///      pub name: String,
-///  }
-///
-///  #[derive(EdgedbFilters)]
-///  pub struct MyFilter {
-///      #[filter(operator="=", column_name="identity.first_name", wrapper_fn="str_lower")]
-///      pub first_name: String,
-///      #[filter(operator=">=",  conjunctive="And")]
-///      pub age: i8,
-///  }
-///
-///  #[derive(UpdateQuery)]
-///  pub struct UpdateUserName {
-///      #[meta(module = "users", table="User")]
-///      __meta__: (),
-///      #[set]
-///      pub set: MySet,
-///      #[filters]
-///      pub filter: MyFilter,
-///  }
-///
-///     pub fn main() {
-///         let q = UpdateUserName {
-///             __meta__: (),
-///             set: MySet {
-///                 name: "Joe".to_string()
-///             },
-///             filter: MyFilter {
-///                 first_name :"Henri".to_string(),
-///                 age : 18
-///             }
-///         };
-///
-///         let eq = q.to_edge_query();
-///
-///         let expected_query = r#"
-///             update users::User
-///             filter str_lower(users::User.identity.first_name) = (select <str>$first_name)
-///             and users::User.age >= (select <int16>$age)
-///             set {
-///                 name := (select <str>$name)
-///             }
-///         "#.to_owned().replace("\n", "");
-///
-///         assert_eq!(eq.query.replace(" ", ""), expected_query.replace(" ", ""));
-///
-///         if let Some(Value::Object { shape, fields}) = eq.args {
-///             check_shape(&shape, vec!["first_name", "age", "name"]);
-///
-///             assert_eq!(fields, vec![
-///                 Some(Value::Str(q.filter.first_name)),
-///                 Some(Value::Int16(q.filter.age as i16)),
-///                 Some(Value::Str(q.set.name)),
-///             ]);
-///         }
-///
+///         let _ = client
+///                 .query_single_json(query.query.as_str(), &query.args.unwrap())
+///                 .await
+///                 .unwrap();
 ///     }
 /// ```
-#[proc_macro_derive(UpdateQuery, attributes(meta, set, filters))]
-pub fn update_query(input: TokenStream) -> TokenStream {
-    let ast_struct = parse_macro_input!(input as DeriveInput);
-    let result = update::update_query::do_derive(&ast_struct);
-    result.unwrap_or_else(|e| e.to_compile_error().into())
+///
+#[proc_macro_attribute]
+pub fn select_query(attr: TokenStream, item: TokenStream) -> TokenStream {
+
+    let meta = parse_macro_input!(attr as QueryMetaData);
+
+    parse_macro_input!(item as SelectQuery)
+        .with_meta(meta)
+        .to_token_stream()
+        .unwrap_or_else(|e| e.to_compile_error().into())
 }
 
-/// UpdateQuery creates implementations of following traits for the annotated struct :
-///  * edgedb_query::ToEdgeValue
-///  * edgedb_query::ToEdgeQl
-///  * edgedb_query::ToEdgeScalar
-///  * edgedb_query::models::edge_query::ToEdgeQuery
-///  * ToString
+/// Create an update edgeDB query
 ///
 /// ## Usage
 ///
 /// ```rust
-/// use edgedb_protocol::value::Value;
-/// use edgedb_query_derive::{DeleteQuery, EdgedbFilters};
-/// use edgedb_query::{*, queries::filter::Filter, models::{edge_query::{ToEdgeQuery, EdgeQuery}}};
+///     use edgedb_query_derive::{update_query};
+///     use edgedb_query::models::edge_query::ToEdgeQuery;
 ///
-/// #[derive(DeleteQuery)]
-///  pub struct DeleteUsersByName {
-///    #[meta(module="users", table="User")]
-///    __meta__: (),
-///    #[filters]
-///    pub filters: NameFilter
-///  }
+///     #[update_query(module = "users", table = "User")]
+///     pub struct UpdateUser {
+///          pub name: String,
 ///
-///  #[derive(EdgedbFilters)]
-///  pub struct NameFilter {
-///    #[filter(operator="=")]
-///    pub name: String
-///  }
+///          #[filter(operator = "=", wrapper_fn = "str_lower")]
+///          #[field(column_name = "identity.first_name")]
+///          pub first_name: String,
 ///
-///  fn main() {
-///   let del_users = DeleteUsersByName {
-///             __meta__: (),
-///             filters: NameFilter {
-///                 name: "Joe".to_owned()
-///             }
+///          #[and_filter(operator = ">=")]
+///          pub age: i8,
+///      }
+///
+///     async fn main() {
+///          let client = edgedb_tokio::create_client().await.unwrap();
+///          let update_query = UpdateUser {
+///             name: "Joe".to_string(),
+///             first_name: "Henri".to_string(),
+///             age: 18,
 ///         };
 ///
-///         let edge_query: EdgeQuery = del_users.to_edge_query();
+///         let query = update_query.to_edge_query();
 ///
-///         assert_eq!(edge_query.query, "delete users::User filter users::User.name = (select <str>$name)");
-///
-///         if let Some(Value::Object { shape, fields }) = edge_query.args {
-///             crate::test_utils::check_shape(&shape, vec!["name"]);
-///             assert_eq!(fields, vec![
-///                 Some(Value::Str(del_users.filters.name ))
-///             ])
-///         } else {
-///             assert!(false)
-///         }
-///  }
-///
+///         let _ = client
+///                 .query_single_json(query.query.as_str(), &query.args.unwrap())
+///                 .await
+///                 .unwrap();
+///     }
 /// ```
-#[proc_macro_derive(DeleteQuery, attributes(meta, filter, filters))]
-pub fn delete_query(input: TokenStream) -> TokenStream {
-    let ast_struct = parse_macro_input!(input as DeriveInput);
-    let result = delete::delete_query::do_derive(&ast_struct);
-    result.unwrap_or_else(|e| e.to_compile_error().into())
+#[proc_macro_attribute]
+pub fn update_query(attr: TokenStream, item: TokenStream) -> TokenStream {
+
+    let meta = parse_macro_input!(attr as TableInfo);
+
+    parse_macro_input!(item as UpdateQuery)
+        .with_meta(meta)
+        .to_token_stream()
+        .unwrap_or_else(|e| e.to_compile_error().into())
 }
 
-/// EdgedbEnum creates implementations of following traits for the annotated struct :
-///  * edgedb_query::ToEdgeValue
-///  * edgedb_query::ToEdgeQl
-///  * edgedb_query::ToEdgeScalar
-///  * ToString
+/// Create a delete edgeDB query
 ///
 /// ## Usage
 ///
 /// ```rust
-/// #[EdgedbEnum]
-/// pub enum TodoStatus {
-///     #[value("TodoReady")]
-///     Ready,
-///     #[value("TodoComplete")]
-///     Complete
-/// }
+///     use edgedb_query_derive::{delete_query};
+///     use edgedb_query::models::edge_query::ToEdgeQuery;
 ///
+///     #[delete_query(module ="users", table="User")]
+///     pub struct DeleteUsersByAge {
+///
+///         #[filter(operator="=")]
+///         pub age: i16
+///     }
+///
+///     async fn main() {
+///          let client = edgedb_tokio::create_client().await.unwrap();
+///          let delete_query = DeleteUsersByAge {
+///             age: 18,
+///         };
+///
+///         let query = delete_query.to_edge_query();
+///
+///         let _ = client
+///                 .query_single_json(query.query.as_str(), &query.args.unwrap())
+///                 .await
+///                 .unwrap();
+///     }
 /// ```
-#[proc_macro_derive(EdgedbEnum, attributes(value))]
-pub fn edgedb_enum(input: TokenStream) -> TokenStream {
-    let ast_struct = parse_macro_input!(input as DeriveInput);
-    let result = shapes::edgedb_enum::do_derive(&ast_struct);
-    result.unwrap_or_else(|e| e.to_compile_error().into())
+#[proc_macro_attribute]
+pub fn delete_query(attr: TokenStream, item: TokenStream) -> TokenStream {
+
+    let meta = parse_macro_input!(attr as TableInfo);
+
+    parse_macro_input!(item as DeleteQuery)
+        .with_meta(meta)
+        .to_token_stream()
+        .unwrap_or_else(|e| e.to_compile_error().into())
 }
 
-/// EdgedbResult creates implementations of following traits for the annotated struct :
-///  * edgedb_query::ToEdgeShape
-///  * edgedb_query::ToEdgeScalar
-///
-/// ## Usage
-///
-/// ``` rust
-///  use edgedb_query_derive::EdgedbResult;
-/// #[derive(Default, EdgedbResult)]
-///  pub struct UserResult {
-///     pub id: String,
-///     pub name: String,
-/// }
-/// ```
-#[proc_macro_derive(EdgedbResult, attributes(field, back_link))]
-pub fn edgedb_result(input: TokenStream) -> TokenStream {
-    let ast_struct = parse_macro_input!(input as DeriveInput);
-    let result = shapes::edgedb_result::do_derive(&ast_struct);
-    result.unwrap_or_else(|e| e.to_compile_error().into())
-}
-
-/// EdgedbFilters creates implementation of following traits for the annotated struct :
-///  * edgedb_query::queries::filter::Filter
+/// Create an edgeDB query based on a source file
 ///
 /// ## Usage
 ///
 /// ```rust
-/// use edgedb_query_derive::EdgedbFilters;
-/// #[derive(EdgedbFilters)]
-/// pub struct NameFilter {
-///     #[filter(Is)]
-///     pub name: String,
-/// }
+///     use edgedb_query_derive::{file_query};
+///     use edgedb_query::models::edge_query::ToEdgeQuery;
+///
+///     #[file_query(src="edgedb-query-derive/test/from_file_query/add_user.edgeql")]
+///     pub struct AddUser {
+///         #[param("user_name")]
+///         pub name: String,
+///         pub age: i8,
+///         #[param("friend_name")]
+///         pub friend: String,
+///     }
+///
+///     async fn main() {
+///          let client = edgedb_tokio::create_client().await.unwrap();
+///          let add_user = AddUser {
+///             name: "Joe".to_string(),
+///             friend: "Henri".to_string(),
+///         };
+///
+///         let query = add_user.to_edge_query();
+///
+///         let _ = client
+///                 .query_single_json(query.query.as_str(), &query.args.unwrap())
+///                 .await
+///                 .unwrap();
+///     }
 /// ```
-#[proc_macro_derive(EdgedbFilters, attributes(filter, param))]
-pub fn edgedb_filters(input: TokenStream) -> TokenStream {
-    let ast_struct = parse_macro_input!(input as DeriveInput);
-    let result = shapes::edgedb_filter::do_derive(&ast_struct);
-    result.unwrap_or_else(|e| e.to_compile_error().into())
+#[proc_macro_attribute]
+pub fn file_query(attr: TokenStream, item: TokenStream) -> TokenStream {
+
+    let meta = parse_macro_input!(attr as SrcFile);
+
+    parse_macro_input!(item as FileQuery)
+        .with_meta(meta)
+        .validate()
+        .and_then(|q| q.to_token_stream())
+        .unwrap_or_else(|e| e.to_compile_error().into())
 }
 
-/// EdgedbSet creates implementations of following traits for the annotated struct :
-///  * edgedb_query::ToEdgeQl
-///  * edgedb_query::ToEdgeValue
-///
+/// Represents a query result
 ///
 /// ## Usage
 ///
 /// ```rust
-///  use edgedb_query_derive::{EdgedbEnum, EdgedbSet};
-/// #[derive(EdgedbSet)]
-///  pub struct MySet {
-///      #[field(column_name="first_name", assignment = "Concat")]
-///      #[scalar(type="str")]
-///      pub name: String,
-///      #[scalar(type="enum", name="State", module="default")]
-///      pub status: Status
-///  }
+///     use edgedb_query_derive::query_result;
 ///
-///  #[derive(EdgedbEnum)]
-///  pub enum Status {
-///      Open, _Closed
-///  }
+///     #[query_result]
+///     pub struct UserWithFriendAndFieldAndWrapperFn {
+///         #[field(column_name="pseudo", wrapper_fn="str_upper", default_value="john")]
+///         pub login: String,
+///         pub identity: Identity,
+///         #[back_link(
+///         module="users",
+///         source_table="User",
+///         target_table="Friend",
+///         target_column="friend",
+///         result="Friend"
+///         )]
+///         pub friend: Friend,
+///     }
 /// ```
-#[proc_macro_derive(EdgedbSet, attributes(scalar, field, param, nested_query))]
-pub fn edgedb_set(input: TokenStream) -> TokenStream {
-    let ast_struct = parse_macro_input!(input as DeriveInput);
-    let result = shapes::edgedb_set::do_derive(&ast_struct);
-    result.unwrap_or_else(|e| e.to_compile_error().into())
+#[proc_macro_attribute]
+pub fn query_result(_: TokenStream, item: TokenStream) -> TokenStream {
+    parse_macro_input!(item as QueryResult)
+        .to_token_stream()
+        .unwrap_or_else(|e| e.to_compile_error().into())
+}
+
+/// Represents an edgeDB enum type
+///
+/// ## Usage
+///
+/// ```rust
+///     use edgedb_query_derive::edgedb_enum;
+///
+///     #[edgedb_enum]
+///     pub enum Sex {
+///         #[value("man")]
+///         Male,
+///         #[value("woman")]
+///         Female,
+///     }
+/// ```
+#[proc_macro_attribute]
+pub fn edgedb_enum(_: TokenStream, item: TokenStream) -> TokenStream {
+    parse_macro_input!(item as EdgedbEnum)
+        .to_token_stream()
+        .unwrap_or_else(|e| e.to_compile_error().into())
+}
+
+/// Represents a list of edgeDB query filters
+///
+/// ## Usage
+///
+/// ```rust
+///     use edgedb_query_derive::edgedb_filters;
+///
+///     #[edgedb_filters]
+///     pub struct MyFilter {
+///         #[field(column_name="identity.first_name", param = "first_name")]
+///         #[filter(operator="=",  wrapper_fn="str_lower")]
+///         pub name: String,
+///         #[or_filter(operator=">=")]
+///         pub age: i8
+///     }
+/// ```
+#[proc_macro_attribute]
+pub fn edgedb_filters(_: TokenStream, item: TokenStream) -> TokenStream {
+    parse_macro_input!(item as EdgedbFilters)
+        .to_token_stream()
+        .unwrap_or_else(|e| e.to_compile_error().into())
+}
+
+/// Create an list of update edgeDB query sets
+///
+/// ## Usage
+///
+/// ```rust
+///     use edgedb_query_derive::edgedb_sets;
+///
+///
+///     #[edgedb_sets]
+///     pub struct MySet {
+///         #[field(column_name="first_name", param = "user_name", scalar="<str>")]
+///         #[set(option="Concat")]
+///         pub name: String,
+///         #[field(scalar="default::State")]
+///         pub status: Status,
+///         #[nested_query]
+///         pub users: FindUsers
+///     }
+/// ```
+#[proc_macro_attribute]
+pub fn edgedb_sets(_: TokenStream, item: TokenStream) -> TokenStream {
+    parse_macro_input!(item as EdgedbSets)
+        .to_token_stream()
+        .unwrap_or_else(|e| e.to_compile_error().into())
 }

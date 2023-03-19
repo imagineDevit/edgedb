@@ -1,16 +1,17 @@
 
 mod filter {
-    use edgedb_query_derive::EdgedbFilters;
+    use edgedb_query_derive::{edgedb_filters};
     use edgedb_query::{queries::filter::Filter};
     use edgedb_protocol::value::Value;
 
-    #[derive(EdgedbFilters)]
+
+    #[edgedb_filters]
     pub struct MyFilter {
-        #[filter(operator="=", column_name="identity.first_name", wrapper_fn="str_lower")]
-        #[param("first_name")]
+        #[field(column_name="identity.first_name", param = "first_name")]
+        #[filter(operator="=",  wrapper_fn="str_lower")]
         pub name: String,
-        #[filter(operator=">=",  conjunctive="And")]
-        pub age: i8,
+        #[and_filter(operator=">=")]
+        pub age: i8
     }
 
     #[test]
@@ -24,7 +25,7 @@ mod filter {
 
         let value: Value = filter.to_edge_value();
 
-        assert_eq!(query, "filter str_lower(users::User.identity.first_name) = (select <str>$first_name) and users::User.age >= (select <int16>$age)");
+        assert_eq!(query, " filter str_lower(users::User.identity.first_name) = (select <str>$first_name) and users::User.age >= (select <int16>$age)");
 
         if let Value::Object { shape, fields } = value {
             crate::test_utils::check_shape(&shape, vec!["first_name", "age"]);

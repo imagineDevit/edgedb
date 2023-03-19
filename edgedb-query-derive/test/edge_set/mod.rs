@@ -4,30 +4,28 @@ mod tests {
     use edgedb_protocol::codec::EnumValue;
     use edgedb_protocol::value::Value;
     use edgedb_query::{ToEdgeValue, ToEdgeQl};
-    use edgedb_query_derive::{EdgedbSet, EdgedbEnum, SelectQuery};
+    use edgedb_query_derive::{select_query, edgedb_enum, edgedb_sets};
     use crate::test_utils::check_shape;
 
-    #[derive(EdgedbSet)]
+
+    #[edgedb_sets]
     pub struct MySet {
-        #[field(column_name="first_name", assignment = "Concat")]
-        #[scalar(type="str")]
-        #[param("user_name")]
+        #[field(column_name="first_name", param = "user_name", scalar="<str>")]
+        #[set(option="Concat")]
         pub name: String,
-        #[scalar(type="enum", name="State", module="default")]
+        #[field(scalar="default::State")]
         pub status: Status,
         #[nested_query]
         pub users: FindUsers
     }
 
-    #[derive(EdgedbEnum)]
+    #[edgedb_enum]
     pub enum Status {
         Open, _Closed
     }
 
-    #[derive(SelectQuery)]
+    #[select_query(module = "users", table = "User")]
     pub struct FindUsers {
-        #[meta(module = "users", table = "User")]
-        __meta__: (),
         #[filter(operator = "Is")]
         pub name: String
     }
@@ -37,10 +35,10 @@ mod tests {
         let set = MySet {
             name: "Joe".to_owned(),
             status: Status::Open,
-            users: FindUsers { __meta__: (), name: "Joe".to_owned() }
+            users: FindUsers {name: "Joe".to_owned() }
         };
 
-        assert_eq!("set { first_name := .first_name ++ (select <str>$user_name), status := (select <default::State>$status), users := (select users::User  filter users::User.name = (select <str>$name))}", set.to_edgeql());
+        assert_eq!("set { first_name := .first_name ++ (select <str>$user_name), status := (select <default::State>$status), users := (select users::User filter users::User.name = (select <str>$name)) }", set.to_edgeql());
 
 
         if let Value::Object { shape, fields} = set.to_edge_value() {

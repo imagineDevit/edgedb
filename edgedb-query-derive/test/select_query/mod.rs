@@ -1,30 +1,25 @@
 #[cfg(test)]
 mod select {
     use edgedb_protocol::value::Value;
-    use edgedb_query_derive::{SelectQuery, EdgedbResult, EdgedbFilters};
+    use edgedb_query_derive::{edgedb_filters, query_result, select_query};
     use edgedb_query::models::edge_query::{ToEdgeQuery, EdgeQuery};
     use edgedb_query::queries::select::{OrderDir, OrderOptions, SelectOptions};
 
-    #[derive(Default, EdgedbResult)]
+
+    #[query_result]
     pub struct UserResult {
         pub id: String,
         pub name: String,
         pub age: i8,
     }
 
-    #[derive(SelectQuery)]
-    pub struct FindUsers {
-        #[meta(module = "users", table = "User")]
-        #[result("UserResult")]
-        __meta__: (),
-    }
+    #[select_query(module = "users", table = "User", result = "UserResult")]
+    pub struct FindUsers {}
 
     #[test]
     pub fn find_users_test() {
 
-        let q = FindUsers {
-            __meta__ : ()
-        };
+        let q = FindUsers {};
 
         let edge_query : EdgeQuery = q.to_edge_query();
 
@@ -39,12 +34,8 @@ mod select {
         }
     }
 
-    #[derive(SelectQuery)]
+    #[select_query(module = "users", table = "User", result = "UserResult")]
     pub struct FindUsersByNameExists {
-        #[meta(module = "users", table = "User")]
-        #[result("UserResult")]
-        __meta__: (),
-
         #[filter(operator = "Exists")]
         pub name: (),
     }
@@ -53,7 +44,6 @@ mod select {
     pub fn filter_exists_test() {
 
         let q = FindUsersByNameExists {
-            __meta__ : (),
             name: (),
         };
 
@@ -64,12 +54,8 @@ mod select {
         assert_eq!(edge_query.query, expected_query);
     }
 
-    #[derive(SelectQuery)]
+    #[select_query(module = "users", table = "User", result = "UserResult")]
     pub struct FindUsersByNameNotExists {
-        #[meta(module = "users", table = "User")]
-        #[result("UserResult")]
-        __meta__: (),
-
         #[filter(operator = "NotExists")]
         pub name: (),
     }
@@ -78,7 +64,6 @@ mod select {
     pub fn filter_not_exists_test() {
 
         let q = FindUsersByNameNotExists {
-            __meta__ : (),
             name: (),
         };
 
@@ -89,12 +74,8 @@ mod select {
         assert_eq!(edge_query.query, expected_query);
     }
 
-    #[derive(SelectQuery)]
+    #[select_query(module = "users", table = "User", result = "UserResult")]
     pub struct FindUsersByNameIs {
-        #[meta(module = "users", table = "User")]
-        #[result("UserResult")]
-        __meta__: (),
-
         #[filter(operator = "Is")]
         pub name: String,
     }
@@ -103,7 +84,6 @@ mod select {
     pub fn filter_is_test() {
 
         let q = FindUsersByNameIs {
-            __meta__ : (),
             name: String::from("Joe"),
         };
 
@@ -114,12 +94,8 @@ mod select {
         ], "<str>");
     }
 
-    #[derive(SelectQuery)]
+    #[select_query(module = "users", table = "User", result = "UserResult")]
     pub struct FindUsersByNameIsNot {
-        #[meta(module = "users", table = "User")]
-        #[result("UserResult")]
-        __meta__: (),
-
         #[filter(operator = "IsNot")]
         pub name: String,
     }
@@ -128,7 +104,6 @@ mod select {
     pub fn filter_is_not_test() {
 
         let q = FindUsersByNameIsNot {
-            __meta__ : (),
             name: String::from("Joe"),
         };
 
@@ -139,12 +114,8 @@ mod select {
         ], "<str>");
     }
 
-    #[derive(SelectQuery)]
+    #[select_query(module = "users", table = "User", result = "UserResult")]
     pub struct FindUsersByNameLike {
-        #[meta(module = "users", table = "User")]
-        #[result("UserResult")]
-        __meta__: (),
-
         #[filter(operator = "Like")]
         pub name: String,
     }
@@ -153,7 +124,6 @@ mod select {
     pub fn filter_like_test() {
 
         let q = FindUsersByNameLike {
-            __meta__ : (),
             name: String::from("Joe"),
         };
 
@@ -164,11 +134,8 @@ mod select {
         ], "<str>");
     }
 
-    #[derive(SelectQuery)]
+    #[select_query(module = "users", table = "User", result = "UserResult")]
     pub struct FindUsersByNameILike {
-        #[meta(module = "users", table = "User")]
-        #[result("UserResult")]
-        __meta__: (),
 
         #[filter(operator = "ILike")]
         pub name: String,
@@ -178,7 +145,6 @@ mod select {
     pub fn filter_ilike_test() {
 
         let q = FindUsersByNameILike {
-            __meta__ : (),
             name: String::from("Joe"),
         };
 
@@ -189,21 +155,16 @@ mod select {
         ], "<str>");
     }
 
-    #[derive(SelectQuery)]
+    #[select_query(module = "users", table = "User", result = "UserResult")]
     pub struct FindUsersByNameIn {
-        #[meta(module = "users", table = "User")]
-        #[result("UserResult")]
-        __meta__: (),
-
         #[filter(operator = "In")]
-        pub name: Vec<String>,
+        pub name: Vec<String>
     }
 
     #[test]
     pub fn filter_in_test() {
 
         let q = FindUsersByNameIn {
-            __meta__ : (),
             name: vec![String::from("Joe")],
         };
 
@@ -229,16 +190,12 @@ mod select {
         }
     }
 
-    #[derive(SelectQuery)]
+    #[select_query(module = "users", table = "User", result = "UserResult")]
     pub struct FindUsersByNameAndAgeGreaterThan {
-        #[meta(module = "users", table = "User")]
-        #[result("UserResult")]
-        __meta__: (),
-
         #[filter(operator = "Is")]
         pub name: String,
 
-        #[filter(operator = "GreaterThan", conjunctive="And")]
+        #[and_filter(operator = "GreaterThan")]
         pub age: i8,
     }
 
@@ -246,14 +203,13 @@ mod select {
     pub fn filter_is_and_test() {
 
         let q = FindUsersByNameAndAgeGreaterThan {
-            __meta__ : (),
             name: String::from("Joe"),
             age: 25
         };
 
         let edge_query : EdgeQuery = q.to_edge_query();
 
-        let expected = format!("select users::User {{id,name,age}} filter users::User.name = (select <str>$name) and users::User.age > (select <int16>$age)");
+        let expected = "select users::User {id,name,age} filter users::User.name = (select <str>$name) and users::User.age > (select <int16>$age)".to_string();
 
         assert_eq!(edge_query.query, expected);
 
@@ -269,14 +225,11 @@ mod select {
     }
 
 
-    #[derive(SelectQuery)]
+    #[select_query(module = "users", table = "User", result = "UserResult")]
     pub struct FindMajorUsersWithOptions {
-        #[meta(module = "users", table = "User")]
-        #[result("UserResult")]
-        __meta__: (),
 
         #[options]
-        options: SelectOptions<'static>,
+        options: SelectOptions,
 
         #[filter(operator = "GreaterThanOrEqual")]
         pub age: i8,
@@ -286,10 +239,7 @@ mod select {
     pub fn filter_select_options_attributes_test() {
 
         let q = FindMajorUsersWithOptions {
-            __meta__ : (),
             options: SelectOptions {
-                table_name: "User",
-                module: Some("users"),
                 order_options: Some(OrderOptions {
                     order_by: "name".to_string(),
                     order_direction: Some(OrderDir::Desc)
@@ -315,20 +265,17 @@ mod select {
         }
     }
 
-    #[derive(SelectQuery)]
+    #[select_query(module = "users", table = "User", result = "UserResult")]
     pub struct FindMajorUsersWithFilters {
-        #[meta(module = "users", table = "User")]
-        #[result("UserResult")]
-        __meta__: (),
 
         #[options]
-        options: SelectOptions<'static>,
+        options: SelectOptions,
 
         #[filters]
         filters: AgeFilter,
     }
 
-    #[derive(EdgedbFilters)]
+    #[edgedb_filters]
     pub struct AgeFilter {
         #[filter(operator="GreaterThanOrEqual")]
         pub age: i8
@@ -338,10 +285,7 @@ mod select {
     pub fn filters_select_options_attributes_test() {
 
         let q = FindMajorUsersWithFilters {
-            __meta__ : (),
             options: SelectOptions {
-                table_name: "User",
-                module: Some("users"),
                 order_options: Some(OrderOptions {
                     order_by: "name".to_string(),
                     order_direction: Some(OrderDir::Desc)
@@ -368,4 +312,6 @@ mod select {
             assert!(false)
         }
     }
+
+
 }

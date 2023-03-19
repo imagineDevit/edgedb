@@ -2,35 +2,28 @@
 #[cfg(test)]
 mod delete {
     use edgedb_protocol::value::Value;
-    use edgedb_query_derive::{DeleteQuery, EdgedbFilters};
+    use edgedb_query_derive::{delete_query, edgedb_filters};
     use edgedb_query::models::{edge_query::{ToEdgeQuery, EdgeQuery}};
 
-    #[derive(DeleteQuery)]
-    pub struct DeleteUsers {
-        #[meta(module="users", table="User")]
-        __meta__: ()
-    }
+    #[delete_query(module ="users", table="User")]
+    pub struct DeleteUsers;
 
     #[test]
     pub fn delete_users_test() {
-        let del_users = DeleteUsers {
-            __meta__: ()
-        };
+        let del_users = DeleteUsers{};
 
         let edge_query: EdgeQuery = del_users.to_edge_query();
 
         assert_eq!(edge_query.query, "delete users::User");
     }
 
-    #[derive(DeleteQuery)]
+    #[delete_query(module ="users", table="User")]
     pub struct DeleteUsersByName {
-        #[meta(module="users", table="User")]
-        __meta__: (),
         #[filters]
         pub filters: NameFilter
     }
 
-    #[derive(EdgedbFilters)]
+    #[edgedb_filters]
     pub struct NameFilter {
         #[filter(operator="=")]
         pub name: String
@@ -39,7 +32,6 @@ mod delete {
     #[test]
     pub fn delete_users_by_name_test() {
         let del_users = DeleteUsersByName {
-            __meta__: (),
             filters: NameFilter {
                 name: "Joe".to_owned()
             }
@@ -59,10 +51,8 @@ mod delete {
         }
     }
 
-    #[derive(DeleteQuery)]
+    #[delete_query(module ="users", table="User")]
     pub struct DeleteUsersByAge {
-        #[meta(module="users", table="User")]
-        __meta__: (),
 
         #[filter(operator="=")]
         pub age: i16
@@ -71,7 +61,6 @@ mod delete {
     #[test]
     pub fn delete_users_by_age_test() {
         let del_users = DeleteUsersByAge{
-            __meta__: (),
             age: 25
         };
 

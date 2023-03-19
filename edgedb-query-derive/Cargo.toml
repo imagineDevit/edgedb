@@ -1,6 +1,6 @@
 [package]
 name = "edgedb-query-derive"
-version = "0.1.6"
+version = "0.1.7"
 description = "Crate that provide a bunch of derive macros that help to build EdgeDB query using edgedb-tokio crate"
 authors = ["hsedjame <sedhjodev@gmail.com>"]
 repository = "https://github.com/imagineDevit/edgedb/tree/main/edgedb-query-derive"
@@ -26,8 +26,8 @@ serde_json = "1.0"
 regex = "1.7.0"
 edgedb = "0.1"
 edgedb-protocol = "0.4"
-#edgedb-query = "0.1.6"
-edgedb-query = { path = "../edgedb-query"}
+edgedb-query = "0.1.7"
+#edgedb-query = { path = "../edgedb-query"}
 
 [dev-dependencies]
 trybuild = { version = "1.0", features = ["diff"] }
