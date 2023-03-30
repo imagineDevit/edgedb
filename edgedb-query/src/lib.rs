@@ -69,9 +69,13 @@ pub trait EdgeResult {
 _to_edgeql_and_to_edge_scalar_impls!(
     String => { scalar: "<str>" },
     i8 => { scalar: "<int16>" },
+    u8 => { scalar: "<int16>" },
     i16 => { scalar: "<int16>" },
+    u16 => { scalar: "<int16>" },
     i32 => { scalar: "<int32>" },
+    u32 => { scalar: "<int32>" },
     i64 => { scalar: "<int64>" },
+    u64 => { scalar: "<int64>" },
     f32 => { scalar: "<float32>" },
     f64 => { scalar: "<float64>" },
     bool => { scalar: "<bool>" },
@@ -132,9 +136,21 @@ impl ToEdgeValue for i8 {
     }
 }
 
+impl ToEdgeValue for u8 {
+    fn to_edge_value(&self) -> Value {
+        Value::Int16(*self as i16)
+    }
+}
+
 impl ToEdgeValue for i16 {
     fn to_edge_value(&self) -> Value {
         Value::Int16(*self)
+    }
+}
+
+impl ToEdgeValue for u16 {
+    fn to_edge_value(&self) -> Value {
+        Value::Int16(*self as i16)
     }
 }
 
@@ -144,9 +160,24 @@ impl ToEdgeValue for i32 {
     }
 }
 
+
+impl ToEdgeValue for u32 {
+    fn to_edge_value(&self) -> Value {
+        Value::Int32(*self as i32)
+    }
+}
+
 impl ToEdgeValue for i64 {
     fn to_edge_value(&self) -> Value {
         Value::Int64(*self)
+    }
+}
+
+
+
+impl ToEdgeValue for u64 {
+    fn to_edge_value(&self) -> Value {
+        Value::Int64(*self as i64)
     }
 }
 

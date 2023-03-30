@@ -10,7 +10,7 @@ mod conflict_test {
 
     impl ToEdgeQl for FindUser {
         fn to_edgeql(&self) -> String {
-            format!("select users")
+            "select users".to_string()
         }
     }
 
@@ -28,38 +28,34 @@ mod conflict_test {
     fn parse_conflict_with_on_and_else_fn() {
 
         let insert_conflict = UnlessConflictElse {
-            fields: Some(vec!["name", "age"]),
-            else_query: Some(FindUser{}),
+            else_query: FindUser{},
         };
 
-        let stmt = parse_conflict(&insert_conflict, vec!["name", "age", "surname"]);
+        let stmt = parse_conflict(&insert_conflict, vec!["name", "age"]);
 
-        assert_eq!(stmt, " unless conflict on ( .name, .age ) else ( select users )");
+        assert_eq!(stmt, " unless conflict on ( .name, .age ) else ( select users ) ");
     }
 
     #[test]
     fn parse_conflict_with_one_on_and_else_fn() {
 
         let insert_conflict = UnlessConflictElse {
-            fields: Some(vec!["name"]),
-            else_query: Some(FindUser{}),
+            else_query: FindUser{},
         };
 
-        let stmt = parse_conflict(&insert_conflict, vec!["name", "age", "surname"]);
+        let stmt = parse_conflict(&insert_conflict, vec!["name"]);
 
-        assert_eq!(stmt, " unless conflict on .name else ( select users )");
+        assert_eq!(stmt, " unless conflict on .name else ( select users ) ");
     }
 
     #[test]
     fn parse_conflict_with_on() {
 
-        let insert_conflict = UnlessConflict {
-            fields: Some(vec!["name", "age"]),
-        };
+        let insert_conflict = UnlessConflict {};
 
-        let stmt = parse_conflict(&insert_conflict, vec!["name", "age", "surname"]);
+        let stmt = parse_conflict(&insert_conflict, vec!["name", "age"]);
 
-        assert_eq!(stmt, " unless conflict on ( .name, .age )");
+        assert_eq!(stmt, " unless conflict on ( .name, .age ) ");
     }
 
 
@@ -67,23 +63,19 @@ mod conflict_test {
     fn parse_conflict_with_else_fn() {
 
         let insert_conflict = UnlessConflictElse {
-            fields: None,
-            else_query: Some(FindUser{}),
+            else_query: FindUser{},
         };
 
-        let stmt = parse_conflict(&insert_conflict, vec!["name", "age", "surname"]);
+        let stmt = parse_conflict(&insert_conflict, vec![]);
 
-        assert_eq!(stmt, " unless conflict ");
+        assert_eq!(stmt, " unless conflict else ( select users ) ");
     }
     #[test]
     fn parse_conflict_with_no_on_no_else_fn() {
 
-        let insert_conflict: UnlessConflictElse<FindUser> = UnlessConflictElse {
-            fields: None,
-            else_query: None,
-        };
+        let insert_conflict: UnlessConflict = UnlessConflict{};
 
-        let stmt = parse_conflict(&insert_conflict, vec!["name", "age", "surname"]);
+        let stmt = parse_conflict(&insert_conflict, vec![]);
 
         assert_eq!(stmt, " unless conflict ");
     }

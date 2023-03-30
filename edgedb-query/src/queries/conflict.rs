@@ -2,43 +2,34 @@ use edgedb_protocol::value::Value;
 use crate::{ToEdgeQl, ToEdgeQuery, ToEdgeValue};
 
 
-const UNLESS_CONFLICT: &'static str = " unless conflict ";
-const ON: &'static str = "on ";
-const OPEN_PARENTHESIS: &'static str = "( ";
-const CLOSE_PARENTHESIS: &'static str = " )";
-const COMMA: &'static str = ", ";
-const ELSE: &'static str = " else ( ";
+const UNLESS_CONFLICT: &str = " unless conflict ";
+const ON: &str = "on ";
+const OPEN_PARENTHESIS: &str = "( ";
+const CLOSE_PARENTHESIS: &str = " ) ";
+const COMMA: &str = ", ";
+const ELSE: &str = "else ( ";
 
 /// Conflict trait represents an 'unless conflict' statement in an edgeDB query
 pub trait Conflict<T: ToEdgeQuery + Clone> {
-    fn fields(&self) -> Option<Vec<&str>>;
     fn else_query(&self) -> Option<T>;
 }
 
 /// InsertConflict struct
 #[derive(Debug, Clone)]
 pub struct UnlessConflictElse<T: ToEdgeQuery> {
-    pub fields: Option<Vec<&'static str>>,
-    pub else_query: Option<T>
+    pub else_query: T
 }
 
 impl<T: ToEdgeQuery + Clone> Conflict<T> for UnlessConflictElse<T> {
-
-    fn fields(&self) -> Option<Vec<&str>> {
-        self.fields.clone()
-    }
-
     fn else_query(&self) -> Option<T> {
-        self.else_query.clone()
+        Some(self.else_query.clone())
     }
 }
 
 
 /// DefaultInsertConflict struct
 #[derive(Debug, Clone)]
-pub struct UnlessConflict {
-    pub fields: Option<Vec<&'static str>>,
-}
+pub struct UnlessConflict;
 
 #[derive(Clone)]
 pub struct EmptyQuery;
@@ -58,11 +49,6 @@ impl ToEdgeValue for EmptyQuery {
 impl ToEdgeQuery for EmptyQuery{}
 
 impl Conflict<EmptyQuery> for UnlessConflict {
-
-    fn fields(&self) -> Option<Vec<&str>> {
-        self.fields.clone()
-    }
-
     fn else_query(&self) -> Option<EmptyQuery> {
         None
     }
@@ -97,44 +83,43 @@ impl Conflict<EmptyQuery> for UnlessConflict {
 ///
 ///fn main() {
 ///   let insert_conflict = UnlessConflictElse {
-///       fields: Some(vec!["name", "age"]),
 ///       else_query: Some(FindUser{}),
 ///   };
 ///
-///   let stmt = parse_conflict(&insert_conflict, vec![]);
+///   let stmt = parse_conflict(&insert_conflict, vec!["name", "age"]);
 ///
 ///    assert_eq!(stmt, " unless conflict on ( .name, .age ) else ( select users )");
 /// }
 /// ```
-pub fn parse_conflict<T: ToEdgeQuery + Clone, R: Conflict<T>>(conflict: &R, query_fields: Vec<&str>) -> String {
+pub fn parse_conflict<T: ToEdgeQuery + Clone, R: Conflict<T>>(conflict: &R, on_fields: Vec<&str>) -> String {
     let mut stmt = UNLESS_CONFLICT.to_owned();
 
-    if let Some(fields) = conflict.fields() {
-
-        if fields.iter().any(|f| !query_fields.contains(f)) {
-            panic!("Unless conflict fields must be one of : {:#?}", query_fields)
-        }
+    if !on_fields.is_empty() {
 
         stmt.push_str(ON);
 
-        if fields.len() > 1 {
+        if on_fields.len() > 1 {
             stmt.push_str(OPEN_PARENTHESIS);
         }
-        stmt.push_str(fields
+
+        stmt.push_str(on_fields
             .iter()
-            .map(|s| format!(".{}", s))
+            .map(|s| format!(".{s}"))
             .collect::<Vec<String>>()
             .join(COMMA).as_str()
         );
-        if fields.len() > 1 {
-            stmt.push_str(CLOSE_PARENTHESIS);
-        }
 
-        if let Some(else_query)= conflict.else_query() {
-            stmt.push_str(ELSE);
-            stmt.push_str(else_query.to_edgeql().as_str());
+        if on_fields.len() > 1 {
             stmt.push_str(CLOSE_PARENTHESIS);
+        } else {
+            stmt.push(' ');
         }
+    }
+
+    if let Some(else_query)= conflict.else_query() {
+        stmt.push_str(ELSE);
+        stmt.push_str(else_query.to_edgeql().as_str());
+        stmt.push_str(CLOSE_PARENTHESIS);
     }
 
     stmt
