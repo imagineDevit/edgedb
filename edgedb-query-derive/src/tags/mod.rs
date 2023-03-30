@@ -2,13 +2,14 @@ use quote::ToTokens;
 use syn::{Attribute, Field, LitStr, MetaNameValue, NestedMeta, Variant};
 use syn::Meta::{List, NameValue};
 use syn::NestedMeta::{Lit, Meta};
-use crate::constants::{EXPECT_LIT_OR_NAMED_LIT, EXPECT_LIT_STR, EXPECT_NAMED_LIT, ONLY_ONE_KIND_OF_TAG_EXPECTED};
+use crate::constants::{EXPECT_LIT_OR_NAMED_LIT, EXPECT_LIT_STR, EXPECT_NAMED_LIT, ONLY_ONE_KIND_OF_TAG_EXPECTED, UNLESS_CONFLICT};
 use crate::tags::backlink_field_tag::BackLinkFieldTagBuilder;
 use crate::tags::field_tag::FieldTagBuilder;
 use crate::tags::filter_tag::FilterTagBuilder;
 use crate::tags::param_tag::ParamTagBuilder;
 use crate::tags::result_field_tag::ResultFieldTagBuilder;
 use crate::tags::set_tag::SetTagBuilder;
+use crate::utils::path_utils::path_ident_equals;
 
 pub mod field_tag;
 pub mod filter_tag;
@@ -17,6 +18,7 @@ pub mod param_tag;
 pub mod result_field_tag;
 pub mod backlink_field_tag;
 pub mod value_tag;
+pub mod unless_conflict_tag;
 
 
 pub trait NamedValueTagBuilder {
@@ -38,6 +40,7 @@ pub enum TagBuilders {
     ResultFieldBuilder(ResultFieldTagBuilder),
     BackLinkFieldBuilder(BackLinkFieldTagBuilder),
     EnumValueBuilder(value_tag::EnumValueTagBuilder),
+    UnlessConfictBuilder(unless_conflict_tag::UnlessConflictTagBuilder)
 }
 
 
@@ -58,6 +61,7 @@ impl TagBuilders {
                     TagBuilders::SetBuilder(builder) => builder.arg(meta_value),
                     TagBuilders::ResultFieldBuilder(builder) => builder.arg(meta_value),
                     TagBuilders::BackLinkFieldBuilder(builder) => builder.arg(meta_value),
+                    TagBuilders::UnlessConfictBuilder(builder) => builder.arg(meta_value),
                     _ => Err(syn::Error::new_spanned(nested, EXPECT_LIT_STR))
                 }
             }
@@ -73,7 +77,8 @@ impl TagBuilders {
             TagBuilders::ParamBuilder(builder) => builder.tag_names(),
             TagBuilders::ResultFieldBuilder(builder) => builder.tag_names(),
             TagBuilders::BackLinkFieldBuilder(builder) => builder.tag_names(),
-            TagBuilders::EnumValueBuilder(builder) => builder.tag_names()
+            TagBuilders::EnumValueBuilder(builder) => builder.tag_names(),
+            TagBuilders::UnlessConfictBuilder(builder) => builder.tag_names()
         }
     }
 }
@@ -112,6 +117,9 @@ pub fn build_tags_from_field(tagged: &Tagged, builders: Vec<&mut TagBuilders>) -
                 }
             }
             _ => {
+                if let Some((true, _)) = path_ident_equals(&att.path, UNLESS_CONFLICT) {
+                    return Ok(())
+                }
                 return Err(syn::Error::new_spanned(meta, EXPECT_NAMED_LIT));
             }
         }

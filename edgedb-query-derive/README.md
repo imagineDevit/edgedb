@@ -210,9 +210,7 @@ to this 👇
         #[field(scalar = "<users::Gender>")]
         pub gender: Sex,
         #[nested_query]
-        pub wallet: Wallet,
-        #[unless_conflict]
-        pub find_user: UnlessConflictElse<FindUser>
+        pub wallet: Wallet
     }
 
     #[query_result]
@@ -251,7 +249,6 @@ to this 👇
             vs: vec!["vs1".to_string()],
             gender: Sex::Male,
             wallet: Wallet {
-                __meta__: (),
                 money: 0 }
         }.to_edge_query();
 

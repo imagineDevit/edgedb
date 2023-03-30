@@ -125,9 +125,13 @@ pub fn scalar_types() -> Vec<(&'static str, &'static str)>{
     vec![
         ("String", "str"),
         ("i8", "int16"),
+        ("u8", "int16"),
         ("i16", "int16"),
+        ("u16", "int16"),
         ("i32", "int32"),
+        ("u32", "int32"),
         ("i64", "int64"),
+        ("u64", "int64"),
         ("f32", "float32"),
         ("f64", "float64"),
         ("bool", "bool"),

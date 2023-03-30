@@ -2,9 +2,10 @@ use std::convert::TryFrom;
 
 use syn::{Field, MetaNameValue};
 use syn::Lit::Str;
-use crate::constants::{BACKLINK,  DEFAULT_MODULE, EXPECT_NAMED_LIT, EXPECT_NON_EMPTY_LIT, INVALID_BACKLINK_TAG,  MODULE,  RESULT, SOURCE_TABLE, TARGET_COLUMN, TARGET_TABLE};
+use crate::constants::{BACKLINK,  DEFAULT_MODULE, EXPECT_NAMED_LIT, EXPECT_NON_EMPTY_LIT, INVALID_BACKLINK_TAG, MODULE, SOURCE_TABLE, TARGET_COLUMN, TARGET_TABLE};
 use crate::tags::{NamedValueTagBuilder, TagBuilders};
 use crate::tags::TagBuilders::BackLinkFieldBuilder;
+use crate::utils::type_utils::{get_type, get_type_name};
 
 
 // region ResultFieldTag
@@ -35,7 +36,6 @@ pub enum BackLinkFieldTagOptions {
     SourceTable(String),
     TargetTable(String),
     TargetColumn(String),
-    Result(String)
 }
 
 impl TryFrom<&MetaNameValue> for BackLinkFieldTagOptions {
@@ -53,7 +53,6 @@ impl TryFrom<&MetaNameValue> for BackLinkFieldTagOptions {
                 SOURCE_TABLE => Ok(BackLinkFieldTagOptions::SourceTable(value.value())),
                 TARGET_TABLE => Ok(BackLinkFieldTagOptions::TargetTable(value.value())),
                 TARGET_COLUMN => Ok(BackLinkFieldTagOptions::TargetColumn(value.value())),
-                RESULT => Ok(BackLinkFieldTagOptions::Result(value.value())),
                 _ => Err(syn::Error::new_spanned(meta_value, INVALID_BACKLINK_TAG))
             }
         } else {
@@ -71,7 +70,6 @@ pub struct BackLinkFieldTagBuilder {
     pub source_table: Option<String>,
     pub target_table: Option<String>,
     pub target_column: Option<String>,
-    pub result: Option<String>,
 }
 
 impl From<TagBuilders> for BackLinkFieldTagBuilder {
@@ -95,7 +93,6 @@ impl NamedValueTagBuilder for BackLinkFieldTagBuilder {
             BackLinkFieldTagOptions::SourceTable(value) => self.source_table = Some(value.replace(['(', ')'], "")),
             BackLinkFieldTagOptions::TargetTable(value) => self.target_table = Some(value),
             BackLinkFieldTagOptions::TargetColumn(value) => self.target_column = Some(value),
-            BackLinkFieldTagOptions::Result(value) => self.result = Some(value)
         }
 
         Ok(())
@@ -104,14 +101,16 @@ impl NamedValueTagBuilder for BackLinkFieldTagBuilder {
 
 impl BackLinkFieldTagBuilder {
     pub fn build(self, field: &Field) -> syn::Result<BackLinkFieldTag> {
+        let tty = field.ty.clone();
+        let ty_name = get_type_name(&get_type(&tty));
+        
         Ok(
-
             BackLinkFieldTag {
                 module: self.module.unwrap_or(DEFAULT_MODULE.to_owned()),
                 source_table: get_value(field, self.source_table, SOURCE_TABLE)?,
                 target_table: get_value(field, self.target_table, TARGET_TABLE)?,
                 target_column: get_value(field, self.target_column, TARGET_COLUMN)?,
-                result: get_value(field, self.result, RESULT)?,
+                result: ty_name,
             }
         )
     }

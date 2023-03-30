@@ -31,7 +31,6 @@ mod result {
             source_table="User",
             target_table="Friend",
             target_column="friend",
-            result="Friend"
         )]
         pub friends: Vec<Friend>,
     }
@@ -45,7 +44,6 @@ mod result {
         source_table="User",
         target_table="Friend",
         target_column="friend",
-        result="Friend"
         )]
         pub friend: Friend,
     }
@@ -92,7 +90,7 @@ mod result {
         source_table="User",
         target_table="Friend",
         target_column="friend",
-        result="Friend"
+
         )]
         pub friend: Friend,
     }
@@ -113,7 +111,6 @@ mod result {
         source_table="User",
         target_table="Friend",
         target_column="friend",
-        result="Friend"
         )]
         pub friend: Friend,
     }
@@ -133,8 +130,7 @@ mod result {
         module="users",
         source_table="User",
         target_table="Friend",
-        target_column="friend",
-        result="Friend"
+        target_column="friend"
         )]
         pub friend: Friend,
     }

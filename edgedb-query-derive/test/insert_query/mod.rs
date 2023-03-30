@@ -23,17 +23,18 @@ mod insert {
 
     #[insert_query(module ="users", table="User", result="UserResult")]
     pub struct InsertUser {
-        #[field(param="first_name")]
+        #[field(column_name="username", param="first_name")]
         pub name: String,
         pub surname: Option<String>,
-        pub age: i32,
+        #[field(scalar="<int16>")]
+        pub age: u8,
         pub major: bool,
         pub vs: Vec<String>,
         #[field(scalar = "<users::Gender>")]
         pub gender: Sex,
         #[nested_query]
         pub wallet: Wallet,
-        #[unless_conflict]
+        #[unless_conflict(on="username, surname")]
         pub find_user: UnlessConflictElse<FindUser>
     }
 
@@ -81,10 +82,9 @@ mod insert {
                 money: 0,
             },
             find_user: UnlessConflictElse {
-                fields: Some(vec!["name", "surname"]),
-                else_query: Some(FindUser{
+                else_query: FindUser{
                     user_name: "Joe".to_string(),
-                }),
+                },
             }
         };
 
@@ -94,9 +94,9 @@ mod insert {
         let expected = r#"
            select (
               insert users::User {
-                name := (select <str>$first_name),
+                username := (select <str>$first_name),
                 surname := (select <str>$surname),
-                age := (select <int32>$age),
+                age := (select <int16>$age),
                 major := (select <bool>$major),
                 vs := (select <array<str>>$vs),
                 gender := (select <users::Gender>$gender),
@@ -106,7 +106,7 @@ mod insert {
                         money := (select <int16>$money),
                     }
                 ),
-             } unless conflict on (.name, .surname) else (
+             } unless conflict on (.username, .surname) else (
                 select users::User filter users::User.name = (select<str>$user_name)
              )
          ) {
@@ -134,12 +134,12 @@ mod insert {
                 vec![
                     Some(Value::Str(insert_user.name)),
                     Some(Value::Str(insert_user.surname.unwrap())),
-                    Some(Value::Int32(insert_user.age)),
+                    Some(Value::Int16(insert_user.age as i16)),
                     Some(Value::Bool(insert_user.major)),
                     Some(Value::Array(vec![Value::Str(vs_val.clone())])),
                     Some(Value::Enum(EnumValue::from("male"))),
                     Some(Value::Int16(insert_user.wallet.money)),
-                    Some(Value::Str(insert_user.find_user.else_query.unwrap().user_name))
+                    Some(Value::Str(insert_user.find_user.else_query.user_name))
                 ]
             );
 

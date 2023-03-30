@@ -11,7 +11,8 @@ use crate::builders::impl_builder::{FieldCat, QueryImplBuilder, ImplBuilderField
 use crate::statements::nested_query::NestedQueryField;
 use crate::tags::{build_tags_from_field, Tagged};
 use crate::tags::field_tag::{FieldTag, FieldTagBuilder};
-use crate::tags::TagBuilders::FieldBuilder;
+use crate::tags::TagBuilders::{FieldBuilder, UnlessConfictBuilder};
+use crate::tags::unless_conflict_tag::{UnlessConflictTag, UnlessConflictTagBuilder};
 use crate::utils::attributes_utils::has_attribute;
 use crate::utils::derive_utils::format_scalar;
 use crate::utils::type_utils::{get_type, is_type_name};
@@ -89,12 +90,10 @@ impl Query for InsertQuery {
                 field_cat: FieldCat::Conflict
             });
 
-            let f = fields.iter().map(|f| f.field.ident.clone()).collect::<Vec<Ident>>();
-
-            edgeql_statements.push(uce.query_statement_quote(f))
+            edgeql_statements.push(uce.query_statement_quote())
         }
 
-        if meta.has_result() {
+        if has_result {
             edgeql_statements.push(quote! { query.push_str(" )"); });
         }
 
@@ -132,11 +131,12 @@ impl Parse for InsertQuery {
             .filter(|f| has_attribute(f, UNLESS_CONFLICT))
             .collect::<Vec<&Field>>();
 
+        let mut unless_conflict_field: Option<&Field> = None;
+
         match unless_fields.len() {
             0 => {}
             1 => {
-                let field: &Field = unless_fields.first().unwrap();
-                query.unless_conflict_statement = Some(UnlessConflictElseStatement::try_from(field)?);
+                unless_conflict_field = Some(unless_fields.first().unwrap());
             }
             _ => {
                 return Err(syn::Error::new_spanned(unless_fields[1].to_token_stream(), "InsertQuery can only have one unless_conflict field"));
@@ -151,10 +151,15 @@ impl Parse for InsertQuery {
             }
         }
 
-        //if query.statements.is_empty() {
-        //    return Err(syn::Error::new_spanned(strukt.to_token_stream(), EXPECTED_AT_LEAST_ONE_FIELD));
-        //}
-        // endregion add insert_statements
+        let column_names = query.statements
+            .iter()
+            .filter_map(|stmt| stmt.column_name())
+            .collect::<Vec<String>>();
+
+
+        if let Some(field) = unless_conflict_field  {
+            query.unless_conflict_statement = Some(UnlessConflictElseStatement::try_from((field, column_names))?);
+        }
 
         query.check_duplicate_parameter_labels()?;
 
@@ -176,6 +181,13 @@ impl InsertStatement {
     pub fn param_field(&self) -> Option<(Ident, String)> {
         match self {
             InsertStatement::SimpleField(f) => Some((f.field.ident.clone(), f.tag.parameter_label.clone())),
+            InsertStatement::NestedQuery(_) => None
+        }
+    }
+
+    pub fn column_name(&self) -> Option<String> {
+        match self {
+            InsertStatement::SimpleField(f) => Some(f.tag.column_name.clone()),
             InsertStatement::NestedQuery(_) => None
         }
     }
@@ -284,6 +296,7 @@ impl TryFrom<&Field> for InsertField {
 #[derive(Debug, Clone)]
 pub struct UnlessConflictElseStatement {
     pub field: QueryField,
+    pub tag: UnlessConflictTag
 }
 
 impl UnlessConflictElseStatement {
@@ -298,14 +311,15 @@ impl UnlessConflictElseStatement {
         }
     }
 
-    pub fn query_statement_quote(&self, fields: Vec<Ident>) -> proc_macro2::TokenStream {
+    pub fn query_statement_quote(&self) -> proc_macro2::TokenStream {
         let f_name = self.field.ident.clone();
-        let query_fields_name = fields.iter()
+        let on_fields_name = self.tag.on.iter()
             .map(|f| f.to_string())
             .collect::<Vec<String>>().join(",");
 
+
         quote! {
-            let qn = #query_fields_name.split(",").collect::<Vec<&str>>();
+            let qn = #on_fields_name.split(",").collect::<Vec<&str>>();
             let c_q =  edgedb_query::queries::conflict::parse_conflict(&self.#f_name, qn);
             query.push_str(c_q.as_str());
         }
@@ -313,12 +327,20 @@ impl UnlessConflictElseStatement {
 
 }
 
-impl TryFrom<&Field> for UnlessConflictElseStatement {
+impl TryFrom<(&Field, Vec<String>)> for UnlessConflictElseStatement {
     type Error = syn::Error;
 
-    fn try_from(value: &Field) -> Result<Self, Self::Error> {
+    fn try_from((field, columns): (&Field, Vec<String>)) -> Result<Self, Self::Error> {
+
+        let mut builders = UnlessConfictBuilder(UnlessConflictTagBuilder::default());
+
+        build_tags_from_field(&Tagged::StructField(field.clone()), vec![&mut builders])?;
+
+        let tag_builder: UnlessConflictTagBuilder = builders.into();
+
         Ok(Self {
-            field: QueryField::try_from((value, vec![UNLESS_CONFLICT]))?,
+            field: QueryField::try_from((field, vec![UNLESS_CONFLICT]))?,
+            tag: tag_builder.build(field, columns)?,
         })
     }
 }

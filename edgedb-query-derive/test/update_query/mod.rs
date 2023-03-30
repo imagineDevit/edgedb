@@ -1,10 +1,14 @@
 #[cfg(test)]
 mod update {
     use edgedb_protocol::value::Value;
-    use edgedb_query_derive::{edgedb_filters, edgedb_sets, update_query};
+    use edgedb_query_derive::{edgedb_filters, edgedb_sets, query_result, update_query};
     use edgedb_query::models::edge_query::ToEdgeQuery;
     use crate::test_utils::check_shape;
 
+    #[query_result]
+    pub struct User {
+        pub name: String
+    }
 
     #[edgedb_sets]
     pub struct MySet {
@@ -20,7 +24,7 @@ mod update {
         pub age: i8,
     }
 
-    #[update_query(module = "users", table = "User")]
+    #[update_query(module = "users", table = "User", result="User")]
     pub struct UpdateUserName {
         pub name: String,
         #[filters]
@@ -40,12 +44,12 @@ mod update {
         let eq = q.to_edge_query();
 
         let expected_query = r#"
-            update users::User
+            select (update users::User
             filter str_lower(users::User.identity.first_name) = (select <str>$first_name)
             and users::User.age >= (select <int16>$age)
             set {
                 name := (select <str>$name)
-            }
+            }){ name }
         "#.to_owned().replace('\n', "");
 
         assert_eq!(eq.query.replace(' ', ""), expected_query.replace(' ', ""));
@@ -63,7 +67,9 @@ mod update {
 
     #[update_query(module = "users", table = "User")]
     pub struct UpdateUser {
+        #[field(column_name="username")]
         pub name: String,
+
 
         #[filter(operator = "=", wrapper_fn = "str_lower")]
         #[field(column_name = "identity.first_name")]
@@ -88,7 +94,7 @@ mod update {
             filter str_lower(users::User.identity.first_name) = (select <str>$first_name)
             and users::User.age >= (select <int16>$age)
             set {
-                name := (select <str>$name)
+                username := (select <str>$name)
             }
         "#.to_owned().replace('\n', "");
 

@@ -60,7 +60,7 @@ mod edgedb_sets;
 ///         pub gender: Sex,
 ///         #[nested_query]
 ///         pub wallet: Wallet,
-///         #[unless_conflict]
+///         #[unless_conflict(on="username, surname")]
 ///         pub find_user: UnlessConflictElse<FindUser>
 ///     }
 ///
@@ -102,10 +102,9 @@ mod edgedb_sets;
 ///                 money: 0,
 ///             },
 ///             find_user: UnlessConflictElse {
-///                 fields: Some(vec!["name", "surname"]),
-///                 else_query: Some(FindUser{
+///                 else_query: FindUser{
 ///                     user_name: "Joe".to_string(),
-///                 }),
+///                 },
 ///             }
 ///         };
 ///
@@ -233,7 +232,7 @@ pub fn select_query(attr: TokenStream, item: TokenStream) -> TokenStream {
 #[proc_macro_attribute]
 pub fn update_query(attr: TokenStream, item: TokenStream) -> TokenStream {
 
-    let meta = parse_macro_input!(attr as TableInfo);
+    let meta = parse_macro_input!(attr as QueryMetaData);
 
     parse_macro_input!(item as UpdateQuery)
         .with_meta(meta)
@@ -338,11 +337,10 @@ pub fn file_query(attr: TokenStream, item: TokenStream) -> TokenStream {
 ///         pub login: String,
 ///         pub identity: Identity,
 ///         #[back_link(
-///         module="users",
-///         source_table="User",
-///         target_table="Friend",
-///         target_column="friend",
-///         result="Friend"
+///             module="users",
+///             source_table="User",
+///             target_table="Friend",
+///             target_column="friend"
 ///         )]
 ///         pub friend: Friend,
 ///     }

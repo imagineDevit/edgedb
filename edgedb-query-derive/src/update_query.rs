@@ -3,8 +3,8 @@ use quote::quote;
 use syn:: Ident;
 use syn::ItemStruct;
 use syn::parse::{Parse, ParseStream};
-use crate::constants::{AND_FILTER, EXPECTED_AT_LEAST_ONE_SET_FIELD,  FILTER, FILTERS, INVALID_UPDATE_TAG, NESTED_QUERY, OR_FILTER, SET, SETS, UPDATE};
-use crate::meta_data::{TableInfo, try_get_meta};
+use crate::constants::{AND_FILTER, EXPECTED_AT_LEAST_ONE_SET_FIELD,  FILTER, FILTERS, INVALID_UPDATE_TAG, NESTED_QUERY, OR_FILTER, SET, SETS, UPDATE, SELECT};
+use crate::meta_data::{QueryMetaData, try_get_meta};
 use crate::builders::impl_builder::QueryImplBuilder;
 use crate::queries::Query;
 use crate::statements::filters::{FilterRequiredQuery, filters_from_fields, FilterStatement};
@@ -12,7 +12,7 @@ use crate::statements::set::{sets_from_fields, UpdateSetStatement};
 
 pub struct UpdateQuery {
     pub ident: Ident,
-    pub meta: Option<TableInfo>,
+    pub meta: Option<QueryMetaData>,
     pub filter_statement: FilterStatement,
     pub set_statement: UpdateSetStatement,
 }
@@ -27,7 +27,7 @@ impl UpdateQuery {
         }
     }
 
-    pub fn with_meta(&mut self, meta: TableInfo) -> &mut Self {
+    pub fn with_meta(&mut self, meta: QueryMetaData) -> &mut Self {
         self.meta = Some(meta);
         self
     }
@@ -47,8 +47,15 @@ impl Query for UpdateQuery {
 
         let table_name = meta.table_name();
 
-        let mut fields = self.filter_statement.to_impl_builder_field();
+        let has_result = meta.has_result();
 
+        let init_edgeql = if has_result {
+            format!("{SELECT} ( {UPDATE} {table_name} ")
+        } else {
+            format!("{UPDATE} {table_name} ")
+        };
+
+        let mut fields = self.filter_statement.to_impl_builder_field();
 
         let set_fields = self.set_statement.to_impl_builder_field();
 
@@ -64,10 +71,16 @@ impl Query for UpdateQuery {
             query.push_str(&set_stmt);
         });
 
+        if has_result {
+            edgeql_statements.push(quote! { query.push_str(" )"); });
+        }
+
+        edgeql_statements.push(meta.result_quote());
+
         Ok(QueryImplBuilder {
             struct_name: self.ident.clone(),
             fields,
-            init_edgeql: format!("{UPDATE} {table_name}"),
+            init_edgeql,
             static_const_check_statements: vec![],
             edgeql_statements,
         })
