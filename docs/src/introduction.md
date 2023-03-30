@@ -22,7 +22,7 @@ It's like a relational database with an object-oriented data model, or a graph d
 ### 🤷🏼‍♂️  What's Edgedb-query project ?
 
 
-[**Edgedb-query**](https://github.com/imagineDevit/edgedb) is a rust crate project that aims to provide a bunch procedural macros in order to facilitate writing of [_edgeql_](https://www.edgedb.com/tutorial) queries when
+[**Edgedb-query**](https://github.com/imagineDevit/edgedb) is a rust crate project that aims to provide a bunch attruibute macros that facilitate writing of [_edgeql_](https://www.edgedb.com/tutorial) queries when
 using [edgedb-rust](https://github.com/edgedb/edgedb-rust) crate.
 
 

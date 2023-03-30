@@ -1,17 +1,9 @@
-# Query macros
+# Queries attribute macros
 
-[**Edgedb-query-derive**](https://github.com/imagineDevit/edgedb) crate provide 5 types of query macros :
+[**Edgedb-query-derive**](https://github.com/imagineDevit/edgedb) crate provide 5 macro attributes that represent a edgeDB query:
 
-- [**_InsertQuery_**](./insert-query.md)
-- [**_SelectQuery_**](./select-query.md)
-- [**_UpdateQuery_**](./update-query.md)
-- [**_DeleteQuery_**]()
-- [**_CustomQuery_**]()
-
-Each of those derive macros generate under the hood implementations of the five following traits for the decorated struct:
-
-* **ToEdgeQl**
-* **ToEdgeValue**
-* **ToEdgeQuery**
-* **ToEdgeScalar**
-* **ToString**
+- [#[insert_query]](./insert-query.md)
+- [#[select_query]](./select-query.md)
+- [#[update_query]](./update-query.md)
+- [#[delete_query]](./delete-query.md)
+- [#[file_query]](./delete-query.md)

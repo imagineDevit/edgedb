@@ -1,195 +1,135 @@
 # InsertQuery
 
-#### List of possibles attributes :
+        #[insert_query(module, table, result)] {
+            #[field]
+            #[nested_query]
+            #[unless_conflict]
+        }
 
-<table>
-    <thead>
-        <tr>
-            <th rowspan="2">Attributes</th>
-            <th rowspan="2">Optional</th>
-            <th rowspan="2">Description</th>
-            <th colspan="3">Options</th>
-        </tr>
-        <tr>
-            <th>Name</th>
-            <th>Optional</th>
-            <th>Description</th>
-        </tr>
-    </thead>
-    <tbody>
-        <tr>
-            <td rowspan=2> <strong style="color: #008200">meta</strong> </td>
-            <td rowspan=2>No</td>
-            <td rowspan=2>
-                The field decorated <i style="color: #91b362">#[meta]</i> represents the query metadata 
-                and is used just to declare module and table names.
-                This field must be (called __meta__, of type () ) : <br>
-                <strong style="color: #c82829">__meta__ : ()</strong>
-            </td>
-            <td><i style="color: yellow">module</i></td>
-            <td>Yes ("default") </td>
-            <td>The edgedb module name </td>
-        </tr>
-        <tr>
-            <td><i style="color: yellow">table</i></td>
-            <td>No</td>
-            <td>The edgedb table name </td>
-        </tr>
-        <tr>
-            <td> <strong style="color: #008200">result</strong> </td>
-            <td>yes</td>
-            <td colspan="4">This attribute must also decorate the field called  <strong style="color: #c82829">__meta__ : () </strong>. <br> It's used to declare the query result type.
-            The struct representing the expected result shape and must be decorated with <strong><a href="../shape-macros/edgedb-result.html">#[derive(EdgedbResult)]</a></strong> </td>
-        </tr>
-        <tr>
-            <td rowspan=3> <strong style="color: #008200">scalar</strong> </td>
-            <td rowspan=3>yes</td>
-            <td rowspan=3>This attribute is used to give information about the field type</td>
-            <td><i style="color: yellow">type</i></td>
-            <td>No</td>
-            <td>The field scalar type name. If the type is an <i>enum</i>, the type is equal "enum"</td>
-        </tr>
-        <tr>
-            <td><i style="color: yellow">module</i></td>
-            <td>Yes ("default")</td>
-            <td>The scalar type module </td>
-        </tr>
-         <tr>
-            <td><i style="color: yellow">name</i></td>
-            <td>No when type = "enum"</td>
-            <td>The enum name </td>
-        </tr>
-        <tr>
-            <td> <strong style="color: #008200">param</strong> </td>
-            <td> Yes </td>
-            <td colspan="4"> 
-            The <strong style="color: #91b362">param</strong> attribute represents the query parameter label associated to the decorated field. </td>
-        </tr>
-        <tr>
-            <td> <strong style="color: #008200">nested_query</strong> </td>
-            <td>yes</td>
-            <td colspan="4">This attribute indicates that the field references an edgedb <strong>select</strong> or <strong>insert</strong> query</td>
-        </tr>
-        <tr>
-            <td> <strong style="color: #008200">unless_conflict</strong> </td>
-            <td>yes</td>
-            <td colspan="4">
-                This attribute is used to declare the <strong style="color: #b21e00">unless conflict on ... else</strong> clause of the query.
-                This attribute must be used on field of type <strong style="color: #2b79a2">edgedb_query::queries::Conflict::UnlessConflictElse </strong>
-            </td>
-        </tr>
-    </tbody>
-</table>
+**_insert_query_** attribute macro indicates that the struct represents an edgeDB insert query.
+
+**_insert_query_** attribute takes three arguments 👇
+
+| Argument | Optional | Description                                                                                                                                               |
+|----------|----------|-----------------------------------------------------------------------------------------------------------------------------------------------------------|
+| module   | yes      | The name of the edgeDB module on which the query is executed.<br> <br/> _**By default**_: 'default'                                                       |
+| table    | no       | The name of the edgeDB table on which the query is executed.<br>                                                                                          |
+| result   | yes      | The query result type.<br> <br/>_**By default**_: [BasicResult](https://github.com/imagineDevit/edgedb/blob/main/edgedb-query/src/models/query_result.rs) | 
+
+
+Its fields can be decorated with tag [#[field]](../inner_attributes/field.md),  [#[nested_query]](../inner_attributes/nested_query.md) or  [#[unless_conflict]](../inner_attributes/unless_conflict.md).
 <br>
 
+---
 
-**InsertQuery** derive macro generates a insert edgeql query.
-
-Let's see how to use it:
+### Usage
 
 Consider the following edgeDB schema 👇
 
-```sql
-   module models {
-        scalar type Gender extending enum<Male, Female>
+````sql
+    module models {
+       scalar type Gender extending enum<Male, Female>
         
        type Person {
-            required property user_name -> str;
+            required property user_name -> str {
+                constraint exclusive;
+            }
             required property age -> int16;
             required property gender -> Gender;
             link address -> Address;
-        }
+       }
         
-       
-            
-        type Address {
+       type Address {
             required property num -> int16;
             required property street -> str;
             required property city -> str;
             required property zipcode -> int32;
-        }
+       }
    }
-```
+````
 
-To perform a insert query using [edgedb-tokio](https://github.com/edgedb/edgedb-rust) we can write code as follows 👇
+Let's write a struct that represents query to insert a new Person into the database
 
-```rust
-
-#[derive(EdgedbEnum)]
-pub enum Sex {
-    Male,
-    Female,
-}
-
-#[derive(InsertQuery)]
-pub struct InsertPerson {
-    #[meta(module = "models", table = "Person")]
-    #[result("Person")]
-    __meta__: (),
-
-    pub user_name: String,
-
-    pub age: i8,
-
-    #[scalar(type = "enum", module = "models", name = "Gender")]
-    pub gender: Sex,
-
-    #[nested_query]
-    pub address: InsertAddress,
-}
-
-#[derive(InsertQuery)]
-pub struct InsertAddress {
-    #[meta(module = "models", table = "Address")]
-    __meta__: (),
-    pub num: i16,
-    pub street: String,
-    pub city: String,
-    pub zipcode: i32,
-}
-
-#[derive(EdgedbResult)]
-pub struct Person {
-    pub user_name: String,
-    pub age: i8
-}
-
-#[tokio::main]
-async fn main() -> Result<()> {
-    
-    let client = edgedb_tokio::create_client().await?;
-
-    let insert_person = InsertPerson {
-        __meta__: (),
-
-        user_name: "Joe".to_owned(),
-        age: 35,
-        gender: Sex::Male,
-        address: InsertAddress {
-            __meta__: (),
-            
-            num: 12,
-            street: "rust street".to_owned(),
-            city: "rust City".to_owned(),
-            zipcode: 4567
-        }
-    };
-    
-    let edge_query: EdgeQuery  = insert_person.to_edge_query();
-
-    let args = &edge_query.args.unwrap();
-
-    let query = edge_query.query.as_str();
-    
-    if let Some(json) = client.query_single_json(query, args).await? {
-        if let Ok(result) = serde_json:from_str::<Person>(json.as_ref()) {
-            assert_eq!(result.user_name, "Joe");
-            assert_eq!(result.age, 35);
-        } else {
-            assert!(false);
-        }
-    } else {
-        assert!(false);
+`````rust
+    #[insert_query(module="models", table="Person", result="Person")]
+    pub struct InsertPerson {
+        #[field(column_name="user_name")]
+        pub name: String,    
+        #[field(scalar="<int16>")]   
+        pub age: u8,
+        #[field(column_name="gender", scalar="<models::Gender>")]
+        pub sex: Sex,
     }
-}
-```
+
+    #[edgedb_enum]
+    pub enum Sex {
+        #[value("Male")]
+        Man,
+        #[value("Female")]
+        Woman
+    }
+
+    #[query_result]
+    pub struct Person {
+        pub user_name: String,
+        pub age: u8
+    }
+`````
+___
+#### 🤷‍♀️ But what about the person's address❔
+___
+
+Since the address is stored in a separate database table we need to insert a new Address while creating a new Person, right ?
+
+Ok, so let's write the address's insert query corresponding struct.
+
+`````rust
+    #[insert_query(module="models", table="Address")]
+    pub struct InsertAddress {
+        #[field(column_name="num", scalar="<int16>")]
+        pub number: u16,
+        pub street: String,
+        pub city: String,
+        #[field(column_name="zipcode", scalar="<int32>")]
+        pub zip_code: u32
+    }
+`````
+To insert the two entities with a single query, add the insert address query as a nested query of the person insert query.
+
+````rust
+    #[insert_query(module="models", table="Person", result="Person")]
+    pub struct InsertPerson {
+        ...
+        #[nested_query]
+        pub address: InsertAddress
+    }
+````
+
+Okay, great! Now we can persist a Person with address.
+
+___
+#### 🤷‍♀️ But what if a Person already exists with the same name ❔
+___
+
+
+Remember !!!
+
+In the edgeDB schema, the _type Person_ has an exclusive constraint on its field _user_name_.
+
+To handle this case we need to use an _unless conflict_ statement.
+
+
+````rust
+    #[insert_query(module="models", table="Person", result="Person")]
+    pub struct InsertPerson {
+        ...
+        #[unless_conflict(on="user_name")]
+        pub handle_conflict: edgedb_query::queries::conflict::UnlessConflict
+    }
+````
+
+The new field _handle_conflict_ decorated with [#[unless_conflict]](../inner_attributes/unless_conflict.md) tag add a ``` unless conflict on .user_name``` statement to the query.
+
+It is possible to add an else query to the unless conflict statement by using a [edgedb_query::queries::conflict::UnlessConflictElse<T: ToEdgeQuery>](https://github.com/imagineDevit/edgedb/blob/main/edgedb-query/src/queries/conflict.rs) type instead of an UnlessConflict type.
+
+
