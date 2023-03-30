@@ -3,9 +3,11 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>EdgedbSet - edgedb-query documentation</title>
+        <title>Options - edgedb-query documentation</title>
+
+
         <!-- Custom HTML head -->
-        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        
         <meta name="description" content="">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff" />
@@ -16,25 +18,29 @@
         <link rel="stylesheet" href="../css/general.css">
         <link rel="stylesheet" href="../css/chrome.css">
         <link rel="stylesheet" href="../css/print.css" media="print">
+
         <!-- Fonts -->
         <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
         <link rel="stylesheet" href="../fonts/fonts.css">
+
         <!-- Highlight.js Stylesheets -->
         <link rel="stylesheet" href="../highlight.css">
         <link rel="stylesheet" href="../tomorrow-night.css">
         <link rel="stylesheet" href="../ayu-highlight.css">
 
         <!-- Custom theme stylesheets -->
+
     </head>
     <body>
+    <div id="body-container">
         <!-- Provide site root to javascript -->
-        <script type="text/javascript">
+        <script>
             var path_to_root = "../";
             var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "ayu" : "rust";
         </script>
 
         <!-- Work around some values being stored in localStorage wrapped in quotes -->
-        <script type="text/javascript">
+        <script>
             try {
                 var theme = localStorage.getItem('mdbook-theme');
                 var sidebar = localStorage.getItem('mdbook-sidebar');
@@ -50,7 +56,7 @@
         </script>
 
         <!-- Set the theme before any content is loaded, prevents flash -->
-        <script type="text/javascript">
+        <script>
             var theme;
             try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
             if (theme === null || theme === undefined) { theme = default_theme; }
@@ -62,12 +68,14 @@
         </script>
 
         <!-- Hide / unhide sidebar before it is displayed -->
-        <script type="text/javascript">
+        <script>
             var html = document.querySelector('html');
-            var sidebar = 'hidden';
+            var sidebar = null;
             if (document.body.clientWidth >= 1080) {
                 try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
                 sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
             }
             html.classList.remove('sidebar-visible');
             html.classList.add("sidebar-" + sidebar);
@@ -75,7 +83,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded affix "><a href="../introduction.html">Introduction</a></li><li class="chapter-item expanded affix "><li class="part-title">📖 User Guide</li><li class="chapter-item expanded "><a href="../installation.html"><strong aria-hidden="true">1.</strong> Installation</a></li><li class="chapter-item expanded "><div><strong aria-hidden="true">2.</strong> Examples</div></li><li class="chapter-item expanded affix "><li class="part-title">📖 Reference Guide</li><li class="chapter-item expanded "><a href="../shape-macros/shape-macros.html"><strong aria-hidden="true">3.</strong> Shapes macros</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../shape-macros/edgedb-enum.html"><strong aria-hidden="true">3.1.</strong> EdgedbEnum</a></li><li class="chapter-item expanded "><a href="../shape-macros/edgedb-result.html"><strong aria-hidden="true">3.2.</strong> EdgedbResult</a></li><li class="chapter-item expanded "><a href="../shape-macros/edgedb-filters.html"><strong aria-hidden="true">3.3.</strong> EdgedbFilters</a></li><li class="chapter-item expanded "><a href="../shape-macros/edgedb-set.html" class="active"><strong aria-hidden="true">3.4.</strong> EdgedbSet</a></li></ol></li><li class="chapter-item expanded "><a href="../query-macros/query-macros.html"><strong aria-hidden="true">4.</strong> Query macros</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../query-macros/insert-query.html"><strong aria-hidden="true">4.1.</strong> InsertQuery</a></li><li class="chapter-item expanded "><a href="../query-macros/select-query.html"><strong aria-hidden="true">4.2.</strong> SelectQuery</a></li><li class="chapter-item expanded "><div><strong aria-hidden="true">4.3.</strong> UpdateQuery</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">4.4.</strong> DeleteQuery</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">4.5.</strong> CustomQuery</div></li></ol></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="../introduction.html">Introduction</a></li><li class="chapter-item expanded affix "><li class="part-title">📖 User Guide</li><li class="chapter-item expanded "><a href="../installation.html"><strong aria-hidden="true">1.</strong> Installation</a></li><li class="chapter-item expanded "><div><strong aria-hidden="true">2.</strong> Examples</div></li><li class="chapter-item expanded affix "><li class="part-title">📖 Reference Guide</li><li class="chapter-item expanded "><a href="../inner_attributes/tags.html"><strong aria-hidden="true">3.</strong> Tags (Inner attributes)</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../inner_attributes/field.html"><strong aria-hidden="true">3.1.</strong> Field</a></li><li class="chapter-item expanded "><a href="../inner_attributes/filter.html"><strong aria-hidden="true">3.2.</strong> Filter</a></li><li class="chapter-item expanded "><a href="../inner_attributes/param.html"><strong aria-hidden="true">3.3.</strong> Param</a></li><li class="chapter-item expanded "><a href="../inner_attributes/backlink.html"><strong aria-hidden="true">3.4.</strong> BackLink</a></li><li class="chapter-item expanded "><a href="../inner_attributes/set.html"><strong aria-hidden="true">3.5.</strong> Set</a></li><li class="chapter-item expanded "><a href="../inner_attributes/value.html"><strong aria-hidden="true">3.6.</strong> Value</a></li><li class="chapter-item expanded "><a href="../inner_attributes/nested_query.html"><strong aria-hidden="true">3.7.</strong> NestedQuery</a></li><li class="chapter-item expanded "><a href="../inner_attributes/unless_conflict.html"><strong aria-hidden="true">3.8.</strong> UnlessConflict</a></li><li class="chapter-item expanded "><a href="../inner_attributes/options.html" class="active"><strong aria-hidden="true">3.9.</strong> Options</a></li></ol></li><li class="chapter-item expanded "><a href="../query-macros/query-macros.html"><strong aria-hidden="true">4.</strong> Queries (Attributes macros)</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../query-macros/insert-query.html"><strong aria-hidden="true">4.1.</strong> InsertQuery</a></li><li class="chapter-item expanded "><a href="../query-macros/select-query.html"><strong aria-hidden="true">4.2.</strong> SelectQuery</a></li><li class="chapter-item expanded "><a href="../query-macros/update-query.html"><strong aria-hidden="true">4.3.</strong> UpdateQuery</a></li><li class="chapter-item expanded "><a href="../query-macros/delete-query.html"><strong aria-hidden="true">4.4.</strong> DeleteQuery</a></li><li class="chapter-item expanded "><a href="../query-macros/file-query.html"><strong aria-hidden="true">4.5.</strong> FileQuery</a></li></ol></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -83,7 +91,7 @@
         <div id="page-wrapper" class="page-wrapper">
 
             <div class="page">
-                <div id="menu-bar-hover-placeholder"></div>
+                                <div id="menu-bar-hover-placeholder"></div>
                 <div id="menu-bar" class="menu-bar sticky bordered">
                     <div class="left-buttons">
                         <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
@@ -94,7 +102,7 @@
                         </button>
                         <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
                             <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
-                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust (default)</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
@@ -110,6 +118,7 @@
                         <a href="../print.html" title="Print this book" aria-label="Print this book">
                             <i id="print-button" class="fa fa-print"></i>
                         </a>
+
                     </div>
                 </div>
 
@@ -123,8 +132,9 @@
                         </ul>
                     </div>
                 </div>
+
                 <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
-                <script type="text/javascript">
+                <script>
                     document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
                     document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
                     Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
@@ -134,114 +144,39 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="edgedbset"><a class="header" href="#edgedbset">EdgedbSet</a></h1>
-<h3 id="list-of-attributes"><a class="header" href="#list-of-attributes">List of attributes</a></h3>
-<table>
-    <thead>
-        <tr>
-            <th rowspan="2">Attributes</th>
-            <th rowspan="2">Optional</th>
-            <th rowspan="2">Description</th>
-            <th colspan="3">Options</th>
-        </tr>
-        <tr>
-            <th>Name</th>
-            <th>Optional</th>
-            <th>Description</th>
-        </tr>
-    </thead>
-    <tbody>
-        <tr>
-            <td rowspan="2"> <strong style="color: #008200">field</strong> </td>
-            <td rowspan="2"> Yes </td>
-            <td rowspan="2"> The <strong style="color: #91b362">field</strong> attribute represents the edgedb set field declaration. </td>
-            <td><i style="color: yellow">column_name</i></td>
-            <td>Yes</td>
-            <td>The column_name in the egdedb table. It's defined when the struct field do not match the column name.</td>
-        </tr>
-        <tr>
-             <td><i style="color: yellow">assignment</i></td>
-            <td>Yes</td>
-            <td>
-                The <i style="color: #d4c89f">assignment</i> option corresponds to the value to field assignment type.
-                This option can take 3 values:
-                <ul>
-                    <li><i style="color:#ff7733;">Assign</i> <br> It's the defautl value, that corresponds to basic assignment </li>
-                    <li><i style="color:#ff7733;">Concat</i> <br> used to concatenate and corresponds to symbol <strong style="color:#9d00ec;"> ++ </strong></li>
-                    <li><i style="color:#ff7733;">Push</i> <br> used to push a new value to a vec and corresponds to symbol <strong style="color:#9d00ec;"> += </strong></li>
-                </ul>
-            </td>
-        </tr>
-       <tr>
-            <td rowspan=3> <strong style="color: #008200">scalar</strong> </td>
-            <td rowspan=3>yes</td>
-            <td rowspan=3>This attribute is used to give information about the field type</td>
-            <td><i style="color: yellow">type</i></td>
-            <td>No</td>
-            <td>The field scalar type name. If the type is an <i>enum</i>, the type is equal "enum"</td>
-        </tr>
-        <tr>
-            <td><i style="color: yellow">module</i></td>
-            <td>Yes ("default")</td>
-            <td>The scalar type module </td>
-        </tr>
-         <tr>
-            <td><i style="color: yellow">name</i></td>
-            <td>No when type = "enum"</td>
-            <td>The enum name </td>
-        </tr>
-    </tbody>
-</table>
-<br><br>
-<p>This is a usage example  👇</p>
-<pre><code class="language-rust">      #[derive(EdgedbSet)]
-      pub struct MySet {
-          #[field(column_name=&quot;first_name&quot;, assignment = &quot;Concat&quot;)]
-          #[scalar(type=&quot;str&quot;)]
-          pub name: String,
-          #[scalar(type=&quot;enum&quot;, name=&quot;State&quot;, module=&quot;default&quot;)]
-          pub status: Status
-      }
-      
-      #[derive(EdgedbEnum)]
-      pub enum Status {
-          Open, Closed
-      }
-
-    fn main() {
-        let set = MySet {
-            name: &quot;Joe&quot;.to_owned(),
-            status: Status::Open
-        };
-
-        assert_eq!(r#&quot;
-           set { 
-                first_name := .first_name ++ (select &lt;str&gt;$name), 
-                status := (select &lt;default::State&gt;$status)
-           }
-        &quot;#, set.to_edgeql());
-    }
+                        <p>#Options </p>
+<p><em><strong>Options</strong></em> attribute marks a field as a select option (order and pagination options). The decorated fied must be of type <a href="https://github.com/imagineDevit/edgedb/blob/main/edgedb-query/src/queries/select.rs">edgedb_query::queries::select::SelectOptions</a></p>
+<pre><code>#[options]
 </code></pre>
+<h3 id="usage"><a class="header" href="#usage">Usage</a></h3>
+<pre><code class="language-rust">    #[select_query(table=&quot;Users&quot;)]
+    struct FindUser {
+        #[options]
+        pub options: SelectOptions
+    }</code></pre>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="../shape-macros/edgedb-filters.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="../inner_attributes/unless_conflict.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <i class="fa fa-angle-left"></i>
                             </a>
+
                             <a rel="next" href="../query-macros/query-macros.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <i class="fa fa-angle-right"></i>
                             </a>
+
                         <div style="clear: both"></div>
                     </nav>
                 </div>
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="../shape-macros/edgedb-filters.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="../inner_attributes/unless_conflict.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <i class="fa fa-angle-left"></i>
                     </a>
+
                     <a rel="next" href="../query-macros/query-macros.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <i class="fa fa-angle-right"></i>
                     </a>
@@ -249,24 +184,33 @@
 
         </div>
 
-        <script type="text/javascript">
+
+
+        <script>
             window.playground_line_numbers = true;
         </script>
-        <script type="text/javascript">
+
+        <script>
             window.playground_copyable = true;
         </script>
-        <script src="../ace.js" type="text/javascript" charset="utf-8"></script>
-        <script src="../editor.js" type="text/javascript" charset="utf-8"></script>
-        <script src="../mode-rust.js" type="text/javascript" charset="utf-8"></script>
-        <script src="../theme-dawn.js" type="text/javascript" charset="utf-8"></script>
-        <script src="../theme-tomorrow_night.js" type="text/javascript" charset="utf-8"></script>
-        <script src="../elasticlunr.min.js" type="text/javascript" charset="utf-8"></script>
-        <script src="../mark.min.js" type="text/javascript" charset="utf-8"></script>
-        <script src="../searcher.js" type="text/javascript" charset="utf-8"></script>
-        <script src="../clipboard.min.js" type="text/javascript" charset="utf-8"></script>
-        <script src="../highlight.js" type="text/javascript" charset="utf-8"></script>
-        <script src="../book.js" type="text/javascript" charset="utf-8"></script>
+
+        <script src="../ace.js"></script>
+        <script src="../editor.js"></script>
+        <script src="../mode-rust.js"></script>
+        <script src="../theme-dawn.js"></script>
+        <script src="../theme-tomorrow_night.js"></script>
+
+        <script src="../elasticlunr.min.js"></script>
+        <script src="../mark.min.js"></script>
+        <script src="../searcher.js"></script>
+
+        <script src="../clipboard.min.js"></script>
+        <script src="../highlight.js"></script>
+        <script src="../book.js"></script>
 
         <!-- Custom JS scripts -->
+
+
+    </div>
     </body>
 </html>

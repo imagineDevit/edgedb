@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>SelectQuery - edgedb-query documentation</title>
+        <title>Field - edgedb-query documentation</title>
 
 
         <!-- Custom HTML head -->
@@ -83,7 +83,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded affix "><a href="../introduction.html">Introduction</a></li><li class="chapter-item expanded affix "><li class="part-title">📖 User Guide</li><li class="chapter-item expanded "><a href="../installation.html"><strong aria-hidden="true">1.</strong> Installation</a></li><li class="chapter-item expanded "><div><strong aria-hidden="true">2.</strong> Examples</div></li><li class="chapter-item expanded affix "><li class="part-title">📖 Reference Guide</li><li class="chapter-item expanded "><a href="../inner_attributes/tags.html"><strong aria-hidden="true">3.</strong> Tags (Inner attributes)</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../inner_attributes/field.html"><strong aria-hidden="true">3.1.</strong> Field</a></li><li class="chapter-item expanded "><a href="../inner_attributes/filter.html"><strong aria-hidden="true">3.2.</strong> Filter</a></li><li class="chapter-item expanded "><a href="../inner_attributes/param.html"><strong aria-hidden="true">3.3.</strong> Param</a></li><li class="chapter-item expanded "><a href="../inner_attributes/backlink.html"><strong aria-hidden="true">3.4.</strong> BackLink</a></li><li class="chapter-item expanded "><a href="../inner_attributes/set.html"><strong aria-hidden="true">3.5.</strong> Set</a></li><li class="chapter-item expanded "><a href="../inner_attributes/value.html"><strong aria-hidden="true">3.6.</strong> Value</a></li><li class="chapter-item expanded "><a href="../inner_attributes/nested_query.html"><strong aria-hidden="true">3.7.</strong> NestedQuery</a></li><li class="chapter-item expanded "><a href="../inner_attributes/unless_conflict.html"><strong aria-hidden="true">3.8.</strong> UnlessConflict</a></li><li class="chapter-item expanded "><a href="../inner_attributes/options.html"><strong aria-hidden="true">3.9.</strong> Options</a></li></ol></li><li class="chapter-item expanded "><a href="../query-macros/query-macros.html"><strong aria-hidden="true">4.</strong> Queries (Attributes macros)</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../query-macros/insert-query.html"><strong aria-hidden="true">4.1.</strong> InsertQuery</a></li><li class="chapter-item expanded "><a href="../query-macros/select-query.html" class="active"><strong aria-hidden="true">4.2.</strong> SelectQuery</a></li><li class="chapter-item expanded "><a href="../query-macros/update-query.html"><strong aria-hidden="true">4.3.</strong> UpdateQuery</a></li><li class="chapter-item expanded "><a href="../query-macros/delete-query.html"><strong aria-hidden="true">4.4.</strong> DeleteQuery</a></li><li class="chapter-item expanded "><a href="../query-macros/file-query.html"><strong aria-hidden="true">4.5.</strong> FileQuery</a></li></ol></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="../introduction.html">Introduction</a></li><li class="chapter-item expanded affix "><li class="part-title">📖 User Guide</li><li class="chapter-item expanded "><a href="../installation.html"><strong aria-hidden="true">1.</strong> Installation</a></li><li class="chapter-item expanded "><div><strong aria-hidden="true">2.</strong> Examples</div></li><li class="chapter-item expanded affix "><li class="part-title">📖 Reference Guide</li><li class="chapter-item expanded "><a href="../inner_attributes/tags.html"><strong aria-hidden="true">3.</strong> Tags (Inner attributes)</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../inner_attributes/field.html" class="active"><strong aria-hidden="true">3.1.</strong> Field</a></li><li class="chapter-item expanded "><a href="../inner_attributes/filter.html"><strong aria-hidden="true">3.2.</strong> Filter</a></li><li class="chapter-item expanded "><a href="../inner_attributes/param.html"><strong aria-hidden="true">3.3.</strong> Param</a></li><li class="chapter-item expanded "><a href="../inner_attributes/backlink.html"><strong aria-hidden="true">3.4.</strong> BackLink</a></li><li class="chapter-item expanded "><a href="../inner_attributes/set.html"><strong aria-hidden="true">3.5.</strong> Set</a></li><li class="chapter-item expanded "><a href="../inner_attributes/value.html"><strong aria-hidden="true">3.6.</strong> Value</a></li><li class="chapter-item expanded "><a href="../inner_attributes/nested_query.html"><strong aria-hidden="true">3.7.</strong> NestedQuery</a></li><li class="chapter-item expanded "><a href="../inner_attributes/unless_conflict.html"><strong aria-hidden="true">3.8.</strong> UnlessConflict</a></li><li class="chapter-item expanded "><a href="../inner_attributes/options.html"><strong aria-hidden="true">3.9.</strong> Options</a></li></ol></li><li class="chapter-item expanded "><a href="../query-macros/query-macros.html"><strong aria-hidden="true">4.</strong> Queries (Attributes macros)</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../query-macros/insert-query.html"><strong aria-hidden="true">4.1.</strong> InsertQuery</a></li><li class="chapter-item expanded "><a href="../query-macros/select-query.html"><strong aria-hidden="true">4.2.</strong> SelectQuery</a></li><li class="chapter-item expanded "><a href="../query-macros/update-query.html"><strong aria-hidden="true">4.3.</strong> UpdateQuery</a></li><li class="chapter-item expanded "><a href="../query-macros/delete-query.html"><strong aria-hidden="true">4.4.</strong> DeleteQuery</a></li><li class="chapter-item expanded "><a href="../query-macros/file-query.html"><strong aria-hidden="true">4.5.</strong> FileQuery</a></li></ol></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -144,95 +144,55 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="selectquery"><a class="header" href="#selectquery">SelectQuery</a></h1>
-<pre><code>    #[select_query(module, table, result)] {
-        #[field]
-        #[filter]
-        #[and_filter]
-        #[or_filter]
-        #[filters]
-        #[options]
-    }
+                        <h1 id="field"><a class="header" href="#field">Field</a></h1>
+<p><em><strong>Field</strong></em> attribute gives the query struct field information.</p>
+<p>There are two types of field attributes:</p>
+<h3 id="for-queries-field"><a class="header" href="#for-queries-field">For queries field</a></h3>
+<pre><code>  #[field(column_name, param, scalar)]
 </code></pre>
-<p><strong><em>select_query</em></strong> attribute macro indicates that the struct represents an edgeDB select query.</p>
-<hr />
+<br>
+<div class="table-wrapper"><table><thead><tr><th>Option</th><th>Optional</th><th>Description</th></tr></thead><tbody>
+<tr><td>column_name</td><td>yes</td><td>The name edgeDB table column represented by the field.<br> <br/> <em><strong>By default</strong></em>: the name of the field</td></tr>
+<tr><td>param</td><td>yes</td><td>The query parameter name.<br>  <br> <em><strong>By default</strong></em>: the name of the field_<strong>By default</strong>_: the name of the field</td></tr>
+<tr><td>scalar</td><td>yes</td><td>The field scalar type (example : &quot;<a href="default::str">default::str</a>&quot;).<br> <br/><em><strong>By default</strong></em>: the scalar type corresponding to the field type</td></tr>
+</tbody></table>
+</div><br>
+<h3 id="for-query-result-field"><a class="header" href="#for-query-result-field">For query result field</a></h3>
+<pre><code>   #[field(column_name, wrapper_fn, default_value)]
+</code></pre>
+<br>
+<div class="table-wrapper"><table><thead><tr><th>Option</th><th>Optional</th><th>Description</th></tr></thead><tbody>
+<tr><td>column_name</td><td>yes</td><td>The name edgeDB table column represented by the field.<br> <br/><em><strong>By default</strong></em>: the name of the field</td></tr>
+<tr><td>wrapper_fn</td><td>yes</td><td>The function to apply to the field value</td></tr>
+<tr><td>defaut_value</td><td>yes</td><td>The result field default value</td></tr>
+</tbody></table>
+</div><br>
 <h3 id="usage"><a class="header" href="#usage">Usage</a></h3>
-<p>Consider the following edgeDB schema 👇</p>
-<pre><code class="language-sql">    module models {
-           type Person {
-                required property user_name -&gt; str;
-                required property age -&gt; int16;
-                required property gender -&gt; Gender;
-                link address -&gt; Address;
-           }
-    }
-</code></pre>
-<p>To perform a select query using edgedb-tokio we can write code as follows 👇</p>
-<pre><code class="language-rust">    #[select_query(module=&quot;models&quot;, table=&quot;Person&quot;, result=&quot;Person&quot;)]
-    pub struct SelectPerson {
-       
-        #[field(column_name=&quot;user_name&quot;)]
-        #[filter(operator = &quot;Like&quot;)]
-        pub name: String,
-    
-        #[and_filter(operator = &quot;&lt;=&quot;)]
-        pub age: u16,
-    
-        #[options]
-        options: SelectOptions
+<pre><code class="language-rust">    
+    ...
+    struct InsertUser {
+        #[field(column_name= &quot;first_name&quot;, param = &quot;username&quot;, scalar = &quot;&lt;default::str&gt;&quot;)]
+        name: String,
+        ...
     }
     
-    #[query_result]
-    pub struct Person {
-        pub user_name: String,
-        pub age: i8
+    ...
+    struct UserResult {
+        #[field(column_name= &quot;first_name&quot;, wrapper_fn =&quot;str_upper&quot;, default_value=&quot;John&quot;)]
+        name: String,
+        ...
     }
-    
-    #[tokio::main]
-    async fn main() -&gt; Result&lt;()&gt; {
-        let client = edgedb_tokio::create_client().await?;
-        
-        let select_person = SelectPerson {
-            name: &quot;%oe&quot;.to_owned(),
-            age: 18,
-            options: SelectOptions {
-                table_name: &quot;Person&quot;,
-                module: Some(&quot;models&quot;),
-                order_options: Some(OrderOptions {
-                    order_by: &quot;name&quot;.to_string(),
-                    order_direction: Some(OrderDir::Desc)
-                }),
-                page_options: None
-            }
-        };
-    
-        let edge_query: EdgeQuery = select_person.to_edge_query();
-    
-        let args = &amp;edge_query.args.unwrap();
-    
-        let query = edge_query.query.as_str();
-    
-        if let Some(json) = client.query_json(query, args).await? {
-            if let Ok(persons) = serde_json: from_str::&lt;Vec&lt;Person&gt;&gt;(json.as_ref()) {
-                assert!(persons.len() &gt; 0 );
-            } else {
-                assert!(false);
-            }
-        } else {
-            assert!(false);
-        }
-    }
-</code></pre>
+    </code></pre>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="../query-macros/insert-query.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="../inner_attributes/tags.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <i class="fa fa-angle-left"></i>
                             </a>
 
-                            <a rel="next" href="../query-macros/update-query.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next" href="../inner_attributes/filter.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <i class="fa fa-angle-right"></i>
                             </a>
 
@@ -242,11 +202,11 @@
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="../query-macros/insert-query.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="../inner_attributes/tags.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <i class="fa fa-angle-left"></i>
                     </a>
 
-                    <a rel="next" href="../query-macros/update-query.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next" href="../inner_attributes/filter.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <i class="fa fa-angle-right"></i>
                     </a>
             </nav>
