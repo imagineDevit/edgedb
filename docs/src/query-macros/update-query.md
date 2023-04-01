@@ -1,51 +1,69 @@
 # UpdateQuery
 
-#### List of possibles attributes :
+        #[update_query(module, table, result)] {
+            #[field]
+            #[set]
+            #[sets]
+            #[filter]
+            #[and_filter]
+            #[or_filter]
+            #[filters]
+        }
 
-<table>
-    <thead>
-        <tr>
-            <th rowspan="2">Attributes</th>
-            <th rowspan="2">Optional</th>
-            <th rowspan="2">Description</th>
-            <th colspan="3">Options</th>
-        </tr>
-        <tr>
-            <th>Name</th>
-            <th>Optional</th>
-            <th>Description</th>
-        </tr>
-    </thead>
-    <tbody>
-        <tr>
-            <td rowspan=2> <strong style="color: #008200">meta</strong> </td>
-            <td rowspan=2>No</td>
-            <td rowspan=2>
-                The field decorated <i style="color: #91b362">#[meta]</i> represents the query metadata 
-                and is used just to declare module and table names.
-                This field must be (called __meta__, of type () ) : <br>
-                <strong style="color: #c82829">__meta__ : ()</strong>
-            </td>
-            <td><i style="color: yellow">module</i></td>
-            <td>Yes ("default") </td>
-            <td>The edgedb module name </td>
-        </tr>
-        <tr>
-            <td><i style="color: yellow">table</i></td>
-            <td>No</td>
-            <td>The edgedb table name </td>
-        </tr>
-        <tr>
-            <td> <strong style="color: #008200">param</strong> </td>
-            <td> Yes </td>
-            <td colspan="4"> 
-            The <strong style="color: #91b362">param</strong> attribute represents the query parameter label associated to the decorated field. </td>
-        </tr>
-         <tr>
-            <td> <strong style="color: #008200">filters</strong> </td>
-            <td>Yes</td>
-            <td colspan="4"><i style="color: #91b362">filters</i> attribute is used to combine all the filters in a unique annotated <strong style="color: #9d00ec">#[derive(EdgedbFilters)]</strong> <br> see <a href="../shape-macros/edgedb-filters.html"> EdgedbFilters</a></td>
-        </tr>
-    </tbody>
-</table>
-<br>
+**_update_query_** attribute macro indicates that the struct represents an edgeDB update query.
+
+---
+
+### Usage
+
+Consider the following edgeDB schema 👇
+
+```sql
+    module models { 
+           type Person {
+                required property user_name -> str;
+                required property age -> int16;
+           }
+    }
+```
+To perform an update query using edgedb-tokio we can write code as follows 👇
+
+```rust
+
+    #[update_query(module="models", table="Person")]
+    pub struct UpdatePerson {
+        #[field(column_name="user_name", param="new_name")]
+        pub name: String,
+        
+        #[field(column_name="user_name", param="searched_name")]
+        #[filter(operator="like")]
+        pub filter: String
+    }
+    
+    #[tokio::main]
+    async fn main() -> Result<()> {
+        let client = edgedb_tokio::create_client().await?;
+        
+        let update_person = UpdatePerson {
+            name: "Mark".to_owned() ,
+            filter: "%oe".to_owned()
+        };
+    
+        let edge_query: EdgeQuery = update_person.to_edge_query();
+    
+        let args = &edge_query.args.unwrap();
+    
+        let query = edge_query.query.as_str();
+    
+        if let Some(json) = client.query_json(query, args).await? {
+            if let Ok(result) = serde_json: from_str::<Vec<BasicResult>>(json.as_ref()) {
+                assert!(persons.len() > 0 );
+            } else {
+                assert!(false);
+            }
+        } else {
+            assert!(false);
+        }
+        
+    }
+```
