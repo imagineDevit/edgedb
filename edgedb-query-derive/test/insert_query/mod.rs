@@ -4,6 +4,7 @@ mod insert {
     use edgedb_protocol::value::Value;
     use edgedb_query::{ToEdgeQuery, EdgeQuery};
     use edgedb_query::queries::conflict::{UnlessConflictElse, Conflict};
+    use uuid::Uuid;
     use edgedb_query_derive::{insert_query, select_query, query_result, edgedb_enum};
 
 
@@ -16,7 +17,7 @@ mod insert {
 
         let query: EdgeQuery = insert_user.to_edge_query();
 
-        let expected = "select ( insert users::User {} ){id,name : {name}}";
+        let expected = "select ( insert users::User {} ){id,name : {id,name}}";
 
         assert_eq!(query.query, expected);
     }
@@ -47,12 +48,12 @@ mod insert {
 
     #[query_result]
     pub struct UserResult {
-        pub id: String,
+        pub id: Uuid,
         pub name: NameResult,
     }
-
     #[query_result]
     pub struct NameResult {
+        pub id: Uuid,
         pub name: String,
     }
 
@@ -111,7 +112,7 @@ mod insert {
              )
          ) {
             id,
-            name : { name }
+            name : { id, name }
         }
         "#
         .to_owned()

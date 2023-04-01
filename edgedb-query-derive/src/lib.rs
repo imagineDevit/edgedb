@@ -86,7 +86,7 @@ mod edgedb_sets;
 ///
 ///     #[query_result]
 ///     pub struct UserResult {
-///         pub id: String,
+///         pub id: uuid::Uuid,
 ///         pub name: String,
 ///     }
 ///
@@ -112,8 +112,8 @@ mod edgedb_sets;
 ///
 ///         let client = edgedb_tokio::create_client().await.unwrap();
 ///
-///         let _ = client
-///                     .query_single_json(query.query.as_str(), &query.args.unwrap())
+///         let user: UserResult = client
+///                     .query_single::<UserResult, _>(query.query.as_str(), &query.args.unwrap())
 ///                     .await
 ///                     .unwrap();
 ///
@@ -153,7 +153,7 @@ pub fn insert_query(attr: TokenStream, item: TokenStream) -> TokenStream {
 ///
 ///     #[query_result]
 ///     pub struct UserResult {
-///         pub id: String,
+///         pub id: uuid::Uuid,
 ///         pub name: String,
 ///         pub age: i8,
 ///     }
@@ -175,8 +175,8 @@ pub fn insert_query(attr: TokenStream, item: TokenStream) -> TokenStream {
 ///
 ///         let query = select_query.to_edge_query();
 ///
-///         let _ = client
-///                 .query_single_json(query.query.as_str(), &query.args.unwrap())
+///         let user: UserResult = client
+///                 .query_single::<UserResult, _>(query.query.as_str(), &query.args.unwrap())
 ///                 .await
 ///                 .unwrap();
 ///     }
@@ -199,6 +199,7 @@ pub fn select_query(attr: TokenStream, item: TokenStream) -> TokenStream {
 ///
 /// ```rust
 ///     use edgedb_query_derive::{update_query};
+///     use edgedb_query::BasicResult;
 ///     use edgedb_query::models::edge_query::ToEdgeQuery;
 ///
 ///     #[update_query(module = "users", table = "User")]
@@ -214,8 +215,9 @@ pub fn select_query(attr: TokenStream, item: TokenStream) -> TokenStream {
 ///      }
 ///
 ///     async fn main() {
-///          let client = edgedb_tokio::create_client().await.unwrap();
-///          let update_query = UpdateUser {
+///         let client = edgedb_tokio::create_client().await.unwrap();
+///
+///         let update_query = UpdateUser {
 ///             name: "Joe".to_string(),
 ///             first_name: "Henri".to_string(),
 ///             age: 18,
@@ -223,8 +225,8 @@ pub fn select_query(attr: TokenStream, item: TokenStream) -> TokenStream {
 ///
 ///         let query = update_query.to_edge_query();
 ///
-///         let _ = client
-///                 .query_single_json(query.query.as_str(), &query.args.unwrap())
+///         let result: BasicResult = client
+///                 .query_single::<BasicResult, _>(query.query.as_str(), &query.args.unwrap())
 ///                 .await
 ///                 .unwrap();
 ///     }
@@ -333,6 +335,7 @@ pub fn file_query(attr: TokenStream, item: TokenStream) -> TokenStream {
 ///
 ///     #[query_result]
 ///     pub struct UserWithFriendAndFieldAndWrapperFn {
+///         pub id: uuid::Uuid,
 ///         #[field(column_name="pseudo", wrapper_fn="str_upper", default_value="john")]
 ///         pub login: String,
 ///         pub identity: Identity,
