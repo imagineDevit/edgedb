@@ -215,7 +215,7 @@ to this 👇
 
     #[query_result]
     pub struct UserResult {
-        pub id: String,
+        pub id: uuid::Uuid,
         pub name: NameResult,
     }
 
@@ -252,7 +252,7 @@ to this 👇
                 money: 0 }
         }.to_edge_query();
 
-        let _result = client.query_json(insert_user.query, &insert_user.args).await?;
+        let user: UserResult = client.query_single::<UserResult, _>(insert_user.query, &insert_user.args).await?;
         
         OK(())
     }

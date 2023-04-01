@@ -4,13 +4,14 @@ mod select {
     use edgedb_query_derive::{edgedb_filters, query_result, select_query};
     use edgedb_query::models::edge_query::{ToEdgeQuery, EdgeQuery};
     use edgedb_query::queries::select::{OrderDir, OrderOptions, SelectOptions};
+    use uuid::Uuid;
 
 
     #[query_result]
     pub struct UserResult {
-        pub id: String,
+        pub id: Uuid,
         pub name: String,
-        pub age: i8,
+        pub age: i16,
     }
 
     #[select_query(module = "users", table = "User", result = "UserResult")]
