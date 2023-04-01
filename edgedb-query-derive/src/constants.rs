@@ -5,6 +5,7 @@ pub const SCALAR_TYPE: &str = "$scalar_type$";
 pub const EDGEQL: &str = "$edgeql$";
 pub const INF_SIGN: &str = "<";
 pub const SUP_SIGN: &str = ">";
+pub const ID: &str= "id";
 // endregion other
 
 // region wrapper
@@ -202,6 +203,7 @@ pub const ONLY_ONE_SETS_TAG_EXPECTED: &str = "UpdateQuery can only have one sets
 pub const EITHER_ONE_FILTERS_OR_FILTER_TAG_EXPECTED: &str = "SelectQuery can only have either one `filters` or one or more `filter` fields";
 pub const EITHER_ONE_SETS_OR_SET_TAG_EXPECTED: &str = "UpdateQuery can only have either one `sets` or one or more `set` or `nested_query` fields";
 pub const EXPECTED_AT_LEAST_ONE_SET_FIELD: &str = "UpdateQuery must have at least one field with #[set] attribute or with no attribute";
+pub const EXPECTED_ID_FIELD: &str = "Query result struct must have an id field of type uuid::Uuid";
 // endregion messages
 
 // region types

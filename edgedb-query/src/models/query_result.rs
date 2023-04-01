@@ -1,11 +1,13 @@
 use crate::{EdgeResult, ToEdgeQl, ToEdgeShape};
-use serde::Deserialize;
+use edgedb_derive::Queryable;
+use uuid::Uuid;
+
 const STRUCT_ID: &str = "{ id }";
 
 /// BasicResult represents the default edgeDB query result
-#[derive(Default, Deserialize)]
+#[derive(Default, Queryable)]
 pub struct BasicResult {
-    pub id: String,
+    pub id: Uuid,
 }
 
 impl ToEdgeShape for BasicResult {

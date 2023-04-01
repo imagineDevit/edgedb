@@ -4,7 +4,7 @@ use proc_macro2::Span;
 use quote::quote;
 use syn::{Field, Ident, ItemStruct};
 use syn::parse::{Parse, ParseStream};
-use crate::constants::{BACKLINK, FIELD, INVALID_RESULT_FIELD_TAG, LIMIT_1, SCALAR_TYPE, VEC};
+use crate::constants::{BACKLINK, EXPECTED_ID_FIELD, FIELD, ID, INVALID_RESULT_FIELD_TAG, LIMIT_1, SCALAR_TYPE, VEC};
 use crate::queries::QueryField;
 use crate::tags::backlink_field_tag::{BackLinkFieldTag, BackLinkFieldTagBuilder};
 use crate::tags::{build_tags_from_field, Tagged};
@@ -33,6 +33,11 @@ impl QueryResult {
 
         let fields = self.fields.iter();
 
+        let id_field = fields.clone().find(|f| f.field.ident == ID)
+            .ok_or_else(|| syn::Error::new(Span::call_site(), EXPECTED_ID_FIELD))?;
+
+        let id_ty = id_field.field.ty.clone();
+
         let fields_quote = fields.clone()
             .map(|f| f.field.struct_field_quote());
 
@@ -48,7 +53,13 @@ impl QueryResult {
 
         let tokens = quote! {
 
-            #[derive(Debug, Clone,Default)]
+            const _: () = {
+                use std::marker::PhantomData;
+                struct Id(PhantomData<uuid::Uuid>);
+                let _ = Id(PhantomData::<#id_ty>);
+            };
+
+            #[derive(Debug, Clone, Default, edgedb_derive::Queryable)]
             pub struct #struct_name {
                 #(#fields_quote)*
             }

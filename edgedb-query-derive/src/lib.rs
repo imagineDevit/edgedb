@@ -86,7 +86,7 @@ mod edgedb_sets;
 ///
 ///     #[query_result]
 ///     pub struct UserResult {
-///         pub id: String,
+///         pub id: uuid::Uuid,
 ///         pub name: String,
 ///     }
 ///
@@ -112,8 +112,8 @@ mod edgedb_sets;
 ///
 ///         let client = edgedb_tokio::create_client().await.unwrap();
 ///
-///         let _ = client
-///                     .query_single_json(query.query.as_str(), &query.args.unwrap())
+///         let user: UserResult = client
+///                     .query_single::<UserResult, _>(query.query.as_str(), &query.args.unwrap())
 ///                     .await
 ///                     .unwrap();
 ///
@@ -153,7 +153,7 @@ pub fn insert_query(attr: TokenStream, item: TokenStream) -> TokenStream {
 ///
 ///     #[query_result]
 ///     pub struct UserResult {
-///         pub id: String,
+///         pub id: uuid::Uuid,
 ///         pub name: String,
 ///         pub age: i8,
 ///     }
@@ -175,8 +175,8 @@ pub fn insert_query(attr: TokenStream, item: TokenStream) -> TokenStream {
 ///
 ///         let query = select_query.to_edge_query();
 ///
-///         let _ = client
-///                 .query_single_json(query.query.as_str(), &query.args.unwrap())
+///         let user: UserResult = client
+///                 .query_single::<UserResult, _>(query.query.as_str(), &query.args.unwrap())
 ///                 .await
 ///                 .unwrap();
 ///     }
@@ -199,6 +199,7 @@ pub fn select_query(attr: TokenStream, item: TokenStream) -> TokenStream {
 ///
 /// ```rust
 ///     use edgedb_query_derive::{update_query};
+///     use edgedb_query::BasicResult;
 ///     use edgedb_query::models::edge_query::ToEdgeQuery;
 ///
 ///     #[update_query(module = "users", table = "User")]
@@ -214,8 +215,9 @@ pub fn select_query(attr: TokenStream, item: TokenStream) -> TokenStream {
 ///      }
 ///
 ///     async fn main() {
-///          let client = edgedb_tokio::create_client().await.unwrap();
-///          let update_query = UpdateUser {
+///         let client = edgedb_tokio::create_client().await.unwrap();
+///
+///         let update_query = UpdateUser {
 ///             name: "Joe".to_string(),
 ///             first_name: "Henri".to_string(),
 ///             age: 18,
@@ -223,8 +225,8 @@ pub fn select_query(attr: TokenStream, item: TokenStream) -> TokenStream {
 ///
 ///         let query = update_query.to_edge_query();
 ///
-///         let _ = client
-///                 .query_single_json(query.query.as_str(), &query.args.unwrap())
+///         let result: BasicResult = client
+///                 .query_single::<BasicResult, _>(query.query.as_str(), &query.args.unwrap())
 ///                 .await
 ///                 .unwrap();
 ///     }
@@ -284,11 +286,27 @@ pub fn delete_query(attr: TokenStream, item: TokenStream) -> TokenStream {
 ///
 /// ## Usage
 ///
+///
+/// _queries.edgeql_
+/// ``` sql
+///     insert users::User {
+///         name := <str>$user_name,
+///         age := <int16>$age,
+///         friend := (
+///             select users::User {
+///                 name,
+///                 age,
+///             }
+///             filter .name = <str>$friend_name
+///         )
+///     }
+/// ```
 /// ```rust
 ///     use edgedb_query_derive::{file_query};
+///     use edgedb_query::BasicResult;
 ///     use edgedb_query::models::edge_query::ToEdgeQuery;
 ///
-///     #[file_query(src="edgedb-query-derive/test/from_file_query/add_user.edgeql")]
+///     #[file_query(src="queries.edgeql")]
 ///     pub struct AddUser {
 ///         #[param("user_name")]
 ///         pub name: String,
@@ -298,16 +316,18 @@ pub fn delete_query(attr: TokenStream, item: TokenStream) -> TokenStream {
 ///     }
 ///
 ///     async fn main() {
-///          let client = edgedb_tokio::create_client().await.unwrap();
-///          let add_user = AddUser {
+///
+///         let client = edgedb_tokio::create_client().await.unwrap();
+///
+///         let add_user = AddUser {
 ///             name: "Joe".to_string(),
 ///             friend: "Henri".to_string(),
 ///         };
 ///
 ///         let query = add_user.to_edge_query();
 ///
-///         let _ = client
-///                 .query_single_json(query.query.as_str(), &query.args.unwrap())
+///         let result = client
+///                 .query_single::<BasicResult, _>(query.query.as_str(), &query.args.unwrap())
 ///                 .await
 ///                 .unwrap();
 ///     }
@@ -333,6 +353,7 @@ pub fn file_query(attr: TokenStream, item: TokenStream) -> TokenStream {
 ///
 ///     #[query_result]
 ///     pub struct UserWithFriendAndFieldAndWrapperFn {
+///         pub id: uuid::Uuid,
 ///         #[field(column_name="pseudo", wrapper_fn="str_upper", default_value="john")]
 ///         pub login: String,
 ///         pub identity: Identity,

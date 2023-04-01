@@ -3,10 +3,12 @@ mod update {
     use edgedb_protocol::value::Value;
     use edgedb_query_derive::{edgedb_filters, edgedb_sets, query_result, update_query};
     use edgedb_query::models::edge_query::ToEdgeQuery;
+    use uuid::Uuid;
     use crate::test_utils::check_shape;
 
     #[query_result]
     pub struct User {
+        pub id: Uuid,
         pub name: String
     }
 
@@ -49,7 +51,7 @@ mod update {
             and users::User.age >= (select <int16>$age)
             set {
                 name := (select <str>$name)
-            }){ name }
+            }){ id,name }
         "#.to_owned().replace('\n', "");
 
         assert_eq!(eq.query.replace(' ', ""), expected_query.replace(' ', ""));
