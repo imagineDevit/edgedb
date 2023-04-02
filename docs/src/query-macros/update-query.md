@@ -12,6 +12,19 @@
 
 **_update_query_** attribute macro indicates that the struct represents an edgeDB update query.
 
+Each field of UpdateQuery can be decorated with following tags:
+- [#[field]](../inner_attributes/field.md)
+- [#[filter] (#[and_filter] or #[or_filter])](../inner_attributes/filter.md)
+- [#[filters]](../shape-macros/edgedb-filters.md)
+- [#[set]](../inner_attributes/set.md)
+- [#[sets]](../shape-macros/edgedb-sets.md)
+
+
+
+### ⚠️ 
+ - #[filter] (#[and_filter] or #[or_filter]) and #[filters] can not be used to together.
+ - #[set] and #[sets] can not be used to together.
+ - A field not decorated with #[filter] (#[and_filter] or #[or_filter]) is considered to be a #[set] field.
 ---
 
 ### Usage
@@ -55,14 +68,10 @@ To perform an update query using edgedb-tokio we can write code as follows 👇
     
         let query = edge_query.query.as_str();
     
-        if let Some(json) = client.query_json(query, args).await? {
-            if let Ok(result) = serde_json: from_str::<Vec<BasicResult>>(json.as_ref()) {
-                assert!(persons.len() > 0 );
-            } else {
-                assert!(false);
-            }
+        if let Some(result) = client.query_single::<BasicResult, _>(query, args).await? {
+            assert_ne!(result.id.to_string(), String::default())
         } else {
-            assert!(false);
+            unreachable!()
         }
         
     }

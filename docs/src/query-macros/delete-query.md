@@ -10,7 +10,16 @@
 
 **_delete_query_** attribute macro indicates that the struct represents an edgeDB delete query.
 
----
+Each field of DeleteQuery can be decorated with following tags:
+- [#[field]](../inner_attributes/field.md)
+- [#[filter] (#[and_filter] or #[or_filter])](../inner_attributes/filter.md)
+- [#[filters]](../shape-macros/edgedb-filters.md)
+- [#[options]](../inner_attributes/options.md)
+
+
+### ⚠️ 
+- #[filter] (#[and_filter] or #[or_filter]) and #[filters] can not be used to together.
+
 
 ### Usage
 
@@ -31,7 +40,6 @@ To perform a 'delete query' using edgedb-tokio we can write code as follows 👇
     
     #[delete_query(module="models", table="Person")]
     pub struct DeletePerson {
-        
         #[field(column_name="user_name")]
         #[filter(operator="Is")]
         pub name: String
@@ -51,8 +59,7 @@ To perform a 'delete query' using edgedb-tokio we can write code as follows 👇
 
         let query = edge_query.query.as_str();
 
-        let _= client.query_json(query, args).await?;
-        
+        let _= client.query_single<BasicResult, _>(query, args).await?;
         
     }
 

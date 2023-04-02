@@ -1,24 +1,15 @@
-# EdgedbEnum
+# Edgedb Enum
 
-### List of attributes
+    #[edgedb_enum]{
+        #[value]
+    }
 
-<table>
-    <thead>
-        <tr>
-            <th>Attributes</th>
-            <th>Optional</th>
-            <th>Description </th>
-        </tr>
-    </thead>
-    <tbody>
-        <tr>
-            <td> <strong style="color: #008200">value</strong> </td>
-            <td>Yes</td>
-            <td>The EdgeDB enum's corresponding value. If the attribute is missing, the Rust enum value is considered to be the same as the EdgeDB scalar type.</td>
-        </tr>
-    </tbody>
-</table>
-<br><br>
+An enum decorated #[edgedb_enum] is a representation of an edgeDB scalar enum type.
+
+The `value` argument is used when the rust enum variant name does not match the edgeDB enum variant name.
+
+
+### Usage
 
 The following scalar enum types 👇
 
@@ -30,7 +21,7 @@ The following scalar enum types 👇
 can then be represented by 👇 
 
 ```rust
-    #[derive(EdgedbEnum)]
+    #[edgedb_enum]
     pub enum Gender {
         #[value("Man")]
         Male,
@@ -38,7 +29,7 @@ can then be represented by 👇
         Female,
     }
 
-    #[derive(EdgedbEnum)]
+    #[edgedb_enum]
     pub enum Status {
         Opened,
         InProgress,

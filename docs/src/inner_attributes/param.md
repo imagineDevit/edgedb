@@ -1,6 +1,6 @@
 # Param 
 
-_**Param**_ attribute represents query parameter. It's take the name of the query parameter
+_**Param**_ attribute represents query parameter. It's take the name of the query parameter as argument.
 
     #[param()]
     
@@ -8,10 +8,8 @@ _**Param**_ attribute represents query parameter. It's take the name of the quer
 ### Usage 
 
 ```rust
-    ...
     struct FindUser {
         #[param("username")]
-        pub name: String,
-        ...
+        pub name: String
     }
 ````

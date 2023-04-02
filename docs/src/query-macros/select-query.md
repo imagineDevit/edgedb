@@ -11,8 +11,15 @@
 
 **_select_query_** attribute macro indicates that the struct represents an edgeDB select query.
 
+Each field of SelectQuery can be decorated with following tags: 
+- [#[field]](../inner_attributes/field.md)
+- [#[filter] (#[and_filter] or #[or_filter])](../inner_attributes/filter.md) 
+- [#[filters]](../shape-macros/edgedb-filters.md)
+- [#[options]](../inner_attributes/options.md)
 
----
+
+### ⚠️
+- #[filter] (#[and_filter] or #[or_filter]) and #[filters] can not be used to together.
 
 ### Usage
 
@@ -48,6 +55,7 @@ To perform a select query using edgedb-tokio we can write code as follows 👇
     
     #[query_result]
     pub struct Person {
+        pub id: uuid::Uuid,
         pub user_name: String,
         pub age: i8
     }
@@ -76,14 +84,10 @@ To perform a select query using edgedb-tokio we can write code as follows 👇
     
         let query = edge_query.query.as_str();
     
-        if let Some(json) = client.query_json(query, args).await? {
-            if let Ok(persons) = serde_json: from_str::<Vec<Person>>(json.as_ref()) {
-                assert!(persons.len() > 0 );
-            } else {
-                assert!(false);
-            }
+        if let Some(persons) = client.query::<Person, _>(query, args).await? {
+            assert!(persons.len() > 0 );
         } else {
-            assert!(false);
+           unreachable!();
         }
     }
 
