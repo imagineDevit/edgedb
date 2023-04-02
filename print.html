@@ -167,13 +167,15 @@ using <a href="https://github.com/edgedb/edgedb-rust">edgedb-rust</a> crate.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="installation"><a class="header" href="#installation">Installation</a></h1>
 <p>In order to use derive macros provided by <a href=""><strong>edgedb-query</strong></a> crate you need to add several crates in your <em>cargo.toml</em> file.</p>
 <pre><code class="language-toml">[dependencies]
-edgedb-query = { path = &quot;../edgedb-query&quot; }
-edgedb-query-derive = { path = &quot;../edgedb-query-derive&quot; }
+edgedb-query = &quot;0.1&quot;
+edgedb-query-derive = &quot;0.2&quot;
 </code></pre>
 <p>You also need to add <a href="https://github.com/edgedb/edgedb-rust">edgedb-rust</a> crates 👇</p>
-<pre><code class="language-toml">edgedb = &quot;0.1&quot;
+<pre><code class="language-toml">edgedb = &quot;0.1
 edgedb-tokio = &quot;0.2&quot;
-edgedb-protocol = &quot;0.3&quot;
+edgedb-derive = &quot;0.4&quot;
+edgedb-protocol = &quot;0.4&quot;
+uuid = &quot;1.3&quot;
 </code></pre>
 <p>Since you are going to use edgedb-tokio, you will also need to add <a href="https://github.com/tokio-rs/tokio">tokio</a> crate 👇 </p>
 <pre><code class="language-toml">tokio = { version = &quot;1.19.2&quot;, features = [&quot;full&quot;] }
