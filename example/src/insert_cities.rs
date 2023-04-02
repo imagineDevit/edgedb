@@ -23,7 +23,7 @@ mod tests {
     }
 
     #[rstest]
-    async fn create_cities(
+    async fn insert_cities(
         #[future]
         edgedb_client: edgedb_tokio::Client
     ) {
@@ -60,13 +60,8 @@ mod tests {
 
             let query = edge_query.query.as_str();
 
-            if let Some(json) = client.query_single_json(query, args).await.unwrap() {
-                let result = serde_json::from_str::<BasicResult>(json.as_ref());
-                if let Ok(b_result) = result {
-                    assert_ne!(b_result.id, String::default());
-                } else {
-                    unreachable!()
-                }
+            if let Some(json) = client.query_single::<BasicResult, _>(query, args).await.unwrap() {
+                assert_ne!(json.id.to_string(), String::default());
             } else {
                 unreachable!()
             }

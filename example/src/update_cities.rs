@@ -7,9 +7,9 @@ mod tests {
     use edgedb_query::models::edge_query::{EdgeQuery, ToEdgeQuery};
     use serde::Deserialize;
 
-    #[derive(Deserialize)]
     #[query_result]
     pub struct City {
+        pub id: uuid::Uuid,
         pub name: String
     }
 
@@ -78,8 +78,7 @@ mod tests {
             }
         }.to_edge_query();
 
-        if let Ok(json) = client.query_json(select_city.query.as_str(), &select_city.args.unwrap()).await {
-            let cities : Vec<City> = serde_json::from_str::<Vec<City>>(json.as_ref()).unwrap();
+        if let Ok(cities) = client.query(select_city.query.as_str(), &select_city.args.unwrap()).await {
             let city: &City = cities.get(0).unwrap();
             assert_eq!(new_name, city.name);
         } else {

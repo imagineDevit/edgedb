@@ -6,10 +6,10 @@ mod tests {
     use serde::Deserialize;
     use edgedb_query::models::edge_query::{EdgeQuery, ToEdgeQuery};
 
-    #[derive(Deserialize)]
     #[query_result]
     pub struct City {
-        pub name: String
+        pub name: String,
+        pub id: uuid::Uuid,
     }
 
     #[select_query(table="City", result="City")]
@@ -22,7 +22,7 @@ mod tests {
     }
 
     #[rstest]
-    async fn update_city(
+    async fn select_cities(
         #[future]
         edgedb_client: edgedb_tokio::Client
     ) {
@@ -30,23 +30,14 @@ mod tests {
 
         let select_query: EdgeQuery = SelectCity {}.to_edge_query();
 
-
         let query_str = select_query.query.as_str();
 
         let args = &select_query.args.unwrap();
 
-        println!("{:#?}", query_str);
-        println!("{:#?}", args);
+        println!("{query_str:#?}");
 
+        let cities: Vec<City> = client.query(query_str, args).await.unwrap();
 
-        if let Ok(json) = client.query_json(query_str, args).await {
-            let cities = serde_json::from_str::<Vec<City>>(json.as_ref()).unwrap();
-
-            assert_eq!(3, cities.len());
-
-        } else {
-            assert!(false)
-        }
-
+        assert_eq!(3, cities.len());
     }
 }
