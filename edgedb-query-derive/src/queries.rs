@@ -7,6 +7,7 @@ use crate::utils::attributes_utils::has_only_attributes;
 use crate::utils::derive_utils::{element_shape, element_value};
 use crate::utils::type_utils::is_type_name;
 use crate::builders::impl_builder::QueryImplBuilder;
+use crate::tags::set_tag::{SetOption, SetTag};
 
 pub trait Query{
     fn get_param_labels(&self) -> Vec<(Ident, String)>;
@@ -52,16 +53,28 @@ impl QueryField {
         element_value(field_name, is_type_name(&field_type, OPTION))
     }
 
-    pub fn build_nested_statement(&self) -> String {
-        format!("{} := ({}), ", self.ident, EDGEQL)
+    pub fn build_nested_statement(&self,  set_tag: Option<SetTag>) -> String {
+        if let Some(tag) = set_tag {
+            let sign = tag.option.statement();
+            let column_name = self.ident.clone();
+            match tag.option {
+                SetOption::Assign => format!("{column_name} {sign} ({EDGEQL}), "),
+                SetOption::Concat => format!("{column_name} := .{column_name} ++ ({EDGEQL}), "),
+                SetOption::Push => format!("{column_name} += ({EDGEQL}), ")
+            }
+            //format!("{} {} ({}), ", self.ident, sign, EDGEQL)
+        } else {
+            format!("{} := ({}), ", self.ident, EDGEQL)
+        }
+
     }
 
-    pub fn add_stmt_quote(&self, to_query: bool) -> proc_macro2::TokenStream {
+    pub fn add_stmt_quote(&self, to_query: bool, set_tag: Option<SetTag>) -> proc_macro2::TokenStream {
         let f_name = self.ident.clone();
 
         let edge_ql = EDGEQL.to_string();
 
-        let field_statement = self.build_nested_statement();
+        let field_statement = self.build_nested_statement(set_tag);
 
         let add_quote = if to_query {
             quote!(query.push_str(p.as_str());)

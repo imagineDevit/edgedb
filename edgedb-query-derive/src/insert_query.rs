@@ -205,7 +205,7 @@ impl TryFrom<&Field> for InsertStatement {
 
     fn try_from(field: &Field) -> Result<Self, Self::Error> {
         if has_attribute(field, NESTED_QUERY) {
-            Ok(InsertStatement::NestedQuery(NestedQueryField::try_from(field)?))
+            Ok(InsertStatement::NestedQuery(NestedQueryField::try_from((field, false))?))
         } else if has_attribute(field, FIELD) || field.attrs.is_empty() {
             Ok(InsertStatement::SimpleField(InsertField::try_from(field)?))
         } else {
