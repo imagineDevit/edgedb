@@ -6,9 +6,9 @@ _**Set**_ attribute represents a update query set statement.
     
 _**Option**_  can take following values:
 
-- 'assign' or ':=' 
-- 'concat' or '++' (only for string)
-- 'push' or '+=' (only for vec)
+- **assign** or **:=**
+- **concat** or **++**   _(only for string)_
+- **push** or **+=**   _(only for vec)_
 
 ### Usage 
 

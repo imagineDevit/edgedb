@@ -4,16 +4,18 @@ In order to use derive macros provided by [**edgedb-query**]() crate you need to
 
 ```toml
 [dependencies]
-edgedb-query = { path = "../edgedb-query" }
-edgedb-query-derive = { path = "../edgedb-query-derive" }
+edgedb-query = "0.1"
+edgedb-query-derive = "0.2"
 ```
 
 You also need to add [edgedb-rust](https://github.com/edgedb/edgedb-rust) crates 👇
 
 ```toml
-edgedb = "0.1"
+edgedb = "0.1
 edgedb-tokio = "0.2"
-edgedb-protocol = "0.3"
+edgedb-derive = "0.4"
+edgedb-protocol = "0.4"
+uuid = "1.3"
 ```
 Since you are going to use edgedb-tokio, you will also need to add [tokio](https://github.com/tokio-rs/tokio) crate 👇 
 

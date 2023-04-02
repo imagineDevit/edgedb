@@ -6,7 +6,7 @@ _**Back Link**_ attribute is used in a query result struct. It indicates that th
 
 <br>
 
-| Option        | Optional | Description                                                |
+| Argument      | Optional | Description                                                |
 |---------------|----------|------------------------------------------------------------|
 | module        | yes      | The edgeDB module. <br/> <br/>**_By default_** : 'default' |
 | source_table  | no       | The backlink source table name                             |
@@ -19,8 +19,6 @@ _**Back Link**_ attribute is used in a query result struct. It indicates that th
 ### Usage 
 
 ```rust
-    
-    ...
     struct UserResult {
        #[back_link(
             module="users",
@@ -29,6 +27,5 @@ _**Back Link**_ attribute is used in a query result struct. It indicates that th
             target_column="friend"
         )]
         friend: Friend,
-        ...
     }
 ````

@@ -5,4 +5,4 @@
 - edgedb enum type  👉 [**_EdgedbEnum_**](./edgedb-enum.md)
 - edgedb query result  👉 [**_EdgedbResult_**](./edgedb-result.md)
 - edgedb select query filters  👉 [**_EdgedbFilters_**](./edgedb-filters.md)
-- edgedb set statment  👉 [**_EdgedbSet_**](./edgedb-set.md)
+- edgedb set statment  👉 [**_EdgedbSet_**](./edgedb-sets.md)
