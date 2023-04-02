@@ -83,7 +83,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded affix "><a href="../introduction.html">Introduction</a></li><li class="chapter-item expanded affix "><li class="part-title">📖 User Guide</li><li class="chapter-item expanded "><a href="../installation.html"><strong aria-hidden="true">1.</strong> Installation</a></li><li class="chapter-item expanded "><div><strong aria-hidden="true">2.</strong> Examples</div></li><li class="chapter-item expanded affix "><li class="part-title">📖 Reference Guide</li><li class="chapter-item expanded "><a href="../inner_attributes/tags.html"><strong aria-hidden="true">3.</strong> Tags (Inner attributes)</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../inner_attributes/field.html"><strong aria-hidden="true">3.1.</strong> Field</a></li><li class="chapter-item expanded "><a href="../inner_attributes/filter.html" class="active"><strong aria-hidden="true">3.2.</strong> Filter</a></li><li class="chapter-item expanded "><a href="../inner_attributes/param.html"><strong aria-hidden="true">3.3.</strong> Param</a></li><li class="chapter-item expanded "><a href="../inner_attributes/backlink.html"><strong aria-hidden="true">3.4.</strong> BackLink</a></li><li class="chapter-item expanded "><a href="../inner_attributes/set.html"><strong aria-hidden="true">3.5.</strong> Set</a></li><li class="chapter-item expanded "><a href="../inner_attributes/value.html"><strong aria-hidden="true">3.6.</strong> Value</a></li><li class="chapter-item expanded "><a href="../inner_attributes/nested_query.html"><strong aria-hidden="true">3.7.</strong> NestedQuery</a></li><li class="chapter-item expanded "><a href="../inner_attributes/unless_conflict.html"><strong aria-hidden="true">3.8.</strong> UnlessConflict</a></li><li class="chapter-item expanded "><a href="../inner_attributes/options.html"><strong aria-hidden="true">3.9.</strong> Options</a></li></ol></li><li class="chapter-item expanded "><a href="../query-macros/query-macros.html"><strong aria-hidden="true">4.</strong> Queries (Attributes macros)</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../query-macros/insert-query.html"><strong aria-hidden="true">4.1.</strong> InsertQuery</a></li><li class="chapter-item expanded "><a href="../query-macros/select-query.html"><strong aria-hidden="true">4.2.</strong> SelectQuery</a></li><li class="chapter-item expanded "><a href="../query-macros/update-query.html"><strong aria-hidden="true">4.3.</strong> UpdateQuery</a></li><li class="chapter-item expanded "><a href="../query-macros/delete-query.html"><strong aria-hidden="true">4.4.</strong> DeleteQuery</a></li><li class="chapter-item expanded "><a href="../query-macros/file-query.html"><strong aria-hidden="true">4.5.</strong> FileQuery</a></li></ol></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="../introduction.html">Introduction</a></li><li class="chapter-item expanded affix "><li class="part-title">📖 User Guide</li><li class="chapter-item expanded "><a href="../installation.html"><strong aria-hidden="true">1.</strong> Installation</a></li><li class="chapter-item expanded "><div><strong aria-hidden="true">2.</strong> Examples</div></li><li class="chapter-item expanded affix "><li class="part-title">📖 Reference Guide</li><li class="chapter-item expanded "><a href="../inner_attributes/tags.html"><strong aria-hidden="true">3.</strong> Tags (Inner attributes)</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../inner_attributes/field.html"><strong aria-hidden="true">3.1.</strong> Field</a></li><li class="chapter-item expanded "><a href="../inner_attributes/filter.html" class="active"><strong aria-hidden="true">3.2.</strong> Filter</a></li><li class="chapter-item expanded "><a href="../inner_attributes/param.html"><strong aria-hidden="true">3.3.</strong> Param</a></li><li class="chapter-item expanded "><a href="../inner_attributes/backlink.html"><strong aria-hidden="true">3.4.</strong> BackLink</a></li><li class="chapter-item expanded "><a href="../inner_attributes/set.html"><strong aria-hidden="true">3.5.</strong> Set</a></li><li class="chapter-item expanded "><a href="../inner_attributes/value.html"><strong aria-hidden="true">3.6.</strong> Value</a></li><li class="chapter-item expanded "><a href="../inner_attributes/nested_query.html"><strong aria-hidden="true">3.7.</strong> NestedQuery</a></li><li class="chapter-item expanded "><a href="../inner_attributes/unless_conflict.html"><strong aria-hidden="true">3.8.</strong> UnlessConflict</a></li><li class="chapter-item expanded "><a href="../inner_attributes/options.html"><strong aria-hidden="true">3.9.</strong> Options</a></li></ol></li><li class="chapter-item expanded "><div><strong aria-hidden="true">4.</strong> Macro attributes</div></li><li><ol class="section"><li class="chapter-item expanded "><a href="../shape-macros/edgedb-result.html"><strong aria-hidden="true">4.1.</strong> Query Result</a></li><li class="chapter-item expanded "><a href="../shape-macros/edgedb-enum.html"><strong aria-hidden="true">4.2.</strong> EdgeDb Enum</a></li><li class="chapter-item expanded "><a href="../shape-macros/edgedb-filters.html"><strong aria-hidden="true">4.3.</strong> Filters</a></li><li class="chapter-item expanded "><a href="../shape-macros/edgedb-sets.html"><strong aria-hidden="true">4.4.</strong> Sets</a></li><li class="chapter-item expanded "><a href="../query-macros/query-macros.html"><strong aria-hidden="true">4.5.</strong> Queries</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../query-macros/insert-query.html"><strong aria-hidden="true">4.5.1.</strong> InsertQuery</a></li><li class="chapter-item expanded "><a href="../query-macros/select-query.html"><strong aria-hidden="true">4.5.2.</strong> SelectQuery</a></li><li class="chapter-item expanded "><a href="../query-macros/update-query.html"><strong aria-hidden="true">4.5.3.</strong> UpdateQuery</a></li><li class="chapter-item expanded "><a href="../query-macros/delete-query.html"><strong aria-hidden="true">4.5.4.</strong> DeleteQuery</a></li><li class="chapter-item expanded "><a href="../query-macros/file-query.html"><strong aria-hidden="true">4.5.5.</strong> FileQuery</a></li></ol></li></ol></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -149,42 +149,39 @@
 <pre><code>#[filter(operator, wrapper_fn)]
 </code></pre>
 <p>When several filters are applied in a query, only the first filter can be represented by attribute #[filter].
-The others filters should be #[and_filter] or #[or_filter].</p>
+The others filters should be decorated with #[and_filter] or #[or_filter].</p>
 <pre><code>#[and_filter(operator, wrapper_fn)] 
 
 #[or_filter(operator, wrapper_fn)]
 </code></pre>
 <br>
-<div class="table-wrapper"><table><thead><tr><th>Option</th><th>Optional</th><th>Description</th></tr></thead><tbody>
+<div class="table-wrapper"><table><thead><tr><th>Argument</th><th>Optional</th><th>Description</th></tr></thead><tbody>
 <tr><td>operator</td><td>no</td><td>The filter operator.</td></tr>
 <tr><td>wrapper_fn</td><td>yes</td><td>The function to apply to the edgeDB column value before applying the filter</td></tr>
 </tbody></table>
 </div><br>
-<p>The <strong><em>operator</em></strong> can take values are:</p>
+<p>The <strong><em>operator</em></strong> argument can take one of following values (the case does not matter):</p>
 <ul>
-<li>'exists'</li>
-<li>'notexists' or '!exists'</li>
-<li>'is' or '='</li>
-<li>'isnot' or '!='</li>
-<li>'like'</li>
-<li>'ilike'</li>
-<li>'in'</li>
-<li>'notIn'</li>
-<li>'greaterthan'  or  '&gt;'</li>
-<li>'lesserthan' or '&lt;'</li>
-<li>'greaterthanorequal' or '&gt;='</li>
-<li>'lesserthanorequal' or '&lt;='</li>
+<li><strong>exists</strong></li>
+<li><strong>notexists</strong> or <strong>!exists</strong></li>
+<li><strong>is</strong> or <strong>=</strong></li>
+<li><strong>isnot</strong> or <strong>!=</strong></li>
+<li><strong>like</strong></li>
+<li><strong>ilike</strong></li>
+<li><strong>in</strong></li>
+<li><strong>notIn</strong></li>
+<li><strong>greaterthan</strong>  or  <strong>&gt;</strong></li>
+<li><strong>lesserthan</strong> or <strong>&lt;</strong></li>
+<li><strong>greaterthanorequal</strong> or <strong>&gt;=</strong></li>
+<li><strong>lesserthanorequal</strong> or <strong>&lt;=</strong></li>
 </ul>
 <h3 id="usage"><a class="header" href="#usage">Usage</a></h3>
-<pre><code class="language-rust">    
-    ...
-    struct FindUserByNameAndAge {
+<pre><code class="language-rust">    struct FindUserByNameAndAge {
         #[filter(operator=&quot;Is&quot;, wrapper_fn=&quot;str_lower&quot;)]
         pub name: String,
         #[and_filter(operator=&quot;&gt;=&quot;)]
         pub age: i8 
-    }
-    </code></pre>
+    }</code></pre>
 
                     </main>
 
