@@ -62,7 +62,6 @@ impl QueryField {
                 SetOption::Concat => format!("{column_name} := .{column_name} ++ ({EDGEQL}), "),
                 SetOption::Push => format!("{column_name} += ({EDGEQL}), ")
             }
-            //format!("{} {} ({}), ", self.ident, sign, EDGEQL)
         } else {
             format!("{} := ({}), ", self.ident, EDGEQL)
         }
