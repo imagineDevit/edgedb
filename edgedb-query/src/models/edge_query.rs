@@ -1,3 +1,4 @@
+use edgedb_protocol::common::Cardinality;
 use crate::ToEdgeQl;
 use crate::ToEdgeValue;
 use edgedb_protocol::value::Value;
@@ -9,6 +10,8 @@ use edgedb_protocol::value::Value;
 /// __query__ : the string query
 ///
 /// __args__ : the query arguments
+///
+/// __cardinality__ : the query cardinality, MANY by default
 ///
 ///<br>
 ///
@@ -37,7 +40,7 @@ use edgedb_protocol::value::Value;
 ///
 ///     let query = "Select 'I love ' ++ <str>$var".to_owned();
 ///
-///     let edge_query = EdgeQuery { query, args };
+///     let edge_query = EdgeQuery { query, args, cardinality: Cardinality:: One };
 ///
 /// ```
 ///
@@ -45,6 +48,26 @@ use edgedb_protocol::value::Value;
 pub struct EdgeQuery {
     pub query: String,
     pub args: Option<Value>,
+    pub cardinality: Cardinality
+}
+
+impl EdgeQuery {
+    fn with_cardinality(self, cardinality: Cardinality) -> Self {
+        let query = match cardinality {
+            Cardinality::AtMostOne | Cardinality::One => {
+                 format!("SELECT ({}) limit 1", self.query)
+            }
+            _ => {
+                self.query
+            }
+        };
+
+        Self {
+            query,
+            args: self.args,
+            cardinality
+        }
+    }
 }
 
 
@@ -56,6 +79,11 @@ pub trait ToEdgeQuery: ToEdgeQl + ToEdgeValue {
         EdgeQuery {
             query: self.to_edgeql(),
             args: Some(self.to_edge_value()),
+            cardinality: Cardinality::Many
         }
+    }
+
+    fn to_edge_query_with_cardinality(&self, cardinality: Cardinality) -> EdgeQuery {
+        self.to_edge_query().with_cardinality(cardinality)
     }
 }

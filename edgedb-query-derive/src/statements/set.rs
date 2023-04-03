@@ -64,10 +64,9 @@ impl SetStatement {
 
 impl TryFrom<&Field> for SetStatement {
     type Error = syn::Error;
-
     fn try_from(field: &Field) -> Result<Self, Self::Error> {
         if has_attribute(field, NESTED_QUERY) {
-            Ok(SetStatement::NestedQuery(NestedQueryField::try_from(field)?))
+            Ok(SetStatement::NestedQuery(NestedQueryField::try_from((field , true))?))
         } else if has_any_attribute(field, vec![SET, FIELD]) || field.attrs.is_empty() {
             Ok(SetStatement::SimpleField(UpdateSet::try_from(field)?))
         } else {
@@ -82,6 +81,7 @@ pub struct UpdateSet {
     pub field: QueryField,
     pub field_tag: FieldTag,
     pub set_tag: SetTag,
+    pub is_nested: bool
 }
 
 impl UpdateSet {
@@ -119,9 +119,10 @@ impl TryFrom<&Field> for UpdateSet {
         let set_tag_builder: SetTagBuilder = set_tag_builder.into();
 
         Ok(Self {
-            field: QueryField::try_from((field, vec![FIELD, SET]))?,
+            field: QueryField::try_from((field, vec![FIELD, SET, NESTED_QUERY]))?,
             field_tag: field_tag_builder.build(field)?,
             set_tag: set_tag_builder.build(field)?,
+            is_nested: has_attribute(field, NESTED_QUERY)
         })
     }
 }
