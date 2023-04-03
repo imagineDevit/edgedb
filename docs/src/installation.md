@@ -4,7 +4,7 @@ In order to use derive macros provided by [**edgedb-query**]() crate you need to
 
 ```toml
 [dependencies]
-edgedb-query = "0.1"
+edgedb-query = "0.2"
 edgedb-query-derive = "0.2"
 ```
 
