@@ -24,7 +24,7 @@ mod insert {
 
     #[insert_query(module ="users", table="User", result="UserResult")]
     pub struct InsertUser {
-        #[field(column_name="username", param="first_name")]
+        #[field(column_name="username", param="first_name", link_property=true)]
         pub name: String,
         pub surname: Option<String>,
         #[field(scalar="<int16>")]
@@ -95,7 +95,7 @@ mod insert {
         let expected = r#"
            select (
               insert users::User {
-                username := (select <str>$first_name),
+                @username := (select <str>$first_name),
                 surname := (select <str>$surname),
                 age := (select <int16>$age),
                 major := (select <bool>$major),
@@ -107,7 +107,7 @@ mod insert {
                         money := (select <int16>$money),
                     }
                 ),
-             } unless conflict on (.username, .surname) else (
+             } unless conflict on (.@username, .surname) else (
                 select users::User filter users::User.name = (select<str>$user_name)
              )
          ) {
@@ -128,7 +128,7 @@ mod insert {
                 ],
             );
 
-            let vs_val = &insert_user.vs[0];
+            let vs_val: &String = &insert_user.vs[0];
 
             assert_eq!(
                 fields,

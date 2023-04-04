@@ -4,43 +4,33 @@ use syn::Lit::{Bool, Str};
 use crate::constants::{COLUMN_NAME, DEFAULT_VALUE, EXPECT_NON_EMPTY_LIT, FIELD, INVALID_FIELD_TAG, SCALAR_TYPE, WRAPPER_FN, LINK_PROPERTY, INVALID_RESULT_FIELD_TAG, EXPECT_LIT_STR, EXPECT_LIT_BOOL};
 use crate::tags::{NamedValueTagBuilder, TagBuilders};
 use crate::tags::TagBuilders::ResultFieldBuilder;
+use crate::tags::utils::{get_column_name, validate_link_property};
 use crate::utils::attributes_utils::has_attribute;
 
 // region ResultFieldTag
 #[derive(Debug, Clone)]
 pub struct ResultFieldTag {
-    pub column_name: Option<String>,
+    pub column_name: String,
     pub wrapper_fn: Option<String>,
     pub default_value: Option<String>,
-    pub link_property: bool,
 }
 
 impl ResultFieldTag {
     pub fn build_statement(&self, f_name: String) -> String {
-        let apply_link = |s: String| {
-            if self.link_property {
-                format!("@{s}")
-            } else {
-                s
-            }
-        };
 
-        let mut s = match (self.column_name.clone(), self.wrapper_fn.clone()) {
-            (Some(column), None) => {
-                if column != f_name {
-                    format!("{f_name} := .{}", apply_link(column))
+        let column = self.column_name.clone();
+
+        let mut s = match self.wrapper_fn.clone() {
+            None => {
+                if column.replace('@', "") != f_name {
+                    format!("{f_name} := .{column}")
                 } else {
-                    apply_link(f_name)
+                    column
                 }
             }
 
-            (None, Some(wrapper_fn)) =>
-                format!("{f_name} := (select {SCALAR_TYPE}{wrapper_fn}(.{}))", apply_link(f_name.clone())),
-
-            (Some(column), Some(wrapper_fn)) =>
-                format!("{f_name} := (select {SCALAR_TYPE}{wrapper_fn}(.{}))", apply_link(column)),
-
-            (None, None) => apply_link(f_name)
+           Some(wrapper_fn) =>
+                format!("{f_name} := (select {SCALAR_TYPE}{wrapper_fn}(.{column}))")
         };
 
         if let Some(v) = self.default_value.clone() {
@@ -106,6 +96,7 @@ pub struct ResultFieldTagBuilder {
 }
 
 impl From<TagBuilders> for ResultFieldTagBuilder {
+
     fn from(value: TagBuilders) -> Self {
         match value {
             ResultFieldBuilder(builder) => builder,
@@ -133,7 +124,11 @@ impl NamedValueTagBuilder for ResultFieldTagBuilder {
 }
 
 impl ResultFieldTagBuilder {
+
     pub fn build(self, field: &Field) -> syn::Result<ResultFieldTag> {
+
+        validate_link_property(self.column_name.clone(), self.link_property, field)?;
+
         let all_nones = vec![
             self.column_name.clone(),
             self.wrapper_fn.clone(),
@@ -149,11 +144,11 @@ impl ResultFieldTagBuilder {
                 "#[field] must have at least column_name, wrapper_fn or link_property attribute",
             ))
         } else {
+
             Ok(ResultFieldTag {
-                column_name: self.column_name.clone(),
+                column_name: get_column_name(self.column_name.clone(), self.link_property, field),
                 wrapper_fn: self.wrapper_fn.clone(),
                 default_value: self.default_value,
-                link_property: self.link_property.unwrap_or(false),
             })
         }
     }

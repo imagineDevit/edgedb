@@ -5,6 +5,7 @@ pub const SCALAR_TYPE: &str = "$scalar_type$";
 pub const EDGEQL: &str = "$edgeql$";
 pub const INF_SIGN: &str = "<";
 pub const SUP_SIGN: &str = ">";
+pub const AT: &str = "@";
 pub const ID: &str= "id";
 // endregion other
 
@@ -26,6 +27,7 @@ pub const MODULE: &str = "module";
 pub const TABLE: &str = "table";
 pub const RESULT: &str = "result";
 pub const SRC: &str = "src";
+pub const ON: &str = "on";
 // endregion metadata
 
 // region tags
@@ -122,9 +124,13 @@ pub const INVALID_INSERT_TAG: &str = r#"
 "#;
 pub const INVALID_FIELD_TAG: &str = r#"
     Invalid field tag option.
-    Expected "column_name" , "param" or "scalar"
+    Expected "column_name" , "param", "scalar" or "link_property"
 "#;
 
+pub const INVALID_UNLESS_CONFLICT_TAG: &str = r#"
+    Invalid unless conflict tag option.
+    Expected "on"
+"#;
 
 pub const INVALID_BACKLINK_TAG: &str = r#"
     Invalid backlink tag option.
