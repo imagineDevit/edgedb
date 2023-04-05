@@ -44,8 +44,12 @@ macro_rules! _to_edgeql_and_to_edge_scalar_impls {
 
 
 pub trait ToEdgeQl {
-    /// Transform a struct into a edgeDB query language statment
+    /// Transform a struct into a edgeDB query language statement
     fn to_edgeql(&self) -> String;
+
+    fn table_name(&self) -> Option<String> {
+        None
+    }
 }
 
 pub trait ToEdgeScalar {
