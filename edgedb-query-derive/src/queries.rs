@@ -60,7 +60,8 @@ impl QueryField {
             match tag.option {
                 SetOption::Assign => format!("{column_name} {sign} ({EDGEQL}), "),
                 SetOption::Concat => format!("{column_name} := .{column_name} ++ ({EDGEQL}), "),
-                SetOption::Push => format!("{column_name} += ({EDGEQL}), ")
+                SetOption::Push => format!("{column_name} += ({EDGEQL}), "),
+                SetOption::Remove => format!("{column_name} -= ({EDGEQL}), ")
             }
         } else {
             format!("{} := ({}), ", self.ident, EDGEQL)
@@ -68,12 +69,14 @@ impl QueryField {
 
     }
 
-    pub fn add_stmt_quote(&self, to_query: bool, set_tag: Option<SetTag>) -> proc_macro2::TokenStream {
+    pub fn add_stmt_quote(&self, to_query: bool, set_tag: Option<SetTag>, table_name: Option<String>) -> proc_macro2::TokenStream {
         let f_name = self.ident.clone();
 
         let edge_ql = EDGEQL.to_string();
 
         let field_statement = self.build_nested_statement(set_tag);
+
+        let parent_table_name = table_name.unwrap_or(String::default());
 
         let add_quote = if to_query {
             quote!(query.push_str(p.as_str());)
@@ -82,8 +85,16 @@ impl QueryField {
         };
 
         quote! {
+
+            let mut nested_edgeql = self.#f_name.to_edgeql();
+            let nested_table_name = nested_edgeql.table_name.clone();
+
+            if #parent_table_name == nested_table_name.as_str() {
+                nested_edgeql = nested_edgeql.detached();
+            }
+
             let p = #field_statement.to_owned()
-                .replace(#edge_ql, self.#f_name.to_edgeql().as_str());
+                .replace(#edge_ql, nested_edgeql.to_string().as_str());
 
             #add_quote
         }
@@ -107,7 +118,6 @@ impl TryFrom<(&Field, Vec<&str>)> for QueryField {
 }
 
 pub fn check_duplicate_parameter_labels(params: Vec<(Ident, String)>) -> syn::Result<()> {
-
 
     for (ident, param) in params.clone() {
         let count = params.clone().into_iter().filter(|s| s.1 == param).count();

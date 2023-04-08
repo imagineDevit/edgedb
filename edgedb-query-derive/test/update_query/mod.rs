@@ -1,8 +1,9 @@
 #[cfg(test)]
 mod update {
     use edgedb_protocol::value::Value;
-    use edgedb_query_derive::{edgedb_filters, edgedb_sets, query_result, update_query};
+    use edgedb_query_derive::{edgedb_filters, edgedb_sets, query_result, select_query, update_query};
     use edgedb_query::models::edge_query::ToEdgeQuery;
+    use edgedb_query::queries::set::Sets;
     use uuid::Uuid;
     use crate::test_utils::check_shape;
 
@@ -15,6 +16,14 @@ mod update {
     #[edgedb_sets]
     pub struct MySet {
         pub name: String,
+        #[nested_query]
+        pub friends: FindUser
+    }
+
+    #[select_query(module="users", table="User")]
+    pub struct FindUser {
+        #[filter(operator="Is")]
+        pub surname: String
     }
 
     #[edgedb_filters]
@@ -128,6 +137,9 @@ mod update {
         let q = UpdateName {
             set: MySet {
                 name: "Joe".to_string(),
+                friends: FindUser{
+                    surname: "Tom".to_string()
+                }
             },
             filter: MyFilter {
                 first_name: "Henri".to_string(),
@@ -142,19 +154,21 @@ mod update {
             filter str_lower(users::User.identity.first_name) = (select <str>$first_name)
             and users::User.age >= (select <int16>$age)
             set {
-                name := (select <str>$name)
+                name := (select <str>$name),
+                friends := (select detached users::User filter users::User.surname = (select <str>$surname))
             }
         "#.to_owned().replace('\n', "");
 
         assert_eq!(eq.query.replace(' ', ""), expected_query.replace(' ', ""));
 
         if let Some(Value::Object { shape, fields }) = eq.args {
-            check_shape(&shape, vec!["first_name", "age", "name"]);
+            check_shape(&shape, vec!["first_name", "age", "name", "surname"]);
 
             assert_eq!(fields, vec![
                 Some(Value::Str(q.filter.first_name)),
                 Some(Value::Int16(q.filter.age as i16)),
                 Some(Value::Str(q.set.name)),
+                Some(Value::Str(q.set.friends.surname))
             ]);
         }
     }

@@ -49,6 +49,7 @@ pub enum SetOption {
     Assign,
     Concat,
     Push,
+    Remove
 }
 
 impl SetOption {
@@ -56,7 +57,9 @@ impl SetOption {
         match self {
             SetOption::Assign => ASSIGN_SIGN,
             SetOption::Concat => CONCAT_SIGN,
-            SetOption::Push => PUSH_SIGN
+            SetOption::Push => PUSH_SIGN,
+            SetOption::Remove => REMOVE_SIGN
+
         }
     }
 }
@@ -76,6 +79,13 @@ impl TryFrom<(&Type, LitStr)> for SetOption {
                     Err(syn::Error::new_spanned(lit, PUSH_OPTION_ONLY_FOR_VEC))
                 }
 
+            },
+            REMOVE | REMOVE_SIGN => {
+                if is_type_name(ty, VEC) {
+                    Ok(SetOption::Remove)
+                } else {
+                    Err(syn::Error::new_spanned(lit, REMOVE_OPTION_ONLY_FOR_VEC))
+                }
             },
             _ => Err(syn::Error::new_spanned(lit, INVALID_SET_OPTION))
         }

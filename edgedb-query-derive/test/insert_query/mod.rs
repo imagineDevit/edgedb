@@ -51,6 +51,7 @@ mod insert {
         pub id: Uuid,
         pub name: NameResult,
     }
+
     #[query_result]
     pub struct NameResult {
         pub id: Uuid,
@@ -89,7 +90,6 @@ mod insert {
             }
         };
 
-        
         let query: EdgeQuery = insert_user.to_edge_query();
 
         let expected = r#"
@@ -149,4 +149,34 @@ mod insert {
         }
     }
 
+    #[insert_query(table="Person")]
+    pub struct InsertPersonWithBinome {
+        pub name: String,
+        #[nested_query]
+        pub binome: FindBinome
+    }
+
+    #[select_query(table="Person")]
+    pub struct FindBinome {
+        #[field(column_name="binome.name")]
+        #[filter(operator="Is")]
+        pub binome: String
+    }
+
+    #[test]
+    fn insert_person_test() {
+        let p = InsertPersonWithBinome {
+            name: String::from("Joe"),
+            binome: FindBinome {
+                binome: String::from("Joe")
+            }
+        };
+
+        let query = p.to_edge_query();
+
+        assert_eq!(
+            query.query,
+            "insert default::Person {name := (select <str>$name), binome := (select detached default::Person filter default::Person.binome.name = (select <str>$binome)), }"
+        )
+    }
 }

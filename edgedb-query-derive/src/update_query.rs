@@ -3,7 +3,8 @@ use quote::quote;
 use syn:: Ident;
 use syn::ItemStruct;
 use syn::parse::{Parse, ParseStream};
-use crate::constants::{AND_FILTER, EXPECTED_AT_LEAST_ONE_SET_FIELD,  FILTER, FILTERS, INVALID_UPDATE_TAG, NESTED_QUERY, OR_FILTER, SET, SETS, UPDATE, SELECT};
+use edgedb_query::QueryType;
+use crate::constants::{AND_FILTER, EXPECTED_AT_LEAST_ONE_SET_FIELD,  FILTER, FILTERS, INVALID_UPDATE_TAG, NESTED_QUERY, OR_FILTER, SET, SETS};
 use crate::meta_data::{QueryMetaData, try_get_meta};
 use crate::builders::impl_builder::QueryImplBuilder;
 use crate::queries::Query;
@@ -28,7 +29,8 @@ impl UpdateQuery {
     }
 
     pub fn with_meta(&mut self, meta: QueryMetaData) -> &mut Self {
-        self.meta = Some(meta);
+        self.meta = Some(meta.clone());
+        self.set_statement.set_parent_table_name(meta.table_name());
         self
     }
 }
@@ -49,11 +51,11 @@ impl Query for UpdateQuery {
 
         let has_result = meta.has_result();
 
-        let init_edgeql = if has_result {
-            format!("{SELECT} ( {UPDATE} {table_name} ")
-        } else {
-            format!("{UPDATE} {table_name} ")
-        };
+        //let init_edgeql = if has_result {
+        //    format!("{SELECT} ( {UPDATE} {table_name} ")
+        //} else {
+        //    format!("{UPDATE} {table_name} ")
+        //};
 
         let mut fields = self.filter_statement.to_impl_builder_field();
 
@@ -63,7 +65,7 @@ impl Query for UpdateQuery {
 
         let mut edgeql_statements = self.filter_statement.edgeql_statements(table_name.clone(), false);
 
-        let add_set = self.set_statement.add_set_statement_quote();
+        let add_set = self.set_statement.add_set_statement_quote(Some(table_name.clone()));
 
         edgeql_statements.push(quote! {
             query.push_str(" ");
@@ -79,10 +81,13 @@ impl Query for UpdateQuery {
 
         Ok(QueryImplBuilder {
             struct_name: self.ident.clone(),
+            table_name: Some(table_name),
             fields,
-            init_edgeql,
+            query_type: QueryType::Update,
+            //init_edgeql,
             static_const_check_statements: vec![],
             edgeql_statements,
+            has_result
         })
     }
 }

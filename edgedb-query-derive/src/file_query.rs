@@ -1,7 +1,9 @@
 use std::convert::TryFrom;
+use quote::quote;
 use regex::Regex;
 use syn::{Field, Ident, ItemStruct};
 use syn::parse::{Parse, ParseStream};
+use edgedb_query::QueryType;
 use crate::constants::{PARAM, PARAM_PATTERN};
 use crate::builders::impl_builder::{FieldCat, QueryImplBuilder, ImplBuilderField};
 use crate::meta_data::{SrcFile, try_get_meta};
@@ -106,12 +108,20 @@ impl Query for FileQuery {
             })
             .collect::<Vec<ImplBuilderField>>();
 
+        let query = meta.get_content(&self.ident)?;
+
         Ok(QueryImplBuilder {
             struct_name: self.ident.clone(),
+            table_name: None,
             fields,
-            init_edgeql: meta.get_content(&self.ident)?,
+            query_type: QueryType::None,
             static_const_check_statements: vec![],
-            edgeql_statements: vec![],
+            edgeql_statements: vec![
+                quote! {
+                    query.push_str(#query);
+                }
+            ],
+            has_result: false
         })
     }
 }

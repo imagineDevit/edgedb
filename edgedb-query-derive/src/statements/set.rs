@@ -8,7 +8,7 @@ use crate::constants::{EITHER_ONE_SETS_OR_SET_TAG_EXPECTED, FIELD, INVALID_UPDAT
 use crate::builders::impl_builder::{FieldCat, ImplBuilderField};
 
 use crate::queries::{check_duplicate_parameter_labels, QueryField};
-use crate::statements::nested_query::NestedQueryField;
+use crate::statements::nested_query::{NestedQueryField, NestedQueryParentType};
 use crate::tags::field_tag::{FieldTag, FieldTagBuilder};
 use crate::tags::set_tag::{SetOption, SetTag, SetTagBuilder};
 use crate::tags::{build_tags_from_field, TagBuilders, Tagged};
@@ -59,14 +59,18 @@ impl SetStatement {
         }
     }
 
-
+    pub fn set_parent_table_name(&mut self, name: String) {
+        if let SetStatement::NestedQuery(f) = self {
+            f.set_parent_table_name(name)
+        }
+    }
 }
 
 impl TryFrom<&Field> for SetStatement {
     type Error = syn::Error;
     fn try_from(field: &Field) -> Result<Self, Self::Error> {
         if has_attribute(field, NESTED_QUERY) {
-            Ok(SetStatement::NestedQuery(NestedQueryField::try_from((field , true))?))
+            Ok(SetStatement::NestedQuery(NestedQueryField::try_from((field, NestedQueryParentType::Set))?))
         } else if has_any_attribute(field, vec![SET, FIELD]) || field.attrs.is_empty() {
             Ok(SetStatement::SimpleField(UpdateSet::try_from(field)?))
         } else {
@@ -81,7 +85,7 @@ pub struct UpdateSet {
     pub field: QueryField,
     pub field_tag: FieldTag,
     pub set_tag: SetTag,
-    pub is_nested: bool
+    pub is_nested: bool,
 }
 
 impl UpdateSet {
@@ -94,7 +98,8 @@ impl UpdateSet {
         match self.set_tag.option {
             SetOption::Assign => format!("{column_name} {assignment} ({SELECT} {scalar_type}${param}), "),
             SetOption::Concat => format!("{column_name} := .{column_name} ++ ({SELECT} {scalar_type}${param}), "),
-            SetOption::Push => format!("{column_name} += ({SELECT} {scalar_type}${param}), ")
+            SetOption::Push => format!("{column_name} += ({SELECT} {scalar_type}${param}), "),
+            SetOption::Remove => format!("{column_name} -= ({SELECT} {scalar_type}${param}), ")
         }
     }
 
@@ -122,7 +127,7 @@ impl TryFrom<&Field> for UpdateSet {
             field: QueryField::try_from((field, vec![FIELD, SET, NESTED_QUERY]))?,
             field_tag: field_tag_builder.build(field)?,
             set_tag: set_tag_builder.build(field)?,
-            is_nested: has_attribute(field, NESTED_QUERY)
+            is_nested: has_attribute(field, NESTED_QUERY),
         })
     }
 }
@@ -132,14 +137,24 @@ impl TryFrom<&Field> for UpdateSet {
 // region UpdateSets
 #[derive(Debug, Clone)]
 pub struct UpdateSets {
-    pub field: QueryField
+    pub field: QueryField,
 }
 
 impl UpdateSets {
-    pub fn add_set_statement_quote(&self) -> proc_macro2::TokenStream {
+    pub fn add_set_statement_quote(&self, parent_table_name: impl Into<String>) -> proc_macro2::TokenStream {
         let f_name = self.field.ident.clone();
-        quote!{
-            let set_stmt = self.#f_name.to_edgeql();
+        let tb = parent_table_name.into();
+        quote! {
+            let mut nested_queries = self.#f_name.nested_edgeqls();
+            let mut set_stmt = self.#f_name.to_edgeql();
+
+            nested_queries.iter_mut().for_each(|nq|{
+                let nq_tb = nq.table_name.clone();
+                let ql = nq.to_string();
+                if nq_tb.as_str() == #tb {
+                    set_stmt = set_stmt.replace(ql.as_str(), nq.detached().to_string().as_str());
+                }
+            });
         }
     }
 }
@@ -148,7 +163,7 @@ impl TryFrom<&Field> for UpdateSets {
     type Error = syn::Error;
 
     fn try_from(field: &Field) -> Result<Self, Self::Error> {
-        Ok(Self{
+        Ok(Self {
             field: QueryField::try_from((field, vec![SETS]))?
         })
     }
@@ -159,21 +174,22 @@ impl TryFrom<&Field> for UpdateSets {
 
 // region UpdateSetStatement
 
+#[derive(Debug, Clone)]
 pub enum UpdateSetStatement {
     None,
     OneSets(UpdateSets),
-    ManySet(Vec<SetStatement>)
+    ManySet(Vec<SetStatement>),
 }
 
 impl UpdateSetStatement {
     pub fn get_parameter_labels(&self) -> Vec<(Ident, String)> {
-       if let UpdateSetStatement::ManySet(sets) = self {
-          sets.iter()
-               .filter_map(|set| set.param_field())
-               .collect::<Vec<(Ident, String)>>()
-       } else {
-           vec![]
-       }
+        if let UpdateSetStatement::ManySet(sets) = self {
+            sets.iter()
+                .filter_map(|set| set.param_field())
+                .collect::<Vec<(Ident, String)>>()
+        } else {
+            vec![]
+        }
     }
 
     pub fn to_impl_builder_field(&self) -> Vec<ImplBuilderField> {
@@ -202,18 +218,18 @@ impl UpdateSetStatement {
         }
     }
 
-    pub fn add_set_statement_quote(&self) -> proc_macro2::TokenStream {
+    pub fn add_set_statement_quote(&self, parent_table_name: Option<String>) -> proc_macro2::TokenStream {
         match self {
             UpdateSetStatement::None => quote!(),
             UpdateSetStatement::OneSets(set) => {
-                set.add_set_statement_quote()
+                set.add_set_statement_quote(parent_table_name.unwrap_or("".to_string()))
             }
             UpdateSetStatement::ManySet(sets) => {
                 let set_stmts = sets.iter().map(|set| {
                     set.add_set_statement_quote()
                 });
 
-                quote!{
+                quote! {
                     let mut set_stmt = "set { ".to_string();
                     #(#set_stmts)*
                     set_stmt.pop();
@@ -229,7 +245,7 @@ impl UpdateSetStatement {
             UpdateSetStatement::None => quote!(),
             UpdateSetStatement::OneSets(sets) => sets.field.struct_field_quote(),
             UpdateSetStatement::ManySet(sets) => {
-                let s  =  sets.iter().map(|s| s.struct_field_quote());
+                let s = sets.iter().map(|s| s.struct_field_quote());
                 quote!(#(#s)*)
             }
         }
@@ -245,7 +261,6 @@ impl UpdateSetStatement {
                 quote! {
                     #(#shapes)*
                 }
-
             }
             UpdateSetStatement::OneSets(sets) => nested_element_shape(sets.field.ident.clone())
         }
@@ -261,7 +276,6 @@ impl UpdateSetStatement {
                 quote! {
                     #(#shapes)*
                 }
-
             }
             UpdateSetStatement::OneSets(sets) => nested_element_value(sets.field.ident.clone())
         }
@@ -270,10 +284,15 @@ impl UpdateSetStatement {
     pub fn check_duplicate_parameter_labels(&self) -> syn::Result<()> {
         check_duplicate_parameter_labels(self.get_parameter_labels())
     }
+
+    pub fn set_parent_table_name(&mut self, name: String) {
+        if let UpdateSetStatement::ManySet(sets) = self {
+            sets.iter_mut().for_each(|s| s.set_parent_table_name(name.clone()))
+        }
+    }
 }
 
 pub fn sets_from_fields(field_iter: Iter<Field>, exclude_tags: Vec<&str>, from_sets: bool, error_msg: &str) -> syn::Result<UpdateSetStatement> {
-
     let mut stmt = UpdateSetStatement::None;
 
     if !from_sets {
@@ -296,9 +315,7 @@ pub fn sets_from_fields(field_iter: Iter<Field>, exclude_tags: Vec<&str>, from_s
 
     for field in field_iter {
         if has_none_attribute(field, exclude_tags.clone()) && !has_attribute(field, SETS) {
-
-           if has_any_attribute(field, vec![SET, NESTED_QUERY, FIELD])  || field.attrs.is_empty() {
-
+            if has_any_attribute(field, vec![SET, NESTED_QUERY, FIELD]) || field.attrs.is_empty() {
                 if let UpdateSetStatement::OneSets(_) = stmt {
                     return Err(syn::Error::new_spanned(field, EITHER_ONE_SETS_OR_SET_TAG_EXPECTED));
                 }
@@ -308,7 +325,6 @@ pub fn sets_from_fields(field_iter: Iter<Field>, exclude_tags: Vec<&str>, from_s
                 return Err(syn::Error::new_spanned(field, error_msg));
             }
         }
-
     }
 
     if !sets.is_empty() {

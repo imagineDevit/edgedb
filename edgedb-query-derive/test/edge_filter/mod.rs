@@ -25,7 +25,7 @@ mod filter {
 
         let value: Value = filter.to_edge_value();
 
-        assert_eq!(query, " filter str_lower(users::User.identity.first_name) = (select <str>$first_name) and users::User.age >= (select <int16>$age)");
+        assert_eq!(query, "filter str_lower(users::User.identity.first_name) = (select <str>$first_name) and users::User.age >= (select <int16>$age)");
 
         if let Value::Object { shape, fields } = value {
             crate::test_utils::check_shape(&shape, vec!["first_name", "age"]);

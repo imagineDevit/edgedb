@@ -15,6 +15,7 @@ use crate::utils::attributes_utils::{has_any_attribute, has_attribute, has_none_
 use crate::utils::derive_utils::{nested_element_shape, nested_element_value};
 use crate::utils::type_utils::get_scalar;
 
+
 // region QueryFilter
 #[derive(Debug, Clone)]
 pub struct QueryFilter {
@@ -57,7 +58,6 @@ impl QueryFilter {
             quote! {
                  query.push_str(#filter_stmt);
             }
-
         }
     }
 }
@@ -148,7 +148,7 @@ impl FilterStatement {
             FilterStatement::NoFilter => vec![],
             FilterStatement::ManyFilter(filters) => {
 
-                let filter_q = format!(" {FILTER}");
+                let filter_q = FILTER.to_string();
                 let query_filters = filters.iter()
                     .map(|filter| {
                         Ok(filter.push_to_query_quote(filter.build_statement(table_name.clone())?, from_filters))

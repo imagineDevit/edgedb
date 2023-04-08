@@ -48,9 +48,16 @@ impl EdgedbEnum {
             }
 
             impl edgedb_query::ToEdgeQl for #enum_name {
-                fn to_edgeql(&self) -> String {
-                    match self {
+                fn to_edgeql(&self) -> edgedb_query::EdgeQl {
+                    let s = match self {
                         #(#v_idents,)*
+                    };
+
+                    edgedb_query::EdgeQl {
+                        query_type: edgedb_query::QueryType::None,
+                        table_name: String::new(),
+                        content: s,
+                        has_result: false
                     }
                 }
             }
@@ -64,14 +71,14 @@ impl EdgedbEnum {
              impl edgedb_query::ToEdgeValue for #enum_name {
                 fn to_edge_value(&self) -> edgedb_protocol::value::Value {
                     use edgedb_query::ToEdgeQl;
-                    edgedb_protocol::value::Value::Enum(edgedb_protocol::codec::EnumValue::from(self.to_edgeql().as_str()))
+                    edgedb_protocol::value::Value::Enum(edgedb_protocol::codec::EnumValue::from(self.to_edgeql().to_string().as_str()))
                 }
             }
 
             impl ToString for #enum_name {
                 fn to_string(&self) -> String {
                     use edgedb_query::ToEdgeQl;
-                    self.to_edgeql()
+                    self.to_edgeql().to_string()
                 }
             }
 

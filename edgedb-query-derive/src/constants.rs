@@ -15,10 +15,8 @@ pub const VEC: &str = "Vec";
 // endregion
 
 // region query types
-pub const INSERT: &str = "insert";
 pub const SELECT: &str = "select";
-pub const DELETE: &str = "delete";
-pub const UPDATE: &str = "update";
+
 // endregion query types
 
 // region metadata
@@ -97,6 +95,8 @@ pub const CONCAT: &str = "concat";
 pub const CONCAT_SIGN: &str = "++";
 pub const PUSH: &str = "push";
 pub const PUSH_SIGN: &str = "+=";
+pub const REMOVE: &str = "remove";
+pub const REMOVE_SIGN: &str = "-=";
 // endregion setOption
 
 // region patterns
@@ -189,6 +189,7 @@ pub const INVALID_SETS_TAG: &str = r#"
 "#;
 
 pub const PUSH_OPTION_ONLY_FOR_VEC: &str = "Push option only accepts a Vec type";
+pub const REMOVE_OPTION_ONLY_FOR_VEC: &str = "Remove option only accepts a Vec type";
 
 pub const EXPECT_LIT_OR_NAMED_LIT: &str = "Expected a literal or a named string literal";
 pub const EXPECT_NAMED_LIT: &str = "Expected a named string literal";
