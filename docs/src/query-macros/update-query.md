@@ -62,13 +62,13 @@ To perform an update query using edgedb-tokio we can write code as follows 👇
             filter: "%oe".to_owned()
         };
     
-        let edge_query: EdgeQuery = update_person.to_edge_query();
+        let edge_query: EdgeQuery = update_person.to_edge_query_with_cardinality(Cardinality::One);
     
         let args = &edge_query.args.unwrap();
     
         let query = edge_query.query.as_str();
     
-        if let Some(result) = client.query_single::<BasicResult, _>(query, args).await? {
+        if let Some(result) = client.query_required_single::<BasicResult, _>(query, args).await? {
             assert_ne!(result.id.to_string(), String::default())
         } else {
             unreachable!()
