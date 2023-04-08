@@ -3,14 +3,19 @@
 mod conflict_test {
     use edgedb_protocol::value::Value;
     use edgedb_query::queries::conflict::{UnlessConflict, UnlessConflictElse, parse_conflict};
-    use edgedb_query::{ToEdgeQl, ToEdgeQuery, ToEdgeValue};
+    use edgedb_query::{EdgeQl, QueryType, ToEdgeQl, ToEdgeQuery, ToEdgeValue};
 
     #[derive(Clone)]
     pub struct FindUser {}
 
     impl ToEdgeQl for FindUser {
-        fn to_edgeql(&self) -> String {
-            "select users".to_string()
+        fn to_edgeql(&self) -> EdgeQl {
+            EdgeQl {
+                query_type: QueryType::Select,
+                table_name: "users".to_string(),
+                content: String::default(),
+                has_result: false
+            }
         }
     }
 

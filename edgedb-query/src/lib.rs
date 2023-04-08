@@ -4,6 +4,7 @@
 pub mod queries;
 pub mod models;
 
+use std::fmt::{Display, Formatter};
 pub use models::edge_query::EdgeQuery;
 pub use models::edge_query::ToEdgeQuery;
 pub use models::query_result::BasicResult;
@@ -16,17 +17,17 @@ pub use queries::select::PageOptions;
 
 use edgedb_protocol::model::Uuid;
 use edgedb_protocol::value::Value;
-
-
+use crate::QueryType::{Delete, Insert, Select, Update};
 
 macro_rules! _to_edgeql_and_to_edge_scalar_impls {
     ($($ty: ty => { scalar: $scalar: expr }),* $(,)?) => {
         $(
             impl ToEdgeQl for $ty {
-                fn to_edgeql(&self) -> String {
-                    self.to_string()
+                fn to_edgeql(&self) -> EdgeQl {
+                    EdgeQl::new(self.to_string(), false)
                 }
             }
+
             impl ToEdgeScalar for $ty {
                 fn scalar() -> String {
                     $scalar.to_owned()
@@ -43,13 +44,95 @@ macro_rules! _to_edgeql_and_to_edge_scalar_impls {
 }
 
 
+#[derive(Clone, Debug)]
+pub enum QueryType {
+    Insert,
+    Select,
+    Update,
+    Delete,
+    None,
+}
+
+impl Default for QueryType {
+    fn default() -> Self {
+        Self::None
+    }
+}
+
+impl From<String> for QueryType {
+    fn from(value: String) -> Self {
+       match value.to_lowercase().trim() {
+           "insert" => Insert,
+           "select" => Select,
+           "update" => Update,
+           "delete" => Delete,
+           _ => QueryType::None
+       }
+    }
+}
+
+impl Display for QueryType {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Insert => write!(f, "insert"),
+            Select => write!(f, "select"),
+            Update => write!(f, "update"),
+            Delete => write!(f, "delete"),
+            QueryType::None => write!(f, ""),
+        }
+
+    }
+}
+
+#[derive(Default, Debug)]
+pub struct EdgeQl {
+    pub table_name: String,
+    pub query_type: QueryType,
+    pub content: String,
+    pub has_result: bool,
+}
+
+impl ToString for EdgeQl {
+    fn to_string(&self) -> String {
+        let s = match (self.content.clone().is_empty(), self.query_type.clone()) {
+            (true, QueryType::None) => String::default(),
+            (true, _) => format!("{} {}", self.query_type, self.table_name),
+            (false, QueryType::None) => self.content.clone(),
+            (false, _) => format!("{} {} {}", self.query_type, self.table_name, self.content),
+        };
+
+        if self.has_result {
+            format!("select ( {s}")
+        } else {
+            s
+        }
+    }
+}
+
+impl EdgeQl {
+    pub fn new(content: String, has_result: bool) -> Self {
+        Self {
+            table_name: String::default(),
+            query_type: QueryType::None,
+            content,
+            has_result,
+        }
+    }
+
+    pub fn detached(&mut self) -> Self {
+        Self {
+            table_name: format!("detached {}", self.table_name),
+            query_type: self.query_type.clone(),
+            content: self.content.clone(),
+            has_result: self.has_result,
+        }
+    }
+}
+
+
 pub trait ToEdgeQl {
     /// Transform a struct into a edgeDB query language statement
-    fn to_edgeql(&self) -> String;
-
-    fn table_name(&self) -> Option<String> {
-        None
-    }
+    fn to_edgeql(&self) -> EdgeQl;
 }
 
 pub trait ToEdgeScalar {
@@ -100,13 +183,14 @@ impl ToEdgeScalar for () {
 }
 
 impl<T: ToEdgeQl> ToEdgeQl for Vec<T> {
-    fn to_edgeql(&self) -> String {
+    fn to_edgeql(&self) -> EdgeQl {
         let s = self
             .iter()
-            .map(|s| s.to_edgeql())
+            .map(|s| s.to_edgeql().to_string())
             .collect::<Vec<String>>()
             .join(",");
-        format!("[{}]", s)
+
+        EdgeQl::new(format!("[{}]", s), false)
     }
 }
 
@@ -176,7 +260,6 @@ impl ToEdgeValue for i64 {
         Value::Int64(*self)
     }
 }
-
 
 
 impl ToEdgeValue for u64 {

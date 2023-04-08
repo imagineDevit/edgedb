@@ -1,5 +1,5 @@
 use edgedb_protocol::value::Value;
-use crate::{ToEdgeQl, ToEdgeQuery, ToEdgeValue};
+use crate::{EdgeQl, ToEdgeQl, ToEdgeQuery, ToEdgeValue};
 
 
 const UNLESS_CONFLICT: &str = " unless conflict ";
@@ -35,8 +35,8 @@ pub struct UnlessConflict;
 pub struct EmptyQuery;
 
 impl ToEdgeQl for EmptyQuery {
-    fn to_edgeql(&self) -> String {
-        String::default()
+    fn to_edgeql(&self) -> EdgeQl {
+        EdgeQl::default()
     }
 }
 
@@ -118,7 +118,7 @@ pub fn parse_conflict<T: ToEdgeQuery + Clone, R: Conflict<T>>(conflict: &R, on_f
 
     if let Some(else_query)= conflict.else_query() {
         stmt.push_str(ELSE);
-        stmt.push_str(else_query.to_edgeql().as_str());
+        stmt.push_str(else_query.to_edgeql().to_string().as_str());
         stmt.push_str(CLOSE_PARENTHESIS);
     }
 

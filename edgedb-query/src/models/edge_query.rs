@@ -77,7 +77,7 @@ pub trait ToEdgeQuery: ToEdgeQl + ToEdgeValue {
     /// Convert a given struct into a EdgeQuery struct
     fn to_edge_query(&self) -> EdgeQuery {
         EdgeQuery {
-            query: self.to_edgeql(),
+            query: self.to_edgeql().to_string(),
             args: Some(self.to_edge_value()),
             cardinality: Cardinality::Many
         }
