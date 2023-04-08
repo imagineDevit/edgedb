@@ -1,4 +1,4 @@
-use crate::{EdgeResult, ToEdgeQl, ToEdgeShape};
+use crate::{EdgeQl, EdgeResult, ToEdgeQl, ToEdgeShape};
 use edgedb_derive::Queryable;
 use uuid::Uuid;
 
@@ -17,8 +17,8 @@ impl ToEdgeShape for BasicResult {
 }
 
 impl ToEdgeQl for BasicResult {
-    fn to_edgeql(&self) -> String {
-        STRUCT_ID.to_owned()
+    fn to_edgeql(&self) -> EdgeQl {
+        EdgeQl::new(STRUCT_ID.to_owned(), false)
     }
 }
 

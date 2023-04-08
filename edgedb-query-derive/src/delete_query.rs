@@ -1,5 +1,6 @@
 use syn::{Ident, ItemStruct};
 use syn::parse::{Parse, ParseStream};
+use edgedb_query::QueryType;
 
 use crate::constants::*;
 use crate::{queries::Query, meta_data::{TableInfo, try_get_meta}};
@@ -46,10 +47,12 @@ impl Query for DeleteQuery {
 
         Ok(QueryImplBuilder {
             struct_name: self.ident.clone(),
+            table_name: Some(table_name.clone()),
             fields,
-            init_edgeql: format!("{DELETE} {table_name}"),
+            query_type: QueryType::Delete,
             static_const_check_statements: vec![],
             edgeql_statements,
+            has_result: false
         })
     }
 }

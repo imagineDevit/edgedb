@@ -24,7 +24,7 @@ mod insert {
 
     #[insert_query(module ="users", table="User", result="UserResult")]
     pub struct InsertUser {
-        #[field(column_name="username", param="first_name")]
+        #[field(column_name="username", param="first_name", link_property=true)]
         pub name: String,
         pub surname: Option<String>,
         #[field(scalar="<int16>")]
@@ -51,6 +51,7 @@ mod insert {
         pub id: Uuid,
         pub name: NameResult,
     }
+
     #[query_result]
     pub struct NameResult {
         pub id: Uuid,
@@ -89,13 +90,12 @@ mod insert {
             }
         };
 
-        
         let query: EdgeQuery = insert_user.to_edge_query();
 
         let expected = r#"
            select (
               insert users::User {
-                username := (select <str>$first_name),
+                @username := (select <str>$first_name),
                 surname := (select <str>$surname),
                 age := (select <int16>$age),
                 major := (select <bool>$major),
@@ -107,7 +107,7 @@ mod insert {
                         money := (select <int16>$money),
                     }
                 ),
-             } unless conflict on (.username, .surname) else (
+             } unless conflict on (.@username, .surname) else (
                 select users::User filter users::User.name = (select<str>$user_name)
              )
          ) {
@@ -128,7 +128,7 @@ mod insert {
                 ],
             );
 
-            let vs_val = &insert_user.vs[0];
+            let vs_val: &String = &insert_user.vs[0];
 
             assert_eq!(
                 fields,
@@ -149,4 +149,34 @@ mod insert {
         }
     }
 
+    #[insert_query(table="Person")]
+    pub struct InsertPersonWithBinome {
+        pub name: String,
+        #[nested_query]
+        pub binome: FindBinome
+    }
+
+    #[select_query(table="Person")]
+    pub struct FindBinome {
+        #[field(column_name="binome.name")]
+        #[filter(operator="Is")]
+        pub binome: String
+    }
+
+    #[test]
+    fn insert_person_test() {
+        let p = InsertPersonWithBinome {
+            name: String::from("Joe"),
+            binome: FindBinome {
+                binome: String::from("Joe")
+            }
+        };
+
+        let query = p.to_edge_query();
+
+        assert_eq!(
+            query.query,
+            "insert default::Person {name := (select <str>$name), binome := (select detached default::Person filter default::Person.binome.name = (select <str>$binome)), }"
+        )
+    }
 }

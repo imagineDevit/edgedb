@@ -1,7 +1,7 @@
 use std::convert::TryFrom;
 use syn::{Field, MetaNameValue};
 use syn::Lit::Str;
-use crate::constants::{EXPECT_NON_EMPTY_LIT, INVALID_FIELD_TAG,  UNLESS_CONFLICT};
+use crate::constants::{EXPECT_NON_EMPTY_LIT, INVALID_UNLESS_CONFLICT_TAG, UNLESS_CONFLICT, ON, AT};
 use crate::tags::{NamedValueTagBuilder, TagBuilders};
 use crate::tags::TagBuilders::UnlessConfictBuilder;
 
@@ -28,8 +28,8 @@ impl TryFrom<&MetaNameValue> for UnlessConflictTagOptions {
             }
 
             match path.get_ident().unwrap().to_string().as_str() {
-                "on"=> Ok(UnlessConflictTagOptions::On(value.value())),
-                _ => Err(syn::Error::new_spanned(meta_value, INVALID_FIELD_TAG))
+                ON=> Ok(UnlessConflictTagOptions::On(value.value())),
+                _ => Err(syn::Error::new_spanned(meta_value, INVALID_UNLESS_CONFLICT_TAG))
             }
         } else {
             Ok(UnlessConflictTagOptions::On("".to_string()))
@@ -79,7 +79,7 @@ impl UnlessConflictTagBuilder {
 
         let x : Vec<String> = ons.clone()
             .into_iter()
-            .filter(|c| !columns.contains(c))
+            .filter(|c| !columns.contains(c) && !columns.contains(&format!("{AT}{c}")))
             .collect();
         
         if !x.is_empty() {
@@ -87,7 +87,12 @@ impl UnlessConflictTagBuilder {
         }
         
         Ok(UnlessConflictTag {
-            on: ons
+            on: ons.into_iter()
+                .map(|o| {
+                    let formatted = format!("{AT}{o}");
+                    if columns.contains(&formatted) { formatted } else { o }
+                })
+                .collect()
         })
     }
 }

@@ -3,12 +3,13 @@ use std::convert::TryFrom;
 use quote::{quote, ToTokens};
 use syn::{Field, Ident, ItemStruct};
 use syn::parse::{Parse, ParseStream};
+use edgedb_query::QueryType;
 
-use crate::constants::{EDGEQL, FIELD, INVALID_INSERT_TAG, NESTED_QUERY, OPTION, SCALAR_TYPE, SELECT, UNLESS_CONFLICT, VEC, INSERT};
+use crate::constants::{EDGEQL, FIELD, INVALID_INSERT_TAG, NESTED_QUERY, OPTION, SCALAR_TYPE, SELECT, UNLESS_CONFLICT, VEC};
 use crate::queries::{Query, QueryField};
 use crate::meta_data::{QueryMetaData, try_get_meta};
 use crate::builders::impl_builder::{FieldCat, QueryImplBuilder, ImplBuilderField};
-use crate::statements::nested_query::NestedQueryField;
+use crate::statements::nested_query::{NestedQueryField, NestedQueryParentType};
 use crate::tags::{build_tags_from_field, Tagged};
 use crate::tags::field_tag::{FieldTag, FieldTagBuilder};
 use crate::tags::TagBuilders::{FieldBuilder, UnlessConfictBuilder};
@@ -37,7 +38,8 @@ impl InsertQuery {
     }
 
     pub fn with_meta(&mut self, meta: QueryMetaData) -> &mut Self {
-        self.meta = Some(meta);
+        self.meta = Some(meta.clone());
+        self.statements.iter_mut().for_each(|s |s.set_parent_table_name(meta.table_name()));
         self
     }
 }
@@ -56,12 +58,6 @@ impl Query for InsertQuery {
 
         let has_result = meta.has_result();
 
-        let init_edgeql = if has_result {
-            format!("{SELECT} ( {INSERT} {table_name} {{")
-        } else {
-            format!("{INSERT} {table_name} {{")
-        };
-
         let stmts = self.statements.iter();
 
         let mut fields: Vec<ImplBuilderField> = stmts.clone()
@@ -78,9 +74,10 @@ impl Query for InsertQuery {
                 }
             }).collect();
 
-        let mut edgeql_statements = stmts.clone()
-            .map(|stmt| stmt.query_statement_quote())
-            .collect::<Vec<proc_macro2::TokenStream>>();
+        let mut edgeql_statements = vec![quote! {  query.push_str("{"); }];
+
+        stmts.clone()
+            .for_each(|stmt| edgeql_statements.push(stmt.query_statement_quote()));
 
         edgeql_statements.push(quote! {  query.push_str("}"); });
 
@@ -107,10 +104,12 @@ impl Query for InsertQuery {
 
         Ok(QueryImplBuilder {
             struct_name: self.ident.clone(),
+            table_name: Some(table_name),
             fields,
-            init_edgeql,
+            query_type: QueryType::Insert,
             static_const_check_statements : vec![const_check_impl_conflict],
             edgeql_statements,
+            has_result
         })
     }
 }
@@ -198,6 +197,12 @@ impl InsertStatement {
             InsertStatement::NestedQuery(f) => f.query_statement_quote()
         }
     }
+
+    pub fn set_parent_table_name(&mut self, name: String) {
+        if let InsertStatement::NestedQuery(f) = self {
+            f.set_parent_table_name(name)
+        }
+    }
 }
 
 impl TryFrom<&Field> for InsertStatement {
@@ -205,7 +210,7 @@ impl TryFrom<&Field> for InsertStatement {
 
     fn try_from(field: &Field) -> Result<Self, Self::Error> {
         if has_attribute(field, NESTED_QUERY) {
-            Ok(InsertStatement::NestedQuery(NestedQueryField::try_from((field, false))?))
+            Ok(InsertStatement::NestedQuery(NestedQueryField::try_from((field, NestedQueryParentType::Query))?))
         } else if has_attribute(field, FIELD) || field.attrs.is_empty() {
             Ok(InsertStatement::SimpleField(InsertField::try_from(field)?))
         } else {
@@ -254,20 +259,20 @@ impl InsertField {
             #format_scalar;
             let p = #field_statement.to_owned()
                 .replace(#scalar_type, scalar.as_str())
-                .replace(#edge_ql, edgeql.as_str());
+                .replace(#edge_ql, edgeql.to_string().as_str());
             query.push_str(p.as_str());
         };
 
         if is_type_name(&field_type, OPTION) {
             quote! {
                 if let Some(v) = &self.#field_name {
-                    let edgeql = v.to_edgeql();
+                    let edgeql = v.to_edgeql().to_string();
                     #add_assignment_quote
                 }
             }
         } else {
             quote! {
-                let edgeql = self.#field_name.to_edgeql();
+                let edgeql = self.#field_name.to_edgeql().to_string();
                 #add_assignment_quote
             }
         }

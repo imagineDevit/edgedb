@@ -22,6 +22,7 @@ mod result {
     #[query_result]
     pub struct User {
         pub id: Uuid,
+        #[field(link_property=true)]
         pub login: String,
         pub identity: Identity,
     }
@@ -67,7 +68,7 @@ mod result {
         let shape = User::shape();
         let fields = User::returning_fields();
 
-        assert_eq!(shape, "{id,login,identity : {id,name,age}}");
+        assert_eq!(shape, "{id,@login,identity : {id,name,age}}");
         assert_eq!(fields, vec!["id","login", "identity"]);
     }
 

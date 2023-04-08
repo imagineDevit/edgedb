@@ -19,6 +19,7 @@ pub mod result_field_tag;
 pub mod backlink_field_tag;
 pub mod value_tag;
 pub mod unless_conflict_tag;
+pub mod utils;
 
 
 pub trait NamedValueTagBuilder {

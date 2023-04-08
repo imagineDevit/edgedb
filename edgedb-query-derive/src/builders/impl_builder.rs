@@ -1,7 +1,9 @@
+
 use crate::queries::QueryField;
 use syn::Ident;
 use quote::quote;
 use proc_macro2::TokenStream;
+use edgedb_query::QueryType;
 use crate::utils::derive_utils::{conflict_element_shape, conflict_element_value, nested_element_shape, nested_element_value};
 
 #[derive(Clone, PartialEq)]
@@ -20,8 +22,11 @@ pub struct ImplBuilderField {
 
 pub struct QueryImplBuilder {
     pub struct_name: Ident,
+    pub query_type: QueryType,
+    pub table_name: Option<String>,
     pub fields: Vec<ImplBuilderField>,
-    pub init_edgeql: String,
+    pub has_result: bool,
+    //pub init_edgeql: String,
     pub static_const_check_statements: Vec<TokenStream>,
     pub edgeql_statements: Vec<TokenStream>,
 }
@@ -45,23 +50,34 @@ impl QueryImplBuilder {
     pub fn build_to_edgeql_impl(&self) -> TokenStream {
         let struct_name = self.struct_name.clone();
 
-        let query_str = self.init_edgeql.clone();
+        let query_str = String::default();
+
+        let table_name = self.table_name.clone().unwrap_or(String::new());
+
+        let q_ty = format!("{}", self.query_type);
+
+        let h_r = self.has_result;
 
         let stmts: Vec<TokenStream> = self.edgeql_statements.clone();
 
         quote! {
             impl edgedb_query::ToEdgeQl for #struct_name {
-                    fn to_edgeql(&self) -> String {
-                        use edgedb_query::ToEdgeScalar;
-                        use edgedb_query::queries::filter::Filter;
-                        use edgedb_query::EdgeResult;
+                fn to_edgeql(&self) -> edgedb_query::EdgeQl {
+                    use edgedb_query::ToEdgeScalar;
+                    use edgedb_query::queries::filter::Filter;
+                    use edgedb_query::EdgeResult;
 
-                        let mut query = #query_str.to_owned();
+                    let mut query = #query_str.to_owned();
 
-                        #(#stmts)*
+                    #(#stmts)*
 
-                        query
+                    edgedb_query::EdgeQl {
+                        query_type: edgedb_query::QueryType::from(#q_ty.to_string()),
+                        table_name: #table_name.to_string(),
+                        content: query,
+                        has_result: #h_r
                     }
+                }
             }
         }
     }
@@ -160,8 +176,7 @@ impl QueryImplBuilder {
             impl ToString for #struct_name {
                 fn to_string(&self) -> String {
                     use edgedb_query::ToEdgeQl;
-
-                    self.to_edgeql()
+                    self.to_edgeql().to_string()
                 }
             }
         }

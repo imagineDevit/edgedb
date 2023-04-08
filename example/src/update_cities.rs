@@ -1,11 +1,11 @@
 
 #[cfg(test)]
 mod tests {
+    use edgedb_protocol::client_message::Cardinality;
     use edgedb_query_derive::{query_result, edgedb_sets, edgedb_filters, update_query, select_query};
-    use edgedb_query::{*, queries::filter::Filter, models::query_result::BasicResult};
+    use edgedb_query::{*, models::query_result::BasicResult, queries::set::Sets};
     use rstest::*;
     use edgedb_query::models::edge_query::{EdgeQuery, ToEdgeQuery};
-    use serde::Deserialize;
 
     #[query_result]
     pub struct City {
@@ -63,14 +63,21 @@ mod tests {
             filter: MyFilter {
                 city_name: "budapest".to_owned()
             }
-        }.to_edge_query();
+        }.to_edge_query_with_cardinality(Cardinality::One);
 
 
         let query_str = update_query.query.as_str();
 
         let args = &update_query.args.unwrap();
 
-        let result = client.query_json(query_str, args).await;
+        let result = client.query_required_single::<BasicResult, _>(query_str, args).await;
+
+
+        if let Ok(r) = result {
+            assert_ne!(r.id.to_string(), String::default());
+        } else {
+            unreachable!()
+        }
 
         let select_city: EdgeQuery = SelectCity {
             name_filter: MyFilter {
@@ -82,10 +89,7 @@ mod tests {
             let city: &City = cities.get(0).unwrap();
             assert_eq!(new_name, city.name);
         } else {
-            assert!(false)
+            unreachable!()
         };
-
-        println!("{:#?}", result);
-
     }
 }

@@ -3,6 +3,7 @@ use std::convert::TryFrom;
 use quote::{quote, ToTokens};
 use syn::{Field, Ident, ItemStruct};
 use syn::parse::{Parse, ParseStream};
+use edgedb_query::QueryType;
 
 use crate::constants::*;
 use crate::queries::{Query, QueryField};
@@ -51,11 +52,16 @@ impl Query for SelectQuery {
 
         let mut edgeql_statements = vec![];
 
-        if meta.has_result() {
-            edgeql_statements.push(quote!(query.push_str(" ");))
-        }
-
         edgeql_statements.push(meta.result_quote());
+
+        match self.filter_statement {
+            FilterStatement::NoFilter => {}
+            _ => {
+                if meta.has_result() {
+                    edgeql_statements.push(quote!(query.push_str(" ");));
+                }
+            }
+        }
 
         edgeql_statements.extend(self.filter_statement.edgeql_statements(table_name.clone(), false));
 
@@ -74,10 +80,12 @@ impl Query for SelectQuery {
 
         Ok(QueryImplBuilder {
             struct_name: self.ident.clone(),
+            table_name: Some(table_name.clone()),
             fields,
-            init_edgeql: format!("{SELECT} {table_name}"),
+            query_type: QueryType::Select,
             static_const_check_statements,
             edgeql_statements,
+            has_result: false
         })
     }
 }

@@ -5,6 +5,7 @@ pub const SCALAR_TYPE: &str = "$scalar_type$";
 pub const EDGEQL: &str = "$edgeql$";
 pub const INF_SIGN: &str = "<";
 pub const SUP_SIGN: &str = ">";
+pub const AT: &str = "@";
 pub const ID: &str= "id";
 // endregion other
 
@@ -14,10 +15,8 @@ pub const VEC: &str = "Vec";
 // endregion
 
 // region query types
-pub const INSERT: &str = "insert";
 pub const SELECT: &str = "select";
-pub const DELETE: &str = "delete";
-pub const UPDATE: &str = "update";
+
 // endregion query types
 
 // region metadata
@@ -26,6 +25,7 @@ pub const MODULE: &str = "module";
 pub const TABLE: &str = "table";
 pub const RESULT: &str = "result";
 pub const SRC: &str = "src";
+pub const ON: &str = "on";
 // endregion metadata
 
 // region tags
@@ -51,6 +51,7 @@ pub const WRAPPER_FN: &str = "wrapper_fn";
 pub const COLUMN_NAME: &str = "column_name";
 pub const DEFAULT_VALUE: &str = "default_value";
 pub const SET_OPTION: &str = "option";
+pub const LINK_PROPERTY: &str = "link_property";
 
 pub const NESTED_QUERY: &str = "nested_query";
 
@@ -94,6 +95,8 @@ pub const CONCAT: &str = "concat";
 pub const CONCAT_SIGN: &str = "++";
 pub const PUSH: &str = "push";
 pub const PUSH_SIGN: &str = "+=";
+pub const REMOVE: &str = "remove";
+pub const REMOVE_SIGN: &str = "-=";
 // endregion setOption
 
 // region patterns
@@ -121,7 +124,12 @@ pub const INVALID_INSERT_TAG: &str = r#"
 "#;
 pub const INVALID_FIELD_TAG: &str = r#"
     Invalid field tag option.
-    Expected "column_name" , "param" or "scalar"
+    Expected "column_name" , "param", "scalar" or "link_property"
+"#;
+
+pub const INVALID_UNLESS_CONFLICT_TAG: &str = r#"
+    Invalid unless conflict tag option.
+    Expected "on"
 "#;
 
 pub const INVALID_BACKLINK_TAG: &str = r#"
@@ -156,7 +164,7 @@ pub const INVALID_SET_TAG_OPTION: &str = r#"
 
 pub const INVALID_RESULT_FIELD_TAG: &str = r#"
     Invalid result's field tag.
-    Expected "field", "back_link" or nothing
+    Expected "field", "back_link" or "link_property"
 "#;
 
 pub const INVALID_ENUM_VARIANT_TAG: &str = r#"
@@ -181,10 +189,12 @@ pub const INVALID_SETS_TAG: &str = r#"
 "#;
 
 pub const PUSH_OPTION_ONLY_FOR_VEC: &str = "Push option only accepts a Vec type";
+pub const REMOVE_OPTION_ONLY_FOR_VEC: &str = "Remove option only accepts a Vec type";
 
 pub const EXPECT_LIT_OR_NAMED_LIT: &str = "Expected a literal or a named string literal";
 pub const EXPECT_NAMED_LIT: &str = "Expected a named string literal";
 pub const EXPECT_LIT_STR: &str = "Expected a string literal";
+pub const EXPECT_LIT_BOOL: &str = "Expected a boolean literal";
 
 pub const INVALID_TYPE_TUPLE_FOR_OPERATOR: &str = "Invalid type () for operator";
 
