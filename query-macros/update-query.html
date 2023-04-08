@@ -201,13 +201,13 @@
             filter: &quot;%oe&quot;.to_owned()
         };
     
-        let edge_query: EdgeQuery = update_person.to_edge_query();
+        let edge_query: EdgeQuery = update_person.to_edge_query_with_cardinality(Cardinality::One);
     
         let args = &amp;edge_query.args.unwrap();
     
         let query = edge_query.query.as_str();
     
-        if let Some(result) = client.query_single::&lt;BasicResult, _&gt;(query, args).await? {
+        if let Some(result) = client.query_required_single::&lt;BasicResult, _&gt;(query, args).await? {
             assert_ne!(result.id.to_string(), String::default())
         } else {
             unreachable!()
