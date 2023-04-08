@@ -2,7 +2,7 @@
 #[cfg(test)]
 mod tests {
     use edgedb_query_derive::{file_query, insert_query};
-    use edgedb_query::{*, models::query_result::BasicResult};
+    use edgedb_query::*;
     use rstest::*;
 
 
@@ -55,9 +55,6 @@ mod tests {
             &q.args.unwrap()
         ).await;
 
-        match r {
-            Err(e) => println!("{:#?}", e),
-            _ => {}
-        }
+        if let Err(e) = r { println!("{:#?}", e) }
     }
 }

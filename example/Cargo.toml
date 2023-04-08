@@ -11,10 +11,10 @@ path = "src/main.rs"
 
 [dependencies]
 
-#edgedb-query = "0.1.8"
+#edgedb-query = "0.2".
 edgedb-query = { path = "../edgedb-query"}
 
-#edgedb-query-derive = "0.1.9"
+#edgedb-query-derive = "0.2"
 edgedb-query-derive = { path = "../edgedb-query-derive"}
 
 anyhow = "1.0.58"
