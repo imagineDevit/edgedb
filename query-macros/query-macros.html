@@ -157,9 +157,44 @@
 <div class="table-wrapper"><table><thead><tr><th>Argument</th><th>Optional</th><th>Description</th></tr></thead><tbody>
 <tr><td>module</td><td>yes</td><td>The name of the edgeDB module on which the query is executed.<br> <br/> <em><strong>By default</strong></em>: 'default'</td></tr>
 <tr><td>table</td><td>no</td><td>The name of the edgeDB table on which the query is executed.<br></td></tr>
-<tr><td>result</td><td>yes</td><td>The query result type.<br> <br/><em><strong>By default</strong></em>: <a href="https://github.com/imagineDevit/edgedb/blob/main/edgedb-query/src/models/query_result.rs">BasicResult</a></td></tr>
+<tr><td>result</td><td>yes</td><td>The query result type.<br> <br/><em><strong>By default</strong></em>: <a href="https://docs.rs/edgedb-query/0.2.2/edgedb_query/models/query_result/struct.BasicResult.html">BasicResult</a></td></tr>
 </tbody></table>
 </div>
+<p>When a struct is decorated with one of those queries macro attributes, several trait implementations are created for this one:</p>
+<ul>
+<li><a href="https://docs.rs/edgedb-query/0.2.2/edgedb_query/trait.ToEdgeQl.html">ToEdgeQl</a></li>
+<li><a href="https://docs.rs/edgedb-query/0.2.2/edgedb_query/trait.ToEdgeValue.html">ToEdgeValue</a></li>
+<li><a href="https://docs.rs/edgedb-query/0.2.2/edgedb_query/models/edge_query/trait.ToEdgeQuery.html">ToEdgeQuery</a></li>
+<li><a href="https://docs.rs/edgedb-query/0.2.2/edgedb_query/trait.ToEdgeScalar.html">ToEdgeScalar</a></li>
+<li><a href="">ToString</a></li>
+</ul>
+<p>The following example shows how to get a parameterized query from a struct decorated with a query macro attribute ( #[insert_query] for example) :</p>
+<p>Consider the following struct 👇:</p>
+<pre><code class="language-rust">    #[insert_query(module=&quot;humans&quot;, table=&quot;Person&quot;)]
+    pub struct InsertPerson {
+        pub name: String,
+        pub age: i8
+    }</code></pre>
+<p>To get a parameterized query from this struct, we can write the following code:</p>
+<pre><code class="language-rust">    #[tokio::main]
+    fn main() -&gt; Result&lt;()&gt;{
+        let insert_person = InsertPerson {
+            name: &quot;John&quot;.to_string(),
+            age: 20
+        };
+        
+        let edge_query: EdgeQuery = insert_person.to_edge_query();
+    
+    }
+</code></pre>
+<p><code>to_edge_query()</code> ( from <a href="https://docs.rs/edgedb-query/0.2.2/edgedb_query/models/edge_query/trait.ToEdgeQuery.html">ToEdgeQuery</a> trait ) method returns a <a href="https://docs.rs/edgedb-query/0.2.2/edgedb_query/models/edge_query/struct.EdgeQuery.html">EdgeQuery</a> struct that contains the query string and the query parameters.</p>
+<p>The query's cardinality (<code>Cardinality::Many</code> by default) can also be set while getting the query by calling <code>to_edge_query_with_cardinality()</code> method instead of <code>to_edge_query()</code>.</p>
+<pre><code class="language-rust">    let edge_query: EdgeQuery = insert_person.to_edge_query_with_cardinality(Cardinality::One);</code></pre>
+<p>With the got query, we can now execute request using edgedb-client like this:</p>
+<pre><code class="language-rust">     if let EdgeQuery{ query, args: Some(params), .. } = edge_query {
+         let result: BasicResult = client.query_required_single(query.as_str(), params).await?;
+     }</code></pre>
+
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">

@@ -242,7 +242,7 @@
         pub handle_conflict: edgedb_query::queries::conflict::UnlessConflict
     }</code></pre>
 <p>The new field <em>handle_conflict</em> decorated with <a href="../inner_attributes/unless_conflict.html">#[unless_conflict]</a> tag add a <code> unless conflict on .user_name</code> statement to the query.</p>
-<p>It is possible to add an else query to the unless conflict statement by using a <a href="https://github.com/imagineDevit/edgedb/blob/main/edgedb-query/src/queries/conflict.rs">edgedb_query::queries::conflict::UnlessConflictElse&lt;T: ToEdgeQuery&gt;</a> type instead of an UnlessConflict type.</p>
+<p>It is possible to add an else query to the unless conflict statement by using a <a href="https://docs.rs/edgedb-query/0.2.2/edgedb_query/queries/conflict/struct.UnlessConflictElse.html">edgedb_query::queries::conflict::UnlessConflictElse&lt;T: ToEdgeQuery&gt;</a> type instead of an UnlessConflict type.</p>
 <pre><code class="language-rust">    #[insert_query(module=&quot;models&quot;, table=&quot;Person&quot;, result=&quot;Person&quot;)]
     pub struct InsertPerson {
         ...

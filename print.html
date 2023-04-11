@@ -343,7 +343,7 @@ The others filters should be decorated with #[and_filter] or #[or_filter].</p>
     }</code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="unless-conflict"><a class="header" href="#unless-conflict">Unless Conflict</a></h1>
 <p><em><strong>Unless Conflict</strong></em> attribute represents a <a href="https://www.edgedb.com/docs/edgeql/insert#conflicts">unless conflict else </a> statement.<br> The decorated field must by of type 
-<a href="https://github.com/imagineDevit/edgedb/blob/main/edgedb-query/src/queries/conflict.rs">edgedb_query::queries::conflict::UnlessConflict</a> or <a href="https://github.com/imagineDevit/edgedb/blob/main/edgedb-query/src/queries/conflict.rs">edgedb_query::queries::conflict::UnlessConflictElse&lt;T: ToEdgeQuery&gt;</a>.</p>
+<a href="https://docs.rs/edgedb-query/0.2.2/edgedb_query/queries/conflict/struct.UnlessConflict.html">edgedb_query::queries::conflict::UnlessConflict</a> or <a href="https://docs.rs/edgedb-query/0.2.2/edgedb_query/queries/conflict/struct.UnlessConflictElse.html">edgedb_query::queries::conflict::UnlessConflictElse&lt;T: ToEdgeQuery&gt;</a>.</p>
 <pre><code>#[unless_conflict(on)]
 </code></pre>
 <p><em><strong>on</strong></em> attribute (optional) lists conflict column's names separated by a comma.</p>
@@ -364,7 +364,7 @@ The others filters should be decorated with #[and_filter] or #[or_filter].</p>
        ...
     }</code></pre>
 <div style="break-before: page; page-break-before: always;"></div><p>#Options </p>
-<p><em><strong>Options</strong></em> attribute marks a field as a select option (order and pagination options). The decorated fied must be of type <a href="https://github.com/imagineDevit/edgedb/blob/main/edgedb-query/src/queries/select.rs">edgedb_query::queries::select::SelectOptions</a></p>
+<p><em><strong>Options</strong></em> attribute marks a field as a select option (order and pagination options). The decorated fied must be of type <a href="https://docs.rs/edgedb-query/0.2.2/edgedb_query/queries/select/struct.SelectOptions.html">edgedb_query::queries::select::SelectOptions</a></p>
 <pre><code>#[options]
 </code></pre>
 <h3 id="usage-9"><a class="header" href="#usage-9">Usage</a></h3>
@@ -569,9 +569,44 @@ The others filters should be decorated with #[and_filter] or #[or_filter].</p>
 <div class="table-wrapper"><table><thead><tr><th>Argument</th><th>Optional</th><th>Description</th></tr></thead><tbody>
 <tr><td>module</td><td>yes</td><td>The name of the edgeDB module on which the query is executed.<br> <br/> <em><strong>By default</strong></em>: 'default'</td></tr>
 <tr><td>table</td><td>no</td><td>The name of the edgeDB table on which the query is executed.<br></td></tr>
-<tr><td>result</td><td>yes</td><td>The query result type.<br> <br/><em><strong>By default</strong></em>: <a href="https://github.com/imagineDevit/edgedb/blob/main/edgedb-query/src/models/query_result.rs">BasicResult</a></td></tr>
+<tr><td>result</td><td>yes</td><td>The query result type.<br> <br/><em><strong>By default</strong></em>: <a href="https://docs.rs/edgedb-query/0.2.2/edgedb_query/models/query_result/struct.BasicResult.html">BasicResult</a></td></tr>
 </tbody></table>
-</div><div style="break-before: page; page-break-before: always;"></div><h1 id="insertquery"><a class="header" href="#insertquery">InsertQuery</a></h1>
+</div>
+<p>When a struct is decorated with one of those queries macro attributes, several trait implementations are created for this one:</p>
+<ul>
+<li><a href="https://docs.rs/edgedb-query/0.2.2/edgedb_query/trait.ToEdgeQl.html">ToEdgeQl</a></li>
+<li><a href="https://docs.rs/edgedb-query/0.2.2/edgedb_query/trait.ToEdgeValue.html">ToEdgeValue</a></li>
+<li><a href="https://docs.rs/edgedb-query/0.2.2/edgedb_query/models/edge_query/trait.ToEdgeQuery.html">ToEdgeQuery</a></li>
+<li><a href="https://docs.rs/edgedb-query/0.2.2/edgedb_query/trait.ToEdgeScalar.html">ToEdgeScalar</a></li>
+<li><a href="query-macros/">ToString</a></li>
+</ul>
+<p>The following example shows how to get a parameterized query from a struct decorated with a query macro attribute ( #[insert_query] for example) :</p>
+<p>Consider the following struct 👇:</p>
+<pre><code class="language-rust">    #[insert_query(module=&quot;humans&quot;, table=&quot;Person&quot;)]
+    pub struct InsertPerson {
+        pub name: String,
+        pub age: i8
+    }</code></pre>
+<p>To get a parameterized query from this struct, we can write the following code:</p>
+<pre><code class="language-rust">    #[tokio::main]
+    fn main() -&gt; Result&lt;()&gt;{
+        let insert_person = InsertPerson {
+            name: &quot;John&quot;.to_string(),
+            age: 20
+        };
+        
+        let edge_query: EdgeQuery = insert_person.to_edge_query();
+    
+    }
+</code></pre>
+<p><code>to_edge_query()</code> ( from <a href="https://docs.rs/edgedb-query/0.2.2/edgedb_query/models/edge_query/trait.ToEdgeQuery.html">ToEdgeQuery</a> trait ) method returns a <a href="https://docs.rs/edgedb-query/0.2.2/edgedb_query/models/edge_query/struct.EdgeQuery.html">EdgeQuery</a> struct that contains the query string and the query parameters.</p>
+<p>The query's cardinality (<code>Cardinality::Many</code> by default) can also be set while getting the query by calling <code>to_edge_query_with_cardinality()</code> method instead of <code>to_edge_query()</code>.</p>
+<pre><code class="language-rust">    let edge_query: EdgeQuery = insert_person.to_edge_query_with_cardinality(Cardinality::One);</code></pre>
+<p>With the got query, we can now execute request using edgedb-client like this:</p>
+<pre><code class="language-rust">     if let EdgeQuery{ query, args: Some(params), .. } = edge_query {
+         let result: BasicResult = client.query_required_single(query.as_str(), params).await?;
+     }</code></pre>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="insertquery"><a class="header" href="#insertquery">InsertQuery</a></h1>
 <pre><code>    #[insert_query(module, table, result)] {
         #[field]
         #[nested_query]
@@ -669,7 +704,7 @@ The others filters should be decorated with #[and_filter] or #[or_filter].</p>
         pub handle_conflict: edgedb_query::queries::conflict::UnlessConflict
     }</code></pre>
 <p>The new field <em>handle_conflict</em> decorated with <a href="query-macros/../inner_attributes/unless_conflict.html">#[unless_conflict]</a> tag add a <code> unless conflict on .user_name</code> statement to the query.</p>
-<p>It is possible to add an else query to the unless conflict statement by using a <a href="https://github.com/imagineDevit/edgedb/blob/main/edgedb-query/src/queries/conflict.rs">edgedb_query::queries::conflict::UnlessConflictElse&lt;T: ToEdgeQuery&gt;</a> type instead of an UnlessConflict type.</p>
+<p>It is possible to add an else query to the unless conflict statement by using a <a href="https://docs.rs/edgedb-query/0.2.2/edgedb_query/queries/conflict/struct.UnlessConflictElse.html">edgedb_query::queries::conflict::UnlessConflictElse&lt;T: ToEdgeQuery&gt;</a> type instead of an UnlessConflict type.</p>
 <pre><code class="language-rust">    #[insert_query(module=&quot;models&quot;, table=&quot;Person&quot;, result=&quot;Person&quot;)]
     pub struct InsertPerson {
         ...
