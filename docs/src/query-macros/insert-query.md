@@ -130,7 +130,7 @@ To handle this case we need to use an [_unless conflict_](https://www.edgedb.com
 
 The new field _handle_conflict_ decorated with [#[unless_conflict]](../inner_attributes/unless_conflict.md) tag add a ``` unless conflict on .user_name``` statement to the query.
 
-It is possible to add an else query to the unless conflict statement by using a [edgedb_query::queries::conflict::UnlessConflictElse<T: ToEdgeQuery>](https://github.com/imagineDevit/edgedb/blob/main/edgedb-query/src/queries/conflict.rs) type instead of an UnlessConflict type.
+It is possible to add an else query to the unless conflict statement by using a [edgedb_query::queries::conflict::UnlessConflictElse<T: ToEdgeQuery>](https://docs.rs/edgedb-query/0.2.2/edgedb_query/queries/conflict/struct.UnlessConflictElse.html) type instead of an UnlessConflict type.
 
 ````rust
     #[insert_query(module="models", table="Person", result="Person")]
