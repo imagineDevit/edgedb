@@ -12,7 +12,7 @@ use crate::edgedb_enum::EdgedbEnum;
 use crate::edgedb_filters::EdgedbFilters;
 use crate::edgedb_sets::EdgedbSets;
 use crate::file_query::FileQuery;
-use crate::meta_data::SrcFile;
+use crate::meta_data::{SrcFile, SrcValue};
 use crate::query_result::QueryResult;
 use crate::select_query::SelectQuery;
 use crate::update_query::UpdateQuery;
@@ -321,6 +321,7 @@ pub fn delete_query(attr: TokenStream, item: TokenStream) -> TokenStream {
 ///
 ///         let add_user = AddUser {
 ///             name: "Joe".to_string(),
+///             age: 18,
 ///             friend: "Henri".to_string(),
 ///         };
 ///
@@ -337,7 +338,67 @@ pub fn file_query(attr: TokenStream, item: TokenStream) -> TokenStream {
 
     let meta = parse_macro_input!(attr as SrcFile);
 
-    parse_macro_input!(item as FileQuery)
+    parse_macro_input!(item as FileQuery<SrcFile>)
+        .with_meta(meta)
+        .validate()
+        .and_then(|q| q.to_token_stream())
+        .unwrap_or_else(|e| e.to_compile_error().into())
+}
+
+/// Create an edgeDB query based on a source file
+///
+/// ## Usage
+
+/// ```rust
+///     use edgedb_query_derive::{query};
+///     use edgedb_query::BasicResult;
+///     use edgedb_query::models::edge_query::ToEdgeQuery;
+///
+///     #[query(value=r#"
+///         insert users::User {
+///             name := <str>$user_name,
+///             age := <int16>$age,
+///             friend := (
+///                 select users::User {
+///                     name,
+///                     age,
+///                 }
+///             filter .name = <str>$friend_name
+///             )
+///         }"#
+///     )]
+///     pub struct AddUser {
+///         #[param("user_name")]
+///         pub name: String,
+///         pub age: i8,
+///         #[param("friend_name")]
+///         pub friend: String,
+///     }
+///
+///     async fn main() {
+///
+///         let client = edgedb_tokio::create_client().await.unwrap();
+///
+///         let add_user = AddUser {
+///             name: "Joe".to_string(),
+///             age: 18,
+///             friend: "Henri".to_string(),
+///         };
+///
+///         let query = add_user.to_edge_query();
+///
+///         let result = client
+///                 .query_single::<BasicResult, _>(query.query.as_str(), &query.args.unwrap())
+///                 .await
+///                 .unwrap();
+///     }
+/// ```
+#[proc_macro_attribute]
+pub fn query(attr: TokenStream, item: TokenStream) -> TokenStream {
+
+    let meta = parse_macro_input!(attr as SrcValue);
+
+    parse_macro_input!(item as FileQuery<SrcValue>)
         .with_meta(meta)
         .validate()
         .and_then(|q| q.to_token_stream())

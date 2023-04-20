@@ -5,10 +5,10 @@ use proc_macro2::Span;
 use quote::{quote, ToTokens};
 use syn::{Ident, parse::{Parse, ParseStream}, Token};
 
-use crate::constants::{BASIC_RESULT, DEFAULT_MODULE, EXPECT_LIT, EXPECT_META, EXPECT_NON_EMPTY_LIT, EXPECT_SRC, EXPECT_TABLE, MODULE, RESULT, SRC, TABLE, UNSUPPORTED_ATTRIBUTE};
+use crate::constants::{BASIC_RESULT, DEFAULT_MODULE, EXPECT_LIT, EXPECT_META, EXPECT_NON_EMPTY_LIT, EXPECT_SRC, EXPECT_TABLE, MODULE, RESULT, SRC, VALUE, TABLE, UNSUPPORTED_ATTRIBUTE, EXPECT_VALUE};
 
 macro_rules! add_meta {
-    ($param_name: ident, $param_value: ident, $builder: ident, $with_result: ident, $with_src: ident) => {
+    ($param_name: ident, $param_value: ident, $builder: ident, $with_result: ident, $with_src: ident, $with_value: ident) => {
         let value = $param_value.clone();
          match $param_value {
              syn::Lit::Str(s) => {
@@ -18,7 +18,7 @@ macro_rules! add_meta {
                          EXPECT_NON_EMPTY_LIT
                      ));
                  } else {
-                    $builder.arg(DataType::try_from(($param_name, $with_result, $with_src))?, s.value());
+                    $builder.arg(DataType::try_from(($param_name, $with_result, $with_src, $with_value))?, s.value());
                  }
              },
              _ => {
@@ -36,7 +36,28 @@ trait Builder {
 
     fn arg(&mut self, meta: DataType, value: String);
 
-    fn build(self) -> syn::Result<Self::T>;
+    fn build(&self) -> syn::Result<Self::T>;
+
+    fn parse(&mut self, input: ParseStream,  with_result: bool, with_src: bool, with_value: bool) -> syn::Result<Self::T> {
+        loop {
+            if !input.peek(Ident) { break; }
+
+            let param_name = input.parse::<Ident>()?;
+
+            input.parse::<Token![=]>()?;
+
+            let param_value = input.parse::<syn::Lit>()?;
+
+            add_meta!(param_name, param_value, self, with_result, with_src, with_value);
+
+            if !input.peek(Token![,]) {
+                break;
+            }
+
+            input.parse::<Token![,]>()?;
+        }
+        self.build()
+    }
 }
 
 // region DataType
@@ -45,13 +66,14 @@ enum DataType {
     Module,
     Table,
     Result,
-    Src
+    Src,
+    Value
 }
 
-impl TryFrom<(Ident, bool, bool)> for DataType {
+impl TryFrom<(Ident, bool, bool, bool)> for DataType {
     type Error = syn::Error;
 
-    fn try_from((value, with_result, with_src): (Ident, bool, bool)) -> Result<Self, Self::Error> {
+    fn try_from((value, with_result, with_src, with_value): (Ident, bool, bool, bool)) -> Result<Self, Self::Error> {
 
         match value.to_string().as_str() {
             MODULE => Ok(DataType::Module),
@@ -70,6 +92,13 @@ impl TryFrom<(Ident, bool, bool)> for DataType {
                     Err(syn::Error::new_spanned(value.to_token_stream(), format!("{UNSUPPORTED_ATTRIBUTE} `{value}`")))
                 }
             },
+            VALUE => {
+                if with_value {
+                    Ok(DataType::Value)
+                } else {
+                    Err(syn::Error::new_spanned(value.to_token_stream(), format!("{UNSUPPORTED_ATTRIBUTE} `{value}`")))
+                }
+            }
             _ => Err(syn::Error::new_spanned(value.to_token_stream(), format!("{UNSUPPORTED_ATTRIBUTE} `{value}`")))
         }
     }
@@ -91,27 +120,7 @@ impl TableInfo {
 
 impl Parse for TableInfo {
     fn parse(input: ParseStream) -> syn::Result<Self> {
-        let mut builder = TableInfoBuilder::default();
-
-        loop {
-            if !input.peek(Ident) { break; }
-
-            let param_name = input.parse::<Ident>()?;
-
-            input.parse::<Token![=]>()?;
-
-            let param_value = input.parse::<syn::Lit>()?;
-
-            add_meta!(param_name, param_value, builder, false, false);
-
-            if !input.peek(Token![,]) {
-                break;
-            }
-
-            input.parse::<Token![,]>()?;
-        }
-
-        builder.build()
+        TableInfoBuilder::default().parse(input,  false, false, false)
     }
 }
 // endregion TableInfo
@@ -134,10 +143,10 @@ impl Builder for TableInfoBuilder {
         }
     }
 
-    fn build(self) -> syn::Result<Self::T> {
-        if let Some(table) = self.table {
+    fn build(&self) -> syn::Result<Self::T> {
+        if let Some(table) = self.table.clone() {
             Ok(TableInfo {
-                module: self.module.unwrap_or(DEFAULT_MODULE.to_owned()),
+                module: self.module.clone().unwrap_or(DEFAULT_MODULE.to_owned()),
                 table,
             })
         } else {
@@ -192,27 +201,7 @@ impl QueryMetaData {
 
 impl Parse for QueryMetaData {
     fn parse(input: ParseStream) -> syn::Result<Self> {
-        let mut builder = QueryMetaDataBuilder::default();
-
-        loop {
-            if !input.peek(Ident) { break; }
-
-            let param_name = input.parse::<Ident>()?;
-
-            input.parse::<Token![=]>()?;
-
-            let param_value = input.parse::<syn::Lit>()?;
-
-            add_meta!(param_name, param_value, builder, true, false);
-
-            if !input.peek(Token![,]) {
-                break;
-            }
-
-            input.parse::<Token![,]>()?;
-        }
-
-        builder.build()
+       QueryMetaDataBuilder::default().parse(input,true, false, false)
     }
 }
 
@@ -236,22 +225,29 @@ impl Builder for QueryMetaDataBuilder {
         }
     }
 
-    fn build(self) -> syn::Result<Self::T> {
+    fn build(&self) -> syn::Result<Self::T> {
         Ok(QueryMetaData {
             meta: self.meta_builder.build()?,
-            result: self.result,
+            result: self.result.clone(),
         })
     }
 }
 
 // endregion QueryMetaDataBuilder
 
+// region SrcQuery
+
+pub trait SrcQuery {
+    fn get_content(&self, ident: &Ident) -> syn::Result<String>;
+}
+
+
 // region SrcFile
 #[derive(Debug, Clone)]
 pub struct SrcFile(pub(crate) String);
 
-impl SrcFile {
-    pub fn get_content(&self, ident: &Ident) -> syn::Result<String> {
+impl SrcQuery for SrcFile {
+    fn get_content(&self, ident: &Ident) -> syn::Result<String> {
 
         let mut s = String::default();
 
@@ -297,31 +293,9 @@ impl SrcFile {
 
 impl Parse for SrcFile {
     fn parse(input: ParseStream) -> syn::Result<Self> {
-        let mut builder = SrcFileBuilder::default();
-
-        loop {
-            if !input.peek(Ident) { break; }
-
-            let param_name = input.parse::<Ident>()?;
-
-            input.parse::<Token![=]>()?;
-
-            let param_value = input.parse::<syn::Lit>()?;
-
-            add_meta!(param_name, param_value, builder, false, true);
-
-            if !input.peek(Token![,]) {
-                break;
-            }
-
-            input.parse::<Token![,]>()?;
-        }
-
-        builder.build()
+        SrcFileBuilder::default().parse(input,false, true, false)
     }
 }
-
-
 // endregion SrcFile
 
 // region SrcFileBuilder
@@ -339,8 +313,8 @@ impl Builder for SrcFileBuilder {
         }
     }
 
-    fn build(self) -> syn::Result<Self::T> {
-        if let Some(src) = self.src {
+    fn build(&self) -> syn::Result<Self::T> {
+        if let Some(src) = self.src.clone() {
             Ok(SrcFile(src))
         } else {
             Err(syn::Error::new_spanned(
@@ -352,6 +326,54 @@ impl Builder for SrcFileBuilder {
 }
 
 // endregion SrcFileBuilder
+
+#[derive(Debug, Clone)]
+pub struct SrcValue(String);
+
+impl SrcQuery for SrcValue {
+    fn get_content(&self, ident: &Ident) -> syn::Result<String> {
+        let value = self.0.clone();
+        if value.is_empty() {
+            return Err(syn::Error::new_spanned(ident.to_token_stream(), "Query value cannot be empty"))
+        }
+        Ok(value)
+    }
+}
+
+#[derive(Default)]
+pub struct SrcValueBuilder {
+    pub value: Option<String>
+}
+
+impl Builder for SrcValueBuilder {
+    type T = SrcValue;
+
+    fn arg(&mut self, meta: DataType, value: String) {
+        if let DataType::Value = meta {
+            self.value = Some(value)
+        }
+    }
+
+    fn build(&self) -> syn::Result<Self::T> {
+        if let Some(value) = self.value.clone() {
+            Ok(SrcValue(value))
+        } else {
+            Err(syn::Error::new_spanned(
+                VALUE.to_token_stream(),
+                EXPECT_VALUE,
+            ))
+        }
+    }
+}
+
+impl Parse for SrcValue {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        SrcValueBuilder::default().parse(input,false, false, true)
+    }
+}
+// endregion SrcQuery
+
+
 
 // region Common functions
 

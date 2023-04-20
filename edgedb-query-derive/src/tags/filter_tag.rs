@@ -134,7 +134,7 @@ impl FilterTagBuilder {
          if let Some(operator) = self.operator {
 
            let tag =  FilterTag {
-                operator: SelectFilterOperator::try_from((&field.ty, operator.clone()))?,
+                operator: SelectFilterOperator::try_from((&field.ty, operator, has_attribute(field,NESTED_QUERY)))?,
                 wrapper_fn: self.wrapper_fn,
             };
 
@@ -201,10 +201,10 @@ impl SelectFilterOperator {
     }
 }
 
-impl TryFrom<(&Type, LitStr)> for SelectFilterOperator {
+impl TryFrom<(&Type, LitStr, bool)> for SelectFilterOperator {
     type Error = syn::Error;
 
-    fn try_from((ty, lit): (&Type, LitStr)) -> Result<Self, Self::Error> {
+    fn try_from((ty, lit, is_nested): (&Type, LitStr, bool)) -> Result<Self, Self::Error> {
 
         let s = lit.value();
 
@@ -222,7 +222,7 @@ impl TryFrom<(&Type, LitStr)> for SelectFilterOperator {
         };
 
         let check_only_accepted_type = |ty: &Type, op: &str, tty: &str| -> syn::Result<()> {
-            if !is_type_name(&ty, tty) {
+            if !is_type_name(ty, tty) && !is_nested {
                 return Err(
                     syn::Error::new_spanned(
                         ty,

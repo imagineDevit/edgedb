@@ -1,11 +1,12 @@
 use std::convert::TryFrom;
 use syn::{Field, MetaNameValue};
 use syn::Lit::{Bool, Str};
-use crate::constants::{COLUMN_NAME, EXPECT_NON_EMPTY_LIT, FIELD, INVALID_FIELD_TAG, PARAM, SCALAR, LINK_PROPERTY, EXPECT_LIT_BOOL, EXPECT_LIT_STR, INF_SIGN, SUP_SIGN};
+use crate::constants::{COLUMN_NAME, EXPECT_NON_EMPTY_LIT, FIELD, INVALID_FIELD_TAG, PARAM, SCALAR, LINK_PROPERTY, EXPECT_LIT_BOOL, EXPECT_LIT_STR, INF_SIGN, SUP_SIGN, NESTED_QUERY, AT_LEAST_ONE_FIELD_ATTRIBUTE_EXPECTED};
 use crate::tags::{NamedValueTagBuilder, TagBuilders};
 use crate::tags::TagBuilders::FieldBuilder;
 use crate::tags::utils::{get_column_name, validate_link_property};
-use crate::utils::type_utils::{get_scalar, match_scalar};
+use crate::utils::attributes_utils::has_attribute;
+use crate::utils::type_utils::{get_scalar, get_type_name, match_scalar};
 
 // region FieldTag
 #[derive(Debug, Clone)]
@@ -105,6 +106,14 @@ impl FieldTagBuilder {
 
         validate_link_property(self.column_name.clone(), self.link_property, field)?;
 
+        let all_nones = self.column_name.is_none() 
+            && self.parameter_label.is_none() 
+            && self.scalar_type.is_none();
+        
+        if has_attribute(field, FIELD) && all_nones {
+            return Err(syn::Error::new_spanned(field, AT_LEAST_ONE_FIELD_ATTRIBUTE_EXPECTED));
+        }
+        
         let scalar_type = if let Some(mut scalar) = self.scalar_type.clone() {
             match_scalar(&field.ty, scalar.clone())?;
 
@@ -117,6 +126,8 @@ impl FieldTagBuilder {
             }
 
             scalar
+        } else if has_attribute(field, NESTED_QUERY) {
+            get_type_name(&field.ty)
         } else {
             get_scalar(&field.ty)?
         };

@@ -1,11 +1,13 @@
 
 // region other
+pub const EMPTY : &str = "";
 pub const SPACE : &str = " ";
 pub const SCALAR_TYPE: &str = "$scalar_type$";
 pub const EDGEQL: &str = "$edgeql$";
 pub const INF_SIGN: &str = "<";
 pub const SUP_SIGN: &str = ">";
 pub const AT: &str = "@";
+pub const DOLLAR: &str = "$";
 pub const ID: &str= "id";
 // endregion other
 
@@ -111,6 +113,7 @@ pub const EXPECT_NON_EMPTY_LIT: &str= "Expected a non-empty string literal";
 pub const EXPECT_LIT: &str = "Expected a string literal";
 pub const EXPECT_TABLE: &str = "Expected a table name";
 pub const EXPECT_SRC: &str = "Expected a src value";
+pub const EXPECT_VALUE: &str = "Expected a query value";
 pub const EXPECT_OPERATOR: &str = "Expected filter operator attribute `#[filter(operator = \"...\")]`";
 pub const UNSUPPORTED_ATTRIBUTE: &str = "Unsupported attribute";
 pub const FIRST_FILTER_EXPECTED: &str = "Expected first filter attribute `#[filter(...)]`";
@@ -214,6 +217,7 @@ pub const EITHER_ONE_FILTERS_OR_FILTER_TAG_EXPECTED: &str = "SelectQuery can onl
 pub const EITHER_ONE_SETS_OR_SET_TAG_EXPECTED: &str = "UpdateQuery can only have either one `sets` or one or more `set` or `nested_query` fields";
 pub const EXPECTED_AT_LEAST_ONE_SET_FIELD: &str = "UpdateQuery must have at least one field with #[set] attribute or with no attribute";
 pub const EXPECTED_ID_FIELD: &str = "Query result struct must have an id field of type uuid::Uuid";
+pub const AT_LEAST_ONE_FIELD_ATTRIBUTE_EXPECTED: &str = "At least one field attribute is expected: 'column_name', 'param' or  'scalar'";
 // endregion messages
 
 // region types

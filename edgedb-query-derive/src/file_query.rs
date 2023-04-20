@@ -4,22 +4,22 @@ use regex::Regex;
 use syn::{Field, Ident, ItemStruct};
 use syn::parse::{Parse, ParseStream};
 use edgedb_query::QueryType;
-use crate::constants::{PARAM, PARAM_PATTERN};
+use crate::constants::{DOLLAR, EMPTY, PARAM, PARAM_PATTERN};
 use crate::builders::impl_builder::{FieldCat, QueryImplBuilder, ImplBuilderField};
-use crate::meta_data::{SrcFile, try_get_meta};
+use crate::meta_data::{SrcQuery, try_get_meta};
 use crate::queries::{Query, QueryField};
 use crate::tags::{build_tags_from_field, Tagged};
 use crate::tags::param_tag::{ParamTag, ParamTagBuilder};
 use crate::tags::TagBuilders::ParamBuilder;
 
 #[derive(Debug, Clone)]
-pub struct FileQuery {
+pub struct FileQuery<T: SrcQuery> {
     pub ident: Ident,
-    pub meta: Option<SrcFile>,
+    pub meta: Option<T>,
     pub params: Vec<ParamField>
 }
 
-impl FileQuery {
+impl <T: SrcQuery + Clone> FileQuery<T> {
     pub fn new(ident: Ident) -> Self {
         Self {
             ident,
@@ -28,7 +28,7 @@ impl FileQuery {
         }
     }
 
-    pub fn with_meta(&mut self, meta: SrcFile) -> &mut Self {
+    pub fn with_meta(&mut self, meta: T) -> &mut Self {
         self.meta = Some(meta);
         self
     }
@@ -48,9 +48,8 @@ impl FileQuery {
             .map(|f| f.param())
             .collect::<Vec<String>>();
 
-
         let param_matches = param_matches.iter()
-            .map(|s| s.replace("$", ""))
+            .map(|s| s.replace(DOLLAR, EMPTY))
             .collect::<Vec<String>>();
 
         let struct_params_not_query = params_values.clone().into_iter()
@@ -58,25 +57,21 @@ impl FileQuery {
             .collect::<Vec<String>>();
 
         let query_params_not_struct = param_matches.clone().into_iter()
-            .filter(|s| !params_values.contains(&s.replace("$", "")))
+            .filter(|s| !params_values.contains(&s.replace(DOLLAR, EMPTY)))
             .collect::<Vec<String>>();
 
-        if struct_params_not_query.len() > 0 {
+        if !struct_params_not_query.is_empty() {
             return Err(
                 syn::Error::new_spanned(
                     self.ident.clone(),
-                    format!(r"
-                    Following struct attributes do not appear as query parameters : {:#?}
-                ",struct_params_not_query),
+                    format!("Following struct attributes do not appear as query parameters : {struct_params_not_query:#?}"),
                 )
             )
-        } else if query_params_not_struct.len() > 0 {
+        } else if !query_params_not_struct.is_empty() {
             return Err(
                 syn::Error::new_spanned(
                     self.ident.clone(),
-                    format!(r"
-                    Following query parameters do not appear as struct attribute : {:#?}
-                ",query_params_not_struct),
+                    format!("Following query parameters do not appear as struct attribute : {query_params_not_struct:#?}"),
                 )
             )
         } else if param_matches != params_values {
@@ -91,7 +86,7 @@ impl FileQuery {
     }
 }
 
-impl Query for FileQuery {
+impl <T: SrcQuery + Clone> Query for FileQuery<T> {
     fn get_param_labels(&self) -> Vec<(Ident, String)> {
         self.params.iter()
             .map(|f| (f.field.ident.clone(), f.param()))
@@ -126,7 +121,7 @@ impl Query for FileQuery {
     }
 }
 
-impl Parse for FileQuery {
+impl <T: SrcQuery + Clone> Parse for FileQuery<T> {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         let strukt = input.parse::<ItemStruct>()?;
 

@@ -7,14 +7,50 @@ use syn::punctuated::Iter;
 use crate::constants::*;
 use crate::builders::impl_builder::{FieldCat, ImplBuilderField};
 use crate::queries::{check_duplicate_parameter_labels, QueryField};
+use crate::statements::nested_query::{NestedQueryField, NestedQueryParentType};
 use crate::tags::{build_tags_from_field, Tagged};
 use crate::tags::field_tag::{FieldTag, FieldTagBuilder};
 use crate::tags::filter_tag::{FilterTagBuilder, FilterTags};
 use crate::tags::TagBuilders::{FieldBuilder, FilterBuilder};
 use crate::utils::attributes_utils::{has_any_attribute, has_attribute, has_none_attribute};
 use crate::utils::derive_utils::{nested_element_shape, nested_element_value};
-use crate::utils::type_utils::get_scalar;
+use crate::utils::type_utils::{get_scalar, get_type_name};
 
+#[derive(Debug, Clone)]
+pub enum QueryFilterStatement {
+    SimpleField(QueryFilter),
+    NestedQuery(NestedQueryField)
+}
+
+impl QueryFilterStatement {
+    pub fn field(&self) -> QueryField {
+        match self {
+            QueryFilterStatement::SimpleField(qf) => qf.field.clone(),
+            QueryFilterStatement::NestedQuery(nq) => nq.field.clone()
+        }
+    }
+
+    pub fn field_tag(&self) -> FieldTag {
+        match self {
+            QueryFilterStatement::SimpleField(qf) => qf.field_tag.clone(),
+            QueryFilterStatement::NestedQuery(nq) => nq.filter.as_ref().map(|f| f.field_tag.clone()).unwrap()
+        }
+    }
+
+    pub fn build_statement(&self, table_name: impl Into<String>) -> syn::Result<String> {
+        match self {
+            QueryFilterStatement::SimpleField(qf) => qf.build_statement(table_name, false),
+            QueryFilterStatement::NestedQuery(nq) => nq.build_statement()
+        }
+    }
+
+    pub fn push_to_query_quote(&self, filter_stmt: String,  from_filters: bool) -> proc_macro2::TokenStream {
+        match self {
+            QueryFilterStatement::SimpleField(f) => f.push_to_query_quote(filter_stmt, from_filters),
+            QueryFilterStatement::NestedQuery(nq) => nq.query_statement_quote()
+        }
+    }
+}
 
 // region QueryFilter
 #[derive(Debug, Clone)]
@@ -25,10 +61,10 @@ pub struct QueryFilter {
 }
 
 impl QueryFilter {
-    pub fn build_statement(&self, table_name: impl Into<String>) -> syn::Result<String> {
+    pub fn build_statement(&self, table_name: impl Into<String>, is_nested: bool) -> syn::Result<String> {
         let filter_operator = self.filter_tag.operator();
         let symbol = filter_operator.statement();
-        let ty = get_scalar(&self.field.ty)?;
+        let ty = if is_nested {  get_type_name(&self.field.ty) } else { get_scalar(&self.field.ty)? };
         let column_name = self.field_tag.column_name.clone();
         let param = self.field_tag.parameter_label.clone();
         let table_name = table_name.into();
@@ -43,7 +79,12 @@ impl QueryFilter {
         if filter_operator.check_exist() {
             Ok(format!("{conjunctive}{SPACE}{symbol}{SPACE}{table_name}.{column_name}"))
         } else {
-            Ok(format!("{conjunctive}{SPACE}{wrapped_field_name}{SPACE}{symbol}{SPACE}({SELECT}{SPACE}{ty}${param})"))
+            let param_stmt = if is_nested {
+                EDGEQL.to_string()
+            } else {
+                format!("{SELECT}{SPACE}{ty}${param}")
+            };
+            Ok(format!("{conjunctive}{SPACE}{wrapped_field_name}{SPACE}{symbol}{SPACE}({param_stmt})"))
         }
     }
 
@@ -75,7 +116,7 @@ impl TryFrom<(&Field, bool)> for QueryFilter {
         let filter_tag_builder: FilterTagBuilder = filter_tag_builder.into();
 
         Ok(Self {
-            field: QueryField::try_from((field, vec![FIELD, FILTER, AND_FILTER, OR_FILTER]))?,
+            field: QueryField::try_from((field, vec![FIELD, FILTER, AND_FILTER, OR_FILTER, NESTED_QUERY]))?,
             field_tag: field_tag_builder.build(field)?,
             filter_tag: filter_tag_builder.build(field, first)?,
         })
@@ -106,7 +147,7 @@ impl TryFrom<&Field> for QueryFilters {
 #[derive(Debug, Clone)]
 pub enum FilterStatement {
     NoFilter,
-    ManyFilter(Vec<QueryFilter>),
+    ManyFilter(Vec<QueryFilterStatement>),
     OneFilters(QueryFilters),
 }
 
@@ -115,7 +156,7 @@ impl FilterStatement {
     pub fn get_parameter_labels(&self) -> Vec<(Ident, String)> {
         if let FilterStatement::ManyFilter(filters) = self {
             filters.iter()
-                .map(|filter| (filter.field.ident.clone(), filter.field_tag.parameter_label.clone()))
+                .map(|filter| (filter.field().ident, filter.field_tag().parameter_label))
                 .collect()
         } else {
             vec![]
@@ -126,9 +167,19 @@ impl FilterStatement {
        match self {
             FilterStatement::NoFilter => vec![],
             FilterStatement::ManyFilter(filters) => {
-                filters.iter().map(|f| ImplBuilderField {
-                    field: f.field.clone(),
-                    field_cat: FieldCat::Simple(f.field_tag.parameter_label.clone()),
+
+                filters.iter().map(|f| {
+                    match f {
+                        QueryFilterStatement::SimpleField(sf) => ImplBuilderField {
+                            field: sf.field.clone(),
+                            field_cat: FieldCat::Simple(f.field_tag().parameter_label),
+                        },
+                        QueryFilterStatement::NestedQuery(nq) => ImplBuilderField {
+                            field: nq.field.clone(),
+                            field_cat: FieldCat::Nested,
+                        }
+                    }
+
                 }).collect()
             }
             FilterStatement::OneFilters(filter) => vec![
@@ -174,11 +225,9 @@ impl FilterStatement {
 
     pub fn struct_field_quote(&self) -> proc_macro2::TokenStream {
         match self {
-            FilterStatement::NoFilter => {
-                quote!()
-            }
+            FilterStatement::NoFilter => quote!(),
             FilterStatement::ManyFilter(filters) => {
-                let fields = filters.iter().map(|f| f.field.struct_field_quote());
+                let fields = filters.iter().map(|f| f.field().struct_field_quote());
                 quote! {
                    #(#fields)*
                 }
@@ -195,7 +244,17 @@ impl FilterStatement {
             FilterStatement::NoFilter => quote!(),
             FilterStatement::ManyFilter(filters) => {
                 let shapes = filters.iter()
-                    .map(|f| f.field.field_shape_quote(f.field_tag.parameter_label.clone()));
+                    .map(|f| {
+                        match f {
+                            QueryFilterStatement::SimpleField(sf) => {
+                                sf.field.field_shape_quote(f.field_tag().parameter_label)
+                            }
+                            QueryFilterStatement::NestedQuery(nq) => {
+                                nested_element_shape(nq.field.ident.clone())
+                            }
+                        }
+
+                    });
 
                 quote! {
                     #(#shapes)*
@@ -211,14 +270,24 @@ impl FilterStatement {
             FilterStatement::NoFilter => quote!(),
             FilterStatement::ManyFilter(filters) => {
                 let shapes = filters.iter()
-                    .map(|f| f.field.field_value_quote());
+                    .map(|f| {
+                        match f {
+                            QueryFilterStatement::SimpleField(sf) => {
+                                sf.field.field_value_quote()
+                            }
+                            QueryFilterStatement::NestedQuery(nq) => {
+                                nested_element_value(nq.field.ident.clone())
+                            }
+                        }
+
+                    });
 
                 quote! {
                     #(#shapes)*
                 }
 
             }
-            FilterStatement::OneFilters(filters) => nested_element_value(filters.field.ident.clone())
+            FilterStatement::OneFilters(filters) => nested_element_value(filters.field.ident.clone()),
         }
     }
 
@@ -268,25 +337,39 @@ pub fn filters_from_fields(field_iter: Iter<Field>, exclude_tags: Vec<&str>, que
     Ok(stmt)
 }
 
-pub fn get_query_filters(field_iter: Iter<Field>, exclude_tags: Vec<&str>, query: FilterRequiredQuery, error_msg: &str, stmt: &mut FilterStatement) -> syn::Result<Vec<QueryFilter>> {
-    let mut filters: Vec<QueryFilter> = vec![];
+pub fn get_query_filters(field_iter: Iter<Field>, exclude_tags: Vec<&str>, query: FilterRequiredQuery, error_msg: &str, stmt: &mut FilterStatement) -> syn::Result<Vec<QueryFilterStatement>> {
+    let mut filters: Vec<QueryFilterStatement> = vec![];
 
     for field in field_iter {
         if !field.attrs.is_empty() && has_none_attribute(field, exclude_tags.clone()) && !has_attribute(field, FILTERS) {
             if query == FilterRequiredQuery::Update && field.attrs.len() == 1 && has_attribute(field, FIELD) {
                 continue
+            }  else if has_attribute(field, NESTED_QUERY) {
+                filters.push(QueryFilterStatement::NestedQuery(NestedQueryField::try_from((field, NestedQueryParentType::Filter(filters.is_empty())))?));
             } else if has_any_attribute(field, vec![FILTER, AND_FILTER, OR_FILTER]) {
 
                 if let FilterStatement::OneFilters(_) = stmt {
                     return Err(syn::Error::new_spanned(field, EITHER_ONE_FILTERS_OR_FILTER_TAG_EXPECTED));
                 }
 
-                filters.push(QueryFilter::try_from((field, filters.is_empty()))?);
+                filters.push(QueryFilterStatement::SimpleField(QueryFilter::try_from((field, filters.is_empty()))?));
             } else {
                 return Err(syn::Error::new_spanned(field, error_msg));
             }
         }
     }
     Ok(filters)
+}
+
+pub fn set_table_name(filter_statement: &mut FilterStatement, table_name: String) {
+
+    if let FilterStatement::ManyFilter(ref mut filters) = filter_statement {
+        filters.iter_mut()
+            .for_each(|f|{
+                if let QueryFilterStatement::NestedQuery(nq) = f {
+                    nq.set_parent_table_name(table_name.clone())
+                }
+            })
+    }
 }
 // endregion functions

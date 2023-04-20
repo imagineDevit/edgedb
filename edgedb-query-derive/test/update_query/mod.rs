@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod update {
     use edgedb_protocol::value::Value;
-    use edgedb_query_derive::{edgedb_filters, edgedb_sets, query_result, select_query, update_query};
+    use edgedb_query_derive::{edgedb_filters, edgedb_sets, query, query_result, update_query};
     use edgedb_query::models::edge_query::ToEdgeQuery;
     use edgedb_query::queries::set::Sets;
     use uuid::Uuid;
@@ -20,9 +20,9 @@ mod update {
         pub friends: FindUser
     }
 
-    #[select_query(module="users", table="User")]
+    #[query(value="select detached users::User filter users::User.surname = (select <str>$surname)")]
     pub struct FindUser {
-        #[filter(operator="Is")]
+        #[param("surname")]
         pub surname: String
     }
 

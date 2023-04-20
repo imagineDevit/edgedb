@@ -149,6 +149,7 @@ impl QueryImplBuilder {
 
         let const_check_quote = self.static_const_check_statements.clone();
 
+        let table_name = self.table_name.clone().unwrap_or(String::new());
         let struct_quote = self.build_struct();
 
         let edge_ql_impl_quote = self.build_to_edgeql_impl();
@@ -167,7 +168,7 @@ impl QueryImplBuilder {
 
             impl edgedb_query::ToEdgeScalar for #struct_name {
                 fn scalar() -> String {
-                    String::default()
+                    format!("<{}>", #table_name)
                 }
             }
 

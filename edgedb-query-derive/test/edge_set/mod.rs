@@ -16,6 +16,8 @@ mod tests {
         #[field(scalar="default::State")]
         pub status: Status,
         #[nested_query]
+        #[set(option=":=")]
+        #[field(column_name="u")]
         pub users: FindUsers
     }
 
@@ -40,7 +42,7 @@ mod tests {
             users: FindUsers { name: "Joe".to_owned() }
         };
 
-        assert_eq!("set { first_name := .first_name ++ (select <str>$user_name), status := (select <default::State>$status), users := (select users::User filter users::User.name = (select <str>$name)) }", set.to_edgeql().to_string());
+        assert_eq!("set { first_name := .first_name ++ (select <str>$user_name), status := (select <default::State>$status), u := (select users::User filter users::User.name = (select <str>$name)) }", set.to_edgeql().to_string());
 
 
         if let Value::Object { shape, fields} = set.to_edge_value() {

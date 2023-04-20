@@ -28,11 +28,9 @@ mod select {
 
         assert_eq!(edge_query.query, expected_query);
 
-        if let Some(Value::Nothing) = edge_query.args {
-            assert!(true)
-        } else {
-            assert!(false)
-        }
+        let Some(Value::Nothing) = edge_query.args else {
+            unreachable!()
+        };
     }
 
     #[select_query(module = "users", table = "User", result = "UserResult")]
@@ -41,11 +39,12 @@ mod select {
         pub name: (),
     }
 
+    
     #[test]
     pub fn filter_exists_test() {
 
         let q = FindUsersByNameExists {
-            name: (),
+            name: ()
         };
 
         let edge_query : EdgeQuery = q.to_edge_query();
@@ -187,7 +186,7 @@ mod select {
             crate::test_utils::check_shape(&shape, query_args);
             assert_eq!(fields, args_values)
         } else {
-            assert!(false)
+            unreachable!()
         }
     }
 
@@ -221,7 +220,7 @@ mod select {
                 Some(Value::Int16(q.age as i16))
             ])
         } else {
-            assert!(false)
+            unreachable!()
         }
     }
 
@@ -262,7 +261,7 @@ mod select {
                 Some(Value::Int16(q.age as i16))
             ])
         } else {
-            assert!(false)
+            unreachable!()
         }
     }
 
@@ -310,7 +309,7 @@ mod select {
                 Some(Value::Int16(q.filters.age as i16))
             ])
         } else {
-            assert!(false)
+            unreachable!()
         }
     }
 

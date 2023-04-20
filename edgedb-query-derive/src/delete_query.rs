@@ -1,11 +1,11 @@
+use edgedb_query::QueryType;
 use syn::{Ident, ItemStruct};
 use syn::parse::{Parse, ParseStream};
-use edgedb_query::QueryType;
 
-use crate::constants::*;
-use crate::{queries::Query, meta_data::{TableInfo, try_get_meta}};
+use crate::{meta_data::{TableInfo, try_get_meta}, queries::Query};
 use crate::builders::impl_builder::QueryImplBuilder;
-use crate::statements::filters::{FilterRequiredQuery, filters_from_fields, FilterStatement};
+use crate::constants::*;
+use crate::statements::filters::{FilterRequiredQuery, filters_from_fields, FilterStatement, set_table_name};
 
 #[derive(Debug, Clone)]
 pub struct DeleteQuery {
@@ -24,7 +24,8 @@ impl DeleteQuery {
     }
 
     pub fn with_meta(&mut self, meta: TableInfo) -> &mut Self {
-        self.meta = Some(meta);
+        self.meta = Some(meta.clone());
+        set_table_name(&mut self.filter_statement, meta.table_name());
         self
     }
 }
