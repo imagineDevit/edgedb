@@ -1,14 +1,14 @@
-
+use edgedb_query::QueryType;
 use quote::quote;
 use syn:: Ident;
 use syn::ItemStruct;
 use syn::parse::{Parse, ParseStream};
-use edgedb_query::QueryType;
-use crate::constants::{AND_FILTER, EXPECTED_AT_LEAST_ONE_SET_FIELD,  FILTER, FILTERS, INVALID_UPDATE_TAG, NESTED_QUERY, OR_FILTER, SET, SETS};
-use crate::meta_data::{QueryMetaData, try_get_meta};
+
 use crate::builders::impl_builder::QueryImplBuilder;
+use crate::constants::{AND_FILTER, EXPECTED_AT_LEAST_ONE_SET_FIELD, FILTER, FILTERS, INVALID_UPDATE_TAG, OR_FILTER, SET, SETS};
+use crate::meta_data::{QueryMetaData, try_get_meta};
 use crate::queries::Query;
-use crate::statements::filters::{FilterRequiredQuery, filters_from_fields, FilterStatement};
+use crate::statements::filters::{FilterRequiredQuery, filters_from_fields, FilterStatement, set_table_name};
 use crate::statements::set::{sets_from_fields, UpdateSetStatement};
 
 pub struct UpdateQuery {
@@ -31,6 +31,7 @@ impl UpdateQuery {
     pub fn with_meta(&mut self, meta: QueryMetaData) -> &mut Self {
         self.meta = Some(meta.clone());
         self.set_statement.set_parent_table_name(meta.table_name());
+        set_table_name(&mut self.filter_statement, meta.table_name());
         self
     }
 }
@@ -100,7 +101,7 @@ impl Parse for UpdateQuery {
 
         let field_iter = strukt.fields.iter();
 
-        query.filter_statement = filters_from_fields(field_iter.clone(), vec![SET, SETS, NESTED_QUERY], FilterRequiredQuery::Update, INVALID_UPDATE_TAG)?;
+        query.filter_statement = filters_from_fields(field_iter.clone(), vec![SET, SETS], FilterRequiredQuery::Update, INVALID_UPDATE_TAG)?;
 
         query.set_statement = sets_from_fields(field_iter, vec![FILTER, FILTERS, AND_FILTER, OR_FILTER], false,INVALID_UPDATE_TAG)?;
 

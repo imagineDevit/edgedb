@@ -4,7 +4,7 @@ use proc_macro2::Ident;
 use quote::{quote, ToTokens};
 use syn::Field;
 use syn::punctuated::Iter;
-use crate::constants::{EITHER_ONE_SETS_OR_SET_TAG_EXPECTED, FIELD, INVALID_UPDATE_TAG, NESTED_QUERY, ONLY_ONE_SETS_TAG_EXPECTED, SELECT, SET, SETS};
+use crate::constants::{EDGEQL, EITHER_ONE_SETS_OR_SET_TAG_EXPECTED, FIELD, INVALID_UPDATE_TAG, NESTED_QUERY, ONLY_ONE_SETS_TAG_EXPECTED, SELECT, SET, SETS};
 use crate::builders::impl_builder::{FieldCat, ImplBuilderField};
 
 use crate::queries::{check_duplicate_parameter_labels, QueryField};
@@ -27,7 +27,7 @@ impl SetStatement {
     pub fn param_field(&self) -> Option<(Ident, String)> {
         match self {
             Self::SimpleField(f) => Some((f.field.ident.clone(), f.field_tag.parameter_label.clone())),
-            Self::NestedQuery(_) => None
+            Self::NestedQuery(f) => f.set.clone().map(|s| (s.field.ident.clone(), s.field_tag.parameter_label))
         }
     }
 
@@ -85,26 +85,31 @@ pub struct UpdateSet {
     pub field: QueryField,
     pub field_tag: FieldTag,
     pub set_tag: SetTag,
-    pub is_nested: bool,
 }
 
 impl UpdateSet {
-    pub fn build_statement(&self) -> String {
+    pub fn build_statement(&self, is_nested: bool) -> String {
         let column_name = self.field_tag.column_name.clone();
         let scalar_type = self.field_tag.scalar_type.clone();
         let param = self.field_tag.parameter_label.clone();
         let assignment = self.set_tag.option.statement();
 
+        let param_stmt = if is_nested {
+            EDGEQL.to_string()
+        } else {
+            format!("{SELECT} {scalar_type}${param}")
+        };
+
         match self.set_tag.option {
-            SetOption::Assign => format!("{column_name} {assignment} ({SELECT} {scalar_type}${param}), "),
-            SetOption::Concat => format!("{column_name} := .{column_name} ++ ({SELECT} {scalar_type}${param}), "),
-            SetOption::Push => format!("{column_name} += ({SELECT} {scalar_type}${param}), "),
-            SetOption::Remove => format!("{column_name} -= ({SELECT} {scalar_type}${param}), ")
+            SetOption::Assign => format!("{column_name} {assignment} ({param_stmt}), "),
+            SetOption::Concat => format!("{column_name} := .{column_name} {assignment} ({param_stmt}), "),
+            SetOption::Push => format!("{column_name} {assignment} ({param_stmt}), "),
+            SetOption::Remove => format!("{column_name} {assignment} ({param_stmt}), ")
         }
     }
 
     pub fn add_set_statement_quote(&self) -> proc_macro2::TokenStream {
-        let stmt = self.build_statement();
+        let stmt = self.build_statement(false);
         quote! {
            set_stmt.push_str(#stmt);
         }
@@ -127,7 +132,6 @@ impl TryFrom<&Field> for UpdateSet {
             field: QueryField::try_from((field, vec![FIELD, SET, NESTED_QUERY]))?,
             field_tag: field_tag_builder.build(field)?,
             set_tag: set_tag_builder.build(field)?,
-            is_nested: has_attribute(field, NESTED_QUERY),
         })
     }
 }

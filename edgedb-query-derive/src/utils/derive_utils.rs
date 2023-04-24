@@ -53,6 +53,7 @@ pub fn element_value(f_name: Ident, field_is_option: bool) -> TokenStream {
 
 pub fn nested_element_shape(f_ident: Ident) -> TokenStream {
     quote! {
+
         match self.#f_ident.to_edge_value() {
             edgedb_protocol::value::Value::Object { shape, fields } => {
                 let elements = &shape.elements;

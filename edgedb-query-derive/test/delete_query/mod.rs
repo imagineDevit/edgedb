@@ -11,9 +11,7 @@ mod delete {
     #[test]
     pub fn delete_users_test() {
         let del_users = DeleteUsers{};
-
         let edge_query: EdgeQuery = del_users.to_edge_query();
-
         assert_eq!(edge_query.query, "delete users::User");
     }
 

@@ -40,6 +40,7 @@ impl EdgedbFilters {
 
             impl edgedb_query::queries::filter::Filter for #struct_name {
                 fn to_edgeql(&self, table_name: &str) -> String {
+                    use edgedb_query::{ToEdgeQl, EdgeQl};
                     let mut query = String::new();
                     #(#filters)*
                     query

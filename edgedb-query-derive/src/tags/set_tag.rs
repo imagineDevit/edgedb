@@ -5,6 +5,7 @@ use syn::Lit::Str;
 use crate::constants::*;
 use crate::tags::{NamedValueTagBuilder, TagBuilders};
 use crate::tags::TagBuilders::SetBuilder;
+use crate::utils::attributes_utils::has_attribute;
 use crate::utils::type_utils::is_type_name;
 
 // region SetTag
@@ -64,16 +65,16 @@ impl SetOption {
     }
 }
 
-impl TryFrom<(&Type, LitStr)> for SetOption {
+impl TryFrom<(&Type, LitStr, bool)> for SetOption {
     type Error = syn::Error;
 
-    fn try_from((ty, lit): (&Type, LitStr)) -> Result<Self, Self::Error> {
+    fn try_from((ty, lit, is_nested): (&Type, LitStr, bool)) -> Result<Self, Self::Error> {
         let s = lit.value();
         match s.to_lowercase().as_str() {
             ASSIGN | ASSIGN_SIGN => Ok(SetOption::Assign),
             CONCAT | CONCAT_SIGN => Ok(SetOption::Concat),
             PUSH | PUSH_SIGN => {
-                if is_type_name(ty, VEC) {
+                if is_type_name(ty, VEC) || is_nested {
                     Ok(SetOption::Push)
                 } else {
                     Err(syn::Error::new_spanned(lit, PUSH_OPTION_ONLY_FOR_VEC))
@@ -81,7 +82,7 @@ impl TryFrom<(&Type, LitStr)> for SetOption {
 
             },
             REMOVE | REMOVE_SIGN => {
-                if is_type_name(ty, VEC) {
+                if is_type_name(ty, VEC) || is_nested {
                     Ok(SetOption::Remove)
                 } else {
                     Err(syn::Error::new_spanned(lit, REMOVE_OPTION_ONLY_FOR_VEC))
@@ -105,7 +106,7 @@ impl SetTagBuilder {
     pub fn build(self, field: &Field) -> syn::Result<SetTag> {
         if let Some(SetTagOptions::Option(lit)) = self.option {
             Ok(SetTag {
-                option: SetOption::try_from((&field.ty, lit))?
+                option: SetOption::try_from((&field.ty, lit, has_attribute(field, NESTED_QUERY)))?
             })
         } else {
             Ok(SetTag {
