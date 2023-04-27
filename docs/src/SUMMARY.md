@@ -29,6 +29,7 @@
       - [SelectQuery](./query-macros/select-query.md)
       - [UpdateQuery](./query-macros/update-query.md)
       - [DeleteQuery](./query-macros/delete-query.md)
+      - [Query](./query-macros/query.md)
       - [FileQuery](./query-macros/file-query.md)
 
 

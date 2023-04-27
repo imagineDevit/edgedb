@@ -6,7 +6,8 @@
 - [#[select_query]](./select-query.md)
 - [#[update_query]](./update-query.md)
 - [#[delete_query]](./delete-query.md)
-- [#[file_query]](./delete-query.md)
+- [#[query]](./query.md)
+- [#[file_query]](./file-query.md)
 
 Queries attributes (except #[file_query] ) take three arguments 👇
 
