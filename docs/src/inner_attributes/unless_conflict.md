@@ -1,6 +1,6 @@
 # Unless Conflict 
 
-_**Unless Conflict**_ attribute represents a [unless conflict else ](https://www.edgedb.com/docs/edgeql/insert#conflicts) statement.<br> The decorated field must by of type 
+_**Unless Conflict**_ attribute represents a [unless conflict else ](https://www.edgedb.com/docs/edgeql/insert#conflicts) statement.<br> The decorated field must be of type 
 [edgedb_query::queries::conflict::UnlessConflict](https://docs.rs/edgedb-query/0.2.2/edgedb_query/queries/conflict/struct.UnlessConflict.html) or [edgedb_query::queries::conflict::UnlessConflictElse<T: ToEdgeQuery>](https://docs.rs/edgedb-query/0.2.2/edgedb_query/queries/conflict/struct.UnlessConflictElse.html).
 
     #[unless_conflict(on)]
